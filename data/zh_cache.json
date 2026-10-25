@@ -1,12 +1,8 @@
 {
  "_comment": "外文标题/摘要的中文译文缓存。命中即跳过翻译，省 token；由 llm.py 在接入模型后自动写入，也可手工补充。key 为原始标题的小写形式。",
- "nestle , zydus , abbott face india scrutiny over claims on children products": {
-  "summary": "印度监管机构就儿童产品宣称问题对雀巢、Zydus 与雅培展开审查。",
-  "title": "雀巢、Zydus、雅培因儿童产品宣称在印度受到审查"
- },
- "fssai clamps down on nestlé india over infant formula": {
-  "summary": "印度食品安全标准局（FSSAI）针对雀巢印度的婴幼儿配方奶粉采取监管措施。",
-  "title": "FSSAI 就婴幼儿配方奶粉问题对雀巢印度采取行动"
+ "abbott plans nutrition spinoff as q3 sales improve": {
+  "summary": "雅培宣布拟于 2027 年底前将全球营养品业务分拆为独立上市公司，此前三季度业绩表现分化。",
+  "title": "雅培计划分拆营养品业务，三季度销售改善"
  },
  "better dairy eyeing us market with gras notice": {
   "summary": "该公司利用精密发酵技术开发无动物源乳制品原料。",
@@ -37,20 +33,20 @@
   "title": "达能投资再生农业，稳固英国燕麦供应链"
  },
  "danone joins nestlé and coca-cola in labelling changes": {
-  "summary": "在欧盟委员会对“漂绿”行为展开整治后，达能跟随雀巢与可口可乐修改塑料瓶回收相关声明。",
-  "title": "达能跟进雀巢、可口可乐调整标签表述"
+  "summary": "受欧盟打击漂绿行为影响，达能加入雀巢和可口可乐行列，修订塑料瓶回收相关标签声明。",
+  "title": "达能加入雀巢和可口可乐行列，调整塑料瓶回收标签"
  },
  "danone partners in energy project to turn yogurt waste into renewable fuel": {
   "summary": "达能位于美国的最大酸奶工厂产生的废料将被转化为可再生能源，这是其可持续战略的最新动作。",
   "title": "达能参与能源项目，把酸奶废料转化为可再生燃料"
  },
- "danone positions steenvoorde as a leading european medical nutrition site and inaugurates its largest production line in france": {
-  "summary": "",
-  "title": "达能将 Steenvoorde 基地打造为欧洲领先的医学营养工厂，在法国启用最大生产线"
- },
  "danone partners on $40m facility turning yogurt waste to renewable energy": {
   "summary": "该项目由 PurposeEnergy 建设；达能同时正扩大高蛋白酸奶产能以应对需求增长。",
   "title": "达能参与 4000 万美元项目，将酸奶废料转为可再生能源"
+ },
+ "danone positions steenvoorde as a leading european medical nutrition site and inaugurates its largest production line in france": {
+  "summary": "",
+  "title": "达能将 Steenvoorde 基地打造为欧洲领先的医学营养工厂，在法国启用最大生产线"
  },
  "danone to acquire made group, expanding its presence in the fast-growing healthy nutrition space in asia pacific": {
   "summary": "",
@@ -64,6 +60,10 @@
   "summary": "菲仕兰高管 Koert Verkerk 当选欧洲乳业协会（EDA）主席。",
   "title": "荷兰皇家菲仕兰 Koert Verkerk 出任欧洲乳业协会主席"
  },
+ "fssai clamps down on nestlé india over infant formula": {
+  "summary": "印度食品安全标准局（FSSAI）针对雀巢印度的婴幼儿配方奶粉采取监管措施。",
+  "title": "FSSAI 就婴幼儿配方奶粉问题对雀巢印度采取行动"
+ },
  "global dairy blends market forecast to reach $15.4bn by 2035": {
   "summary": "乳品复配（dairy blends）市场规模持续扩张，预计 2035 年达到 154 亿美元。",
   "title": "全球乳品复配市场预计 2035 年达 154 亿美元"
@@ -72,33 +72,37 @@
   "summary": "乳清价格走高为替代蛋白让出空间，但其他蛋白在功能性上仍难以完全替代乳清。",
   "title": "乳清价格高企，替代蛋白迎来机会"
  },
+ "nestle , zydus , abbott face india scrutiny over claims on children products": {
+  "summary": "雀巢、Zydus和雅培因儿童产品宣传问题面临印度监管机构的审查。",
+  "title": "雀巢、Zydus、雅培因儿童产品宣称在印度受到审查"
+ },
  "nestle to shutter ohio production facility": {
   "summary": "雀巢将关闭俄亥俄州工厂，相关 Nestlé Professional Solutions 袋装产品产能转移至南卡罗来纳州。",
   "title": "雀巢将关闭俄亥俄州工厂"
  },
  "nestlé factory closure signals new era of industry consolidation": {
-  "summary": "雀巢关闭美国 Solon 工厂，反映其精简制造产能的思路，也代表行业向产能集中、效率提升演进。",
-  "title": "雀巢关闭工厂：乳业整合进入新阶段"
+  "summary": "雀巢关闭索伦工厂以精简制造运营，反映了食品行业向生产集中化整合的趋势。",
+  "title": "雀巢关闭索伦工厂，行业整合加速"
  },
  "nestlé launches solgar prime for fast-growing healthy-longevity market": {
   "summary": "雀巢扩充健康长寿产品线，推出高端补充剂 Solgar Prime，主打肌肉力量、活力与行动力。",
   "title": "雀巢推出 Solgar Prime，切入健康长寿赛道"
  },
  "nestlé turnaround accelerates as volume growth gains pace": {
-  "summary": "雀巢公布 2026 年三季度业绩，销量增长加快，新兴市场表现优于整体，市场对其重组战略的信心上升。",
-  "title": "雀巢重组见效：销量增长提速"
+  "summary": "雀巢第三季度业绩强劲，销量增长加速，新兴市场表现优于预期，市场对其扭亏策略信心增强。",
+  "title": "雀巢扭亏加速，销量增长提速"
  },
  "nestlé turnaround taking shape a year after new ceo": {
   "summary": "CEO 菲利普·纳夫拉蒂尔表示，产品创新与业务剥离推动北美等关键市场改善，但他对整体业绩“仍不满意”。",
   "title": "新 CEO 上任一年，雀巢重组初见成效"
  },
  "nestlé usa and gerber lawsuit puts heavy metals in baby food back in the spotlight": {
-  "summary": "婴儿食品诉讼升温，得克萨斯州就重金属污染与产品安全宣称对嘉宝提出质疑。",
-  "title": "雀巢美国与嘉宝诉讼再引关注：婴儿食品重金属问题"
+  "summary": "德州起诉嘉宝涉嫌重金属污染，婴儿食品诉讼加速，产品安全问题重回公众视野。",
+  "title": "雀巢美国与嘉宝诉讼案，重金属问题引发关注"
  },
- "abbott plans nutrition spinoff as q3 sales improve": {
-  "summary": "雅培宣布拟于 2027 年底前将全球营养品业务分拆为独立上市公司，此前三季度业绩表现分化。",
-  "title": "雅培计划分拆营养品业务，三季度销售改善"
+ "sierra nevada cheese company, inc：sierra nevada cheese graziers raw milk sharp cheddar net wt. 40 lbs item 6516 被通报召回": {
+  "summary": "疑因大肠杆菌 O26:H11 污染被召回，风险分类尚未确定。",
+  "title": "美国 Sierra Nevada Cheese 公司召回生牛乳切达奶酪（40 磅装，货号 6516）"
  },
  "study: maternal gut bacteria may help predict infant eczema": {
   "summary": "一项覆盖 700 多对母子的研究发现，婴儿早期肠道菌群主要来自母亲，共享菌株比例随月龄下降，为预测婴儿湿疹提供了线索。",
@@ -108,20 +112,16 @@
   "summary": "",
   "title": "a2 牛奶公司在 NUTRITION 2026 发布新研究，巩固 β-酪蛋白研究领先地位"
  },
- "why is saputo saying farewell to uk dairy?": {
-  "summary": "Cathedral City 曾是萨普托英国乳业资产中的核心品牌，如今该集团选择退出英国市场。",
-  "title": "萨普托为何退出英国乳业？"
+ "toji co.：cloud cafe branded collagen milk; strawberry milk zero; caffeine free; 10pc/box 被通报召回": {
+  "summary": "因未标注鱼类过敏原被召回，属 II 类风险。",
+  "title": "TOJI 公司召回 Cloud Cafe 胶原蛋白奶与草莓奶（无咖啡因，10 袋装）"
  },
  "welsh dairy farmers face margin squeeze as production costs rise": {
   "summary": "生产成本上升，威尔士奶农面临的利润压力持续加大。",
   "title": "生产成本上升，威尔士奶农利润空间被压缩"
  },
- "sierra nevada cheese company, inc：sierra nevada cheese graziers raw milk sharp cheddar net wt. 40 lbs item 6516 被通报召回": {
-  "summary": "疑因大肠杆菌 O26:H11 污染被召回，风险分类尚未确定。",
-  "title": "美国 Sierra Nevada Cheese 公司召回生牛乳切达奶酪（40 磅装，货号 6516）"
- },
- "toji co.：cloud cafe branded collagen milk; strawberry milk zero; caffeine free; 10pc/box 被通报召回": {
-  "summary": "因未标注鱼类过敏原被召回，属 II 类风险。",
-  "title": "TOJI 公司召回 Cloud Cafe 胶原蛋白奶与草莓奶（无咖啡因，10 袋装）"
+ "why is saputo saying farewell to uk dairy?": {
+  "summary": "Cathedral City 曾是萨普托英国乳业资产中的核心品牌，如今该集团选择退出英国市场。",
+  "title": "萨普托为何退出英国乳业？"
  }
 }
