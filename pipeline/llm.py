@@ -189,7 +189,10 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
     retries = int(cfg.get("retries", 3))
     budget = float(cfg.get("max_wall_seconds", 720))
     deadline = time.monotonic() + budget
-    gap = float(cfg.get("batch_gap_seconds", 1.5))
+    # 免费池的限流阈值不公开，用「自适应节奏」代替猜：撞过 429 就放慢，顺利就慢慢加速。
+    # 固定小间隙对付不了"每分钟只放几个请求"这种配额。
+    base_pace = float(cfg.get("batch_gap_seconds", 1.5))
+    pace = base_pace
     cache = load_cache()
     cache_dirty = False
     fatal_fails = 0
@@ -202,7 +205,7 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
             log(f"  · 模型时间预算 {int(budget)}s 用尽，{left} 条留到下一轮")
             break
         if i:
-            time.sleep(gap)  # 批次之间留点空隙，免费池更容易过
+            time.sleep(pace)
         batch = items[i : i + batch_size]
         user_content = json.dumps({"articles": _batch_payload(batch, cfg)}, ensure_ascii=False)
         payload = {
@@ -222,7 +225,9 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
         relaxed = False
         fatal = False
         rate_limited = False
+        tries = 0
         for attempt in range(retries + 1):
+            tries += 1
             try:
                 resp = (caller or _post)(url, headers, payload, int(cfg.get("timeout_seconds", 90)))
                 if resp.status_code >= 400:
@@ -267,9 +272,14 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                 stats["rate_limited"] = True
                 log(f"  · 免费模型持续限流，本轮先处理已成功的，剩余 {rest} 条下一轮继续")
                 break
-            time.sleep(gap)
+            time.sleep(pace)
             continue
         fatal_fails = 0
+        # 自适应节奏：退避后才成功 → 说明这个速度太快，放慢；一次就过 → 慢慢加速回来
+        if tries > 1:
+            pace = min(60.0, pace * 2 + 4)
+        else:
+            pace = max(base_pace, pace * 0.8)
         stats["calls"] += 1
         usage = data.get("usage") or {}
         stats["tokens_in"] += int(usage.get("prompt_tokens") or 0)
