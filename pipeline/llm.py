@@ -165,7 +165,16 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
 
     返回 {"enabled", "calls", "tokens_in", "tokens_out", "done", "failed", "dropped"}
     """
-    stats = {"enabled": False, "calls": 0, "tokens_in": 0, "tokens_out": 0, "done": 0, "failed": 0, "dropped": 0}
+    stats = {
+        "enabled": False,
+        "calls": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "done": 0,
+        "failed": 0,
+        "dropped": 0,
+        "skipped": 0,
+    }
     if not items:
         return stats
     key = _api_key(cfg)
@@ -177,11 +186,23 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     batch_size = max(1, int(cfg.get("batch_size", 8)))
+    retries = int(cfg.get("retries", 3))
+    budget = float(cfg.get("max_wall_seconds", 720))
+    deadline = time.monotonic() + budget
+    gap = float(cfg.get("batch_gap_seconds", 1.5))
     cache = load_cache()
     cache_dirty = False
-    consec_fail = 0
+    fatal_fails = 0
 
     for i in range(0, len(items), batch_size):
+        # 免费模型高峰期限流严重，攒够时间预算就收工，剩下的下一轮接着补，别把 job 拖超时
+        if time.monotonic() > deadline:
+            left = len(items) - i
+            stats["skipped"] += left
+            log(f"  · 模型时间预算 {int(budget)}s 用尽，{left} 条留到下一轮")
+            break
+        if i:
+            time.sleep(gap)  # 批次之间留点空隙，免费池更容易过
         batch = items[i : i + batch_size]
         user_content = json.dumps({"articles": _batch_payload(batch, cfg)}, ensure_ascii=False)
         payload = {
@@ -199,7 +220,9 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
 
         data = None
         relaxed = False
-        for attempt in range(int(cfg.get("retries", 2)) + 1):
+        fatal = False
+        rate_limited = False
+        for attempt in range(retries + 1):
             try:
                 resp = (caller or _post)(url, headers, payload, int(cfg.get("timeout_seconds", 90)))
                 if resp.status_code >= 400:
@@ -212,27 +235,41 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                         relaxed = True
                         log(f"  · 接口拒绝可选参数（{resp.text[:60]}），去掉后重试")
                         continue
+                    fatal = resp.status_code in (401, 403, 404)
+                    rate_limited = resp.status_code == 429
                     raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:160]}")
                 data = resp.json()
                 break
             except Exception as exc:
-                if attempt >= int(cfg.get("retries", 2)):
+                if fatal or attempt >= retries:
                     log(f"  ! 模型调用失败（第 {i // batch_size + 1} 批）：{str(exc)[:120]}")
                     stats["failed"] += len(batch)
                     break
-                time.sleep(2 * (attempt + 1))
+                # 429 是"整池拥塞"，慢慢退避；其它错误按普通重试
+                wait = min(90, 12 * (2**attempt)) if rate_limited else 2 * (attempt + 1)
+                if rate_limited and attempt == 0:
+                    log(f"  · 免费模型限流（429），退避 {wait}s 后重试")
+                time.sleep(wait)
 
         if not data:
-            consec_fail += 1
-            # 连续两批失败基本就是 Key 无效/欠费/模型名写错，继续重试只会把 20 分钟的
-            # job 超时耗光，还会连带后面几轮一起拖死。这里主动熔断。
-            if consec_fail >= 2:
+            if fatal:
+                # 连续两批鉴权/权限失败 = Key 无效或模型名写错，继续打只会耗光 job 超时
+                fatal_fails += 1
+                if fatal_fails >= 2:
+                    rest = len(items) - (i + len(batch))
+                    stats["failed"] += rest
+                    log(f"  ! 连续 {fatal_fails} 批鉴权失败，跳过剩余 {rest} 条（查 Key / 余额 / 模型名）")
+                    break
+            elif rate_limited:
+                # 限流是全池拥塞，硬打后面的批次只会全撞墙，本轮到此为止
                 rest = len(items) - (i + len(batch))
-                stats["failed"] += rest
-                log(f"  ! 连续 {consec_fail} 批失败，跳过剩余 {rest} 条（查 Key / 余额 / 模型名）")
+                stats["skipped"] += rest
+                stats["rate_limited"] = True
+                log(f"  · 免费模型持续限流，本轮先处理已成功的，剩余 {rest} 条下一轮继续")
                 break
+            time.sleep(gap)
             continue
-        consec_fail = 0
+        fatal_fails = 0
         stats["calls"] += 1
         usage = data.get("usage") or {}
         stats["tokens_in"] += int(usage.get("prompt_tokens") or 0)

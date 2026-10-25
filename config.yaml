@@ -41,7 +41,9 @@ llm:
   batch_size: 8                # 每批送几条给模型（省 token 的关键）
   temperature: 0.2
   timeout_seconds: 90
-  retries: 2
+  retries: 3                   # 429（免费池拥塞）时按 12s/24s/48s 退避重试
+  max_wall_seconds: 720        # 模型阶段最多花 12 分钟，超了就收工留给下一轮，别把 job 拖超时
+  batch_gap_seconds: 1.5       # 批次之间歇一下，免费池更容易过
   max_summary_chars: 90        # 摘要硬上限
   min_summary_chars: 30
   disable_thinking: true       # GLM Flash 默认带思考，摘要任务关掉更省 token
