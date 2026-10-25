@@ -1,0 +1,30 @@
+{
+ "last_updated": "2026-10-25T12:16:08+08:00",
+ "total": 75,
+ "months": [
+  {
+   "month": "2026-10",
+   "file": "2026-10.jsonl",
+   "count": 71
+  },
+  {
+   "month": "2026-09",
+   "file": "2026-09.jsonl",
+   "count": 4
+  }
+ ],
+ "tags": [
+  "供应链",
+  "品牌动态",
+  "市场数据",
+  "政策法规",
+  "海外动态",
+  "行业动态",
+  "质量安全",
+  "跨境电商"
+ ],
+ "sources_total": 39,
+ "sources_ok": 24,
+ "with_summary": 73,
+ "retention_days": 90
+}

@@ -1,0 +1,108 @@
+name: update-feed
+
+# 每 4 小时跑一次抓取，然后就地部署。
+# 关键设计（都是踩过坑才这么写的）：
+#   1. 抓取和部署放在同一个 workflow 里。用 GITHUB_TOKEN 推送的提交不会触发新的
+#      workflow（GitHub 防止递归触发），所以"提交→另一个 workflow 部署"这条路走不通。
+#   2. cron 用 17 分而不是 0 分：整点是 GitHub 的调度高峰，延迟最严重；也顺带避开
+#      目标站的整点采集习惯。
+#   3. concurrency 的 cancel-in-progress 必须是 false：true 会在 git commit 中途
+#      杀掉上一次运行，可能留下 index 与 .git 不一致的半状态。
+#   4. timeout-minutes 必须设：某次运行卡死会让 concurrency 队列被永久占住，
+#      后面的定时任务全部阻塞。
+#   5. checkout 用 fetch-depth: 1：仓库历史再大也不影响 CI，浅克隆省时间。
+
+on:
+  schedule:
+    # UTC。对应北京时间 09:17 / 13:17 / 17:17 / 21:17 / 01:17 / 05:17
+    - cron: "17 1,5,9,13,17,21 * * *"
+  workflow_dispatch: {}   # 手动触发入口，方便第一次跑通和临时补抓
+
+permissions:
+  contents: write        # 提交抓取结果
+  pages: write           # 部署 Pages
+  id-token: write        # deploy-pages 需要 OIDC
+
+concurrency:
+  group: update-feed
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - name: 检出代码（浅克隆）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 抓取 + 清洗 + 摘要
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        run: python scripts/run.py
+
+      - name: 提交数据（无变化则跳过）
+        id: commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "本轮没有新增内容，跳过提交"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore: update feed $(date -u +'%Y-%m-%dT%H:%MZ')"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 公开仓库连续 60 天没有提交，schedule 会被 GitHub 自动停用（很隐蔽的坑）。
+      # 只在「7 天没有数据提交」时补一次心跳；内容恒定，内容不变就不会产生新 blob。
+      - name: 心跳（防 60 天静默停更）
+        run: |
+          mkdir -p meta
+          last=$(git log -1 --format=%ct -- data/ || echo 0)
+          now=$(date -u +%s)
+          if [ $(( (now - last) / 86400 )) -ge 7 ]; then
+            echo "alive" > meta/heartbeat.txt
+            git add meta/heartbeat.txt
+            git diff --cached --quiet || git commit -m "chore: keepalive" && git push || true
+          fi
+
+      - name: 准备站点目录
+        run: |
+          python scripts/build_site.py
+          du -sh _site
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 打包站点
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 这个 environment 必须声明，否则 deploy-pages 会报 "environment not found"
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

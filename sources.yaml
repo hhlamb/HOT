@@ -1,0 +1,431 @@
+# ============================================================
+# 信息源配置
+# ------------------------------------------------------------
+# 增删源只改这个文件，不用动代码。
+# 字段：
+#   id        唯一标识，只用小写字母数字下划线（改动会让历史去重记录对不上）
+#   name      展示名（卡片上的"来源"）
+#   url       抓取地址
+#   type      rss / html / api
+#   lang      zh / en
+#   priority  P0 核心源 / P1 常规源 / P2 尽力而为
+#   enabled   是否启用
+#   note      实测备注（2026-10-25 本地探测）
+#
+# 关于 note 里的"本地探测"：本机（大陆网络 + 沙箱代理）的结果只能参考，
+# 最终以 GitHub Actions 的 probe 报告为准，见 README。
+# ============================================================
+
+sources:
+  # ---------- A. 中国政府与监管 ----------
+  - id: customs_cn
+    name: 海关总署
+    url: http://www.customs.gov.cn/
+    type: html
+    lang: zh
+    priority: P2
+    enabled: false
+    note: 反复实测结果不稳定：412（JS 挑战）/ 502 / 偶尔 200 但页面无可识别列表。已停用；政策内容走媒体转载兜底
+
+  - id: tsspxx
+    name: 特殊食品信息查询平台（配方注册）
+    url: https://tsspxx.gsxt.gov.cn/
+    type: html
+    lang: zh
+    priority: P3
+    enabled: false
+    note: 这是"查询系统"不是内容发布站——POST 表单 + 验证码，无列表页/无订阅接口。实测 502。配方注册批件靠中童传媒等媒体转载覆盖
+
+
+  - id: samr_cn
+    name: 市场监管总局
+    url: https://www.samr.gov.cn/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 无 RSS，但 HTML 可解析（本地探测到 57 条候选链接）
+
+  - id: nhc_sps
+    name: 国家卫健委·食品安全标准与监测评估司
+    url: http://www.nhc.gov.cn/sps/
+    type: html
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 无 RSS；本地探测 403，疑为沙箱代理干扰，待 Actions 复测
+
+  - id: gov_cn_policy
+    name: 中国政府网·最新政策
+    url: https://www.gov.cn/zhengce/zuixin/
+    type: html
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 本地未发现可识别链接（疑 JS 渲染），待 Actions 复测
+
+  - id: cfsn
+    name: 中国食品安全报
+    url: http://www.cfsn.cn/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 政策转载质量高；本地探测 403，待 Actions 复测
+
+  # ---------- B. 国内行业媒体 ----------
+  - id: foodmate_news
+    name: 食品伙伴网·资讯
+    url: https://news.foodmate.net/
+    type: html
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 关键发现：httpx 请求被 403、curl 指纹 200（TLS 指纹校验）。已改用 curl_cffi
+
+  - id: samr_food
+    name: 市场监管总局·食品抽检
+    url: https://www.samr.gov.cn/spcjs/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: false
+    note: 栏目地址待确认，先关闭；确认后再开
+
+  - id: dairy_org_cn
+    name: 中国奶业协会
+    url: http://www.dairy.org.cn/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 行业数据与协会口径；本地 403，待 Actions 复测
+
+  - id: muyingguancha
+    name: 母婴行业观察
+    url: https://www.muyingguancha.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 垂直媒体，渠道/品牌动态；本地连接失败，待 Actions 复测
+
+  - id: foodaily
+    name: Foodaily 每日食品
+    url: https://www.foodaily.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 本地可解析（15 条候选链接），食品饮料新品与趋势
+
+  - id: jiemian
+    name: 界面新闻
+    url: https://www.jiemian.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 本地可解析（101 条候选链接）
+
+  - id: yicai
+    name: 第一财经
+    url: https://www.yicai.com/news/
+    type: html
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 本地可解析（25 条候选链接）；反爬较强
+
+  - id: ebrun
+    name: 亿邦动力
+    url: https://www.ebrun.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 跨境电商/渠道；本地未发现链接，待 Actions 复测
+
+  - id: cifnews
+    name: 雨果跨境
+    url: https://www.cifnews.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 其 /rss 端点解析出 0 条，已放弃 RSS，改走 HTML
+
+  - id: kr36
+    name: 36氪
+    url: https://36kr.com/
+    type: html
+    lang: zh
+    priority: P3
+    enabled: false
+    note: 二次确认：36kr.com/feed 与 /information/technology/ 均返回 HTML 单页应用，服务端无内容，抓不到。已停用
+
+  - id: tmtpost
+    name: 钛媒体
+    url: https://www.tmtpost.com/feed
+    type: rss
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 本地 403，待 Actions 复测
+
+  - id: thepaper
+    name: 澎湃新闻
+    url: https://www.thepaper.cn/
+    type: html
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 本地未发现链接，疑 JS 渲染
+
+  # ---------- C. 海外行业媒体（已拿到真实 feed，最稳定的一批）----------
+  - id: dairyreporter
+    name: DairyReporter
+    url: https://www.dairyreporter.com/arc/outboundfeeds/rss/
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 探测自动发现，实测 20 条有效
+
+  - id: foodnavigator
+    name: FoodNavigator
+    url: https://www.foodnavigator.com/arc/outboundfeeds/rss/
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 探测自动发现，实测 20 条有效
+
+  - id: foodnavigator_asia
+    name: FoodNavigator-Asia
+    url: https://www.foodnavigator-asia.com/arc/outboundfeeds/rss/
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 实测 20 条有效。注意：必须写 asia 站自己的 feed，自动发现逻辑会误抓主站 feed 导致重复
+
+  - id: nutraingredients
+    name: NutraIngredients
+    url: https://www.nutraingredients.com/arc/outboundfeeds/rss/
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 实测 20 条有效；乳铁蛋白/HMO 等原料话题
+
+  - id: foodbusinessnews
+    name: Food Business News
+    url: https://www.foodbusinessnews.net/rss/articles
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 实测 30 条有效
+
+  - id: fooddive
+    name: Food Dive
+    url: https://www.fooddive.com/feeds/news/
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 实测 10 条有效；行业并购/财报覆盖好
+
+  - id: dairyfoods
+    name: Dairy Foods
+    url: https://www.dairyfoods.com/
+    type: html
+    lang: en
+    priority: P2
+    enabled: true
+    note: 本地 403，待 Actions 复测
+
+  - id: justfood
+    name: Just Food
+    url: https://www.just-food.com/feed/
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 本地 403，待 Actions 复测
+
+  # ---------- D. 海外监管与安全通报 ----------
+  - id: openfda_food_recall
+    name: openFDA 食品召回
+    url: >-
+      https://api.fda.gov/food/enforcement.json?search=report_date:%5B20250101+TO+20501231%5D&limit=50&sort=report_date:desc
+    type: api
+    api: openfda
+    lang: en
+    priority: P0
+    enabled: true
+    note: 官方 JSON 接口，免 Key（限 1000 次/天）。实测 2026 年 1049 条。比抓 FDA 网页可靠得多。日期区间按运行日动态生成（近 30 天），并按乳/婴关键词预筛，否则一轮灌进 40 条奶酪沙拉召回
+
+  - id: efsa
+    name: EFSA 欧盟食品安全局
+    url: https://www.efsa.europa.eu/en/rss/news
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 注意 /en/rss 只是语言目录页，真正 feed 是 /en/rss/news，实测 rss+xml 有效
+
+  - id: fsanz
+    name: FSANZ 澳新食品标准局
+    url: https://www.fsanz.gov.au/news-and-media
+    type: html
+    lang: en
+    priority: P1
+    enabled: true
+    note: a2/爱他美相关召回常出此处；本地连接失败，待 Actions 复测
+
+  - id: rasff
+    name: RASFF 欧盟食品饲料预警
+    url: https://webgate.ec.europa.eu/rasff-window/screen/search
+    type: html
+    lang: en
+    priority: P2
+    enabled: true
+    note: 大概率 JS 渲染，抓不到就放弃
+
+  - id: usda_fas
+    name: USDA FAS 全球农业信息
+    url: https://fas.usda.gov/data
+    type: html
+    lang: en
+    priority: P2
+    enabled: true
+    note: 以 PDF 报告为主，本期只取标题；本地 403
+
+  # ---------- E. 品牌官方 newsroom ----------
+  - id: nestle_media
+    name: 雀巢·媒体中心
+    url: https://www.nestle.com/media/news
+    type: html
+    lang: en
+    priority: P1
+    enabled: true
+    note: 惠氏/能恩母公司；本地 403，待 Actions 复测
+
+  - id: danone_news
+    name: 达能·新闻
+    url: https://www.danone.com/media.html
+    type: html
+    lang: en
+    priority: P1
+    enabled: true
+    note: 爱他美/诺优能母公司；本地未发现链接，待复测
+
+  - id: a2milk_news
+    name: a2 Milk·新闻
+    url: https://thea2milkcompany.com/
+    type: html
+    lang: en
+    priority: P1
+    enabled: true
+    note: 原 /news/ 路径 404，改为首页；澳新系重点
+
+  - id: feihe
+    name: 飞鹤
+    url: https://www.feihe.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 国产头部；本地未发现链接，待复测
+
+  - id: yili
+    name: 伊利
+    url: https://www.yili.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 本地可解析（1 条候选链接，偏少，Stage 1 需补选择器）
+
+  - id: junlebao
+    name: 君乐宝
+    url: https://www.junlebaoruye.com/
+    type: html
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 本地可解析（3 条候选链接）
+
+  # ---------- F. 聚合检索源（补漏）----------
+  - id: gnews_zh_formula
+    name: Google News·婴幼儿奶粉（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%E5%A9%B4%E5%84%BF%E9%85%8D%E6%96%B9%E5%A5%B6%E7%B2%89%20OR%20%E5%A9%B4%E5%B9%BC%E5%84%BF%E5%A5%B6%E7%B2%89%20OR%20%E9%85%8D%E6%96%B9%E6%B3%A8%E5%86%8C&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 大陆网络必然不通，Actions 在境外应可访问。链接是 Google 跳转，Stage 1 需解析真实 URL
+
+  - id: gnews_en_formula
+    name: Google News·infant formula（英文）
+    url: >-
+      https://news.google.com/rss/search?q=%22infant%20formula%22%20OR%20%22baby%20formula%22%20recall&hl=en-US&gl=US&ceid=US:en
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 同上
+
+  - id: gdelt_formula
+    name: GDELT 全球新闻检索
+    url: >-
+      https://api.gdeltproject.org/api/v2/doc/doc?query=%22infant%20formula%22&mode=artlist&maxrecords=50&format=json&timespan=3d
+    type: api
+    api: gdelt
+    lang: en
+    priority: P1
+    enabled: true
+    note: 免费无 Key，实测可用但单次条数少（2~10 条），定位是补漏不是主力
+
+  # ---------- G. 用户指定的垂直媒体（2026-10-25 增补实测）----------
+  - id: muyingqianyan
+    name: 母婴前沿
+    url: https://www.muyingqianyan.com/feed
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 实测 WordPress 原生 RSS 可用（/feed，application/rss+xml）。垂直度高，品牌/渠道内幕报道多
+
+  - id: cbiline
+    name: 中童传媒
+    url: https://www.cbiline.com/news/
+    type: html
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 无 RSS。列表页 li > a，标题在 .text_box h5。特殊之处：日期被拆成 h5=日、p=年、p=月，需 date_regex 重组
+    selector: "ul li a"
+    date_regex: '(?P<d>\d{1,2})\s+(?P<y>20\d{2})\s+(?P<m>\d{1,2})'
+
+  - id: baobei360
+    name: 中婴网
+    url: https://www.baobei360.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 无 RSS。文章 URL 里自带日期（/info/2026-10-09/…），可直接从 URL 取时间。首页含大量活动/广告位，靠关键词过滤
+    url_must_include: 'baobei360\.com/(info|news|research|brand)/.*20\d{2}[-/]\d{2}'
+
+  - id: ciferquery
+    name: 进口食品境外生产企业注册查询
+    url: https://ciferquery.singlewindow.cn/
+    type: html
+    lang: zh
+    priority: P3
+    enabled: false
+    note: 海关"单一窗口"查询页，JS 动态渲染 + 需人机验证，无列表接口。实测 200 但页面无任何文章链接，抓取不可行

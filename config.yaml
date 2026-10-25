@@ -1,0 +1,84 @@
+# ============================================================
+# 项目配置（抓取 / 清洗 / 摘要 / 保留策略）
+# 改这里不需要动代码
+# ============================================================
+
+site:
+  title: 跨境母婴 · 奶粉行业资讯
+  subtitle: 品牌动态 / 政策法规 / 供应链 / 跨境电商
+  # 部署到 GitHub Pages 后填真实地址，用于 canonical 与分享
+  url: ""
+
+fetch:
+  timeout_seconds: 20          # 单次请求超时
+  retries: 2                   # 失败重试次数（不含首次）
+  concurrency: 6               # 全局并发上限
+  min_delay_seconds: 1.5       # 同一域名两次请求的最小间隔
+  max_delay_seconds: 3.0       # 间隔随机上限（打散节奏，降低被封概率）
+  max_items_per_source: 40     # 单源单次最多取多少条
+  respect_robots: true         # 是否遵守 robots.txt
+  # ⚠️ 这个 UA 里不要加 "Bot" / "Crawler" 之类的标识。
+  # 实测：foodmate 的 WAF 对含 MilkFeedBot 的 UA 直接返回 403，纯浏览器 UA 返回 200。
+  # 我们仍然遵守 robots.txt、按域名限速、只取标题与摘要（不抓全文），
+  # 这是个人小规模聚合的合理边界；如你更保守，可把下面换回带 Bot 标识的字符串，
+  # 代价是 foodmate 等站点会持续 403。
+  user_agent: >-
+    Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+    (KHTML, like Gecko) Chrome/124.0 Safari/537.36
+  # 纯导流站/内容农场，来自 GDELT 这类聚合检索时会把它们带进来。
+  # 想屏蔽更多站，往这里加域名即可（匹配 original_url 子串）。
+  deny_domains:
+    - dailypolitical.com
+    - mtltimes.ca
+
+llm:
+  # 默认智谱 GLM-4.7-Flash（2026-10 官方 free 分类，模型编码 glm-4.7-flash，200K 上下文）
+  # 备选 DeepSeek：base_url https://api.deepseek.com  model deepseek-v4-flash
+  provider: zhipu
+  base_url: https://open.bigmodel.cn/api/paas/v4
+  model: glm-4.7-flash
+  api_key_env: ZHIPU_API_KEY   # 只读环境变量 / 本地 .env，绝不写进代码
+  batch_size: 8                # 每批送几条给模型（省 token 的关键）
+  temperature: 0.2
+  timeout_seconds: 90
+  retries: 2
+  max_summary_chars: 90        # 摘要硬上限
+  min_summary_chars: 30
+  disable_thinking: true       # GLM Flash 默认带思考，摘要任务关掉更省 token
+
+extract:
+  # HTML 列表页不给摘要时，抓详情页抽首段。零成本、不编造，默认开启。
+  enabled: true
+  min_chars: 40                # 短于此长度的段落不算正文
+  summary_chars: 120           # 抽取结果的展示上限（接模型后会被压到 90）
+  max_per_run: 80              # 单轮最多抓多少篇详情页，防止首次运行太久
+  backfill_per_run: 40         # 每轮回填多少条"库里已有但没有摘要"的旧条目
+  workers: 4
+
+relevance:
+  # 关键词加权分阈值。分数算法见 pipeline/relevance.py：
+  # 标题命中算 1.6 倍权重、正文命中算 0.5 倍；命中"奶粉/婴幼儿配方/infant formula"(5分)即过线，
+  # 单命中"乳业/dairy"(3分)不够，需要再叠加事件类词。
+  # 筛得太狠就调低到 3.5，混进太多无关内容就调到 5。Stage 2 接模型精筛后可放宽到 3.5。
+  min_score: 4.0
+
+dedupe:
+  title_similarity: 0.82       # 字符 bigram Jaccard 阈值
+  window_days: 7               # 只和最近 N 天的数据比对
+  max_per_event: 2             # 同一事件最多保留几条
+
+pipeline:
+  retention_days: 90
+  max_age_days: 45             # 入库时丢弃发布时间早于 N 天的条目（品牌官网页脚常有陈年旧稿）
+  max_per_source: 8            # 单源单轮最多入库多少条，防止一个站把信息流刷屏
+  tags:
+    - 品牌动态
+    - 政策法规
+    - 质量安全
+    - 市场数据
+    - 供应链
+    - 跨境电商
+    - 海外动态
+
+output:
+  latest_js_max_items: 100     # data/latest.js 只放最近 N 条（file:// 双击用）

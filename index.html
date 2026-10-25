@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 个人聚合站，不希望被搜索引擎收录。真正私密请改用 Cloudflare Access，见 README -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>跨境母婴 · 奶粉行业资讯</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="head-row">
+      <div class="brand">
+        <h1><a href="./">跨境母婴 · 奶粉行业资讯</a></h1>
+        <p class="sub">品牌动态 / 政策法规 / 质量安全 / 供应链 / 跨境电商</p>
+      </div>
+      <button id="theme-btn" class="icon-btn" type="button" aria-label="切换深浅色" title="切换深浅色">◐</button>
+    </div>
+
+    <div class="meta-row">
+      <span id="updated">正在读取数据…</span>
+      <span class="sep">·</span>
+      <span class="hint">每日自动更新 6 次（每 4 小时）</span>
+      <button id="reload-btn" class="link-btn" type="button">手动刷新</button>
+    </div>
+
+    <div class="search-row">
+      <input id="search" type="search" placeholder="搜索标题或摘要，例如：配方注册" autocomplete="off" spellcheck="false">
+      <span id="count" class="count"></span>
+    </div>
+
+    <nav id="tags" class="tags" aria-label="按分类筛选"></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="feed" class="feed" aria-live="polite"></div>
+  <p id="status" class="status"></p>
+  <button id="more-btn" class="more-btn" type="button" hidden>加载更多</button>
+</main>
+
+<footer class="wrap site-footer">
+  <p>个人自用的行业信息聚合，仅呈现标题与摘要，版权归原媒体所有。</p>
+  <p id="foot-meta" class="foot-meta"></p>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

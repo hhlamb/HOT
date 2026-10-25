@@ -1,0 +1,50 @@
+name: probe-sources
+
+# 只在手动触发。Stage 0 用它在「生产环境（Actions）」跑一遍探测，
+# 结果才是定 sources.yaml 的权威依据。
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: 报告标签
+        required: false
+        default: actions
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 探测信息源
+        run: python scripts/probe_sources.py --label ${{ inputs.label }} --out probe-${{ inputs.label }}.json
+
+      - name: 写入运行简报
+        if: always()
+        run: |
+          echo "## 源探测报告（${{ inputs.label }}）" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -12 probe-${{ inputs.label }}.md >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sed -n '13,200p' probe-${{ inputs.label }}.md >> $GITHUB_STEP_SUMMARY || true
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-report-${{ inputs.label }}
+          path: |
+            probe-${{ inputs.label }}.json
+            probe-${{ inputs.label }}.md

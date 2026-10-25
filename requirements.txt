@@ -1,0 +1,8 @@
+# 抓取与清洗（版本已锁定）
+# 用 curl_cffi 而非 httpx：部分站点校验 TLS 指纹，httpx 直接被 403
+curl_cffi==0.16.3
+feedparser==6.0.14
+beautifulsoup4==4.15.0
+lxml==6.1.3
+PyYAML==6.0.3
+python-dotenv==1.2.4
