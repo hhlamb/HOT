@@ -230,20 +230,24 @@ def main() -> int:
         print("  免费模型正在限流，旧摘要升级留给下一轮")
     elif not args.no_llm and llm.available(llm_cfg):
         cap = int(llm_cfg.get("backfill_per_run", 0) or 0)
-        redo = [
-            i for i in all_recent
-            if i.get("summary_source") == "extract" and (i.get("summary") or "").strip()
-        ][:cap] if cap > 0 else []
+        # 两档优先级：外文却没有中文标题的排最前（对中文读者等于废条），
+        # 其次是摘要还停在正文截断处的。两类都走同一次模型调用。
+        need_zh = [i for i in all_recent if i.get("language") != "zh" and not (i.get("title_zh") or "").strip()]
+        trunc = [i for i in all_recent if i.get("summary_source") == "extract" and (i.get("summary") or "").strip()]
+        seen = {i.get("id") for i in need_zh}
+        redo = (need_zh + [i for i in trunc if i.get("id") not in seen])[:cap] if cap > 0 else []
         if redo:
             up = llm.enrich(redo, llm_cfg)
-            fixed = 0
+            fixed = zh_fixed = 0
             for old in redo:
                 old.pop("_drop", None)  # 已经发布过的条目，不能因为模型一句话就从库里消失
+                if (old.get("title_zh") or "").strip():
+                    zh_fixed += 1
                 if old.get("summary_source") == "llm":
                     old["_patched"] = True
                     fixed += 1
             print(
-                f"  旧摘要升级 {fixed}/{len(redo)} 条（截断式 → 中文概括），"
+                f"  旧条目升级 {fixed}/{len(redo)} 条（含补中文标题 {zh_fixed} 条），"
                 f"token {up['tokens_in']}+{up['tokens_out']}"
             )
 
