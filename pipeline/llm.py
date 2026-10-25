@@ -179,6 +179,7 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
     batch_size = max(1, int(cfg.get("batch_size", 8)))
     cache = load_cache()
     cache_dirty = False
+    consec_fail = 0
 
     for i in range(0, len(items), batch_size):
         batch = items[i : i + batch_size]
@@ -197,10 +198,20 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
             payload["thinking"] = {"type": "disabled"}
 
         data = None
+        relaxed = False
         for attempt in range(int(cfg.get("retries", 2)) + 1):
             try:
                 resp = (caller or _post)(url, headers, payload, int(cfg.get("timeout_seconds", 90)))
                 if resp.status_code >= 400:
+                    # 不同 GLM 版本对 thinking / response_format 的支持不一致，报 400 时
+                    # 先去掉这两个可选参数重试一次（_parse_json_loose 本来就能兜住非 JSON 输出），
+                    # 免得因为一个可选字段让整轮一个摘要都出不来。
+                    if resp.status_code == 400 and not relaxed and ("thinking" in payload or "response_format" in payload):
+                        payload.pop("thinking", None)
+                        payload.pop("response_format", None)
+                        relaxed = True
+                        log(f"  · 接口拒绝可选参数（{resp.text[:60]}），去掉后重试")
+                        continue
                     raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:160]}")
                 data = resp.json()
                 break
@@ -212,7 +223,16 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                 time.sleep(2 * (attempt + 1))
 
         if not data:
+            consec_fail += 1
+            # 连续两批失败基本就是 Key 无效/欠费/模型名写错，继续重试只会把 20 分钟的
+            # job 超时耗光，还会连带后面几轮一起拖死。这里主动熔断。
+            if consec_fail >= 2:
+                rest = len(items) - (i + len(batch))
+                stats["failed"] += rest
+                log(f"  ! 连续 {consec_fail} 批失败，跳过剩余 {rest} 条（查 Key / 余额 / 模型名）")
+                break
             continue
+        consec_fail = 0
         stats["calls"] += 1
         usage = data.get("usage") or {}
         stats["tokens_in"] += int(usage.get("prompt_tokens") or 0)

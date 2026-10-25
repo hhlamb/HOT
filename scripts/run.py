@@ -210,15 +210,39 @@ def main() -> int:
     llm_stats = {"enabled": False, "calls": 0, "tokens_in": 0, "tokens_out": 0, "done": 0, "failed": 0, "dropped": 0}
     if args.no_llm:
         print("  --no-llm：跳过模型")
+    elif not llm.available(llm_cfg):
+        print("  未配置 API Key：跳过模型，仅用正文抽取 + 译文缓存")
+    elif not fresh:
+        print("  本轮没有新条目，跳过模型")
     else:
         llm_stats = llm.enrich(fresh, llm_cfg)
-        if llm_stats["enabled"]:
+        print(
+            f"  模型：{llm_stats['done']} 条改写成功 / 判不相关 {llm_stats['dropped']} 条 / "
+            f"{llm_stats['calls']} 次调用 / token {llm_stats['tokens_in']}+{llm_stats['tokens_out']}"
+        )
+
+    # 旧条目摘要升级：summary_source=extract 的不是摘要，是正文前 120 字的截断，
+    # 经常停在半句话上。有 Key 后逐轮把它们重写成 90 字中文概括（一轮 50 条也就几分钱）。
+    # 注意这里不能用 llm_stats["enabled"] 判断：本轮没有新条目时 enrich 会提前返回 False，
+    # 那样安静的轮次就永远修不了旧数据。
+    if not args.no_llm and llm.available(llm_cfg):
+        cap = int(llm_cfg.get("backfill_per_run", 0) or 0)
+        redo = [
+            i for i in all_recent
+            if i.get("summary_source") == "extract" and (i.get("summary") or "").strip()
+        ][:cap] if cap > 0 else []
+        if redo:
+            up = llm.enrich(redo, llm_cfg)
+            fixed = 0
+            for old in redo:
+                old.pop("_drop", None)  # 已经发布过的条目，不能因为模型一句话就从库里消失
+                if old.get("summary_source") == "llm":
+                    old["_patched"] = True
+                    fixed += 1
             print(
-                f"  模型：{llm_stats['done']} 条改写成功 / 判不相关 {llm_stats['dropped']} 条 / "
-                f"{llm_stats['calls']} 次调用 / token {llm_stats['tokens_in']}+{llm_stats['tokens_out']}"
+                f"  旧摘要升级 {fixed}/{len(redo)} 条（截断式 → 中文概括），"
+                f"token {up['tokens_in']}+{up['tokens_out']}"
             )
-        else:
-            print("  未配置 API Key：跳过模型，仅用正文抽取 + 译文缓存")
 
     # 没有模型、或模型漏处理的条目 → 套本地译文缓存
     hit = llm.apply_cache(fresh)

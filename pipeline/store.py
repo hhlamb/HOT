@@ -129,8 +129,18 @@ def apply_updates(items: list[dict]) -> int:
             patch = patches.get(row.get("id", ""))
             if patch is not None:
                 changed = False
-                if patch.get("summary") and not row.get("summary"):
-                    row["summary"] = patch["summary"]
+                new_sum = patch.get("summary") or ""
+                # 摘要升级：旧条目是"正文截断"（extract），模型重写后（llm）要能覆盖它。
+                # 这是 apply_updates 唯一允许覆盖已有值的地方——不然后填的永远改不动。
+                upgrade = patch.get("summary_source") == "llm" and row.get("summary_source") != "llm"
+                if new_sum and (not row.get("summary") or upgrade):
+                    row["summary"] = new_sum
+                    changed = True
+                if upgrade:
+                    row["summary_source"] = "llm"
+                    changed = True
+                if patch.get("tags") and patch.get("tags") != row.get("tags"):
+                    row["tags"] = patch["tags"]
                     changed = True
                 # 译文后补：外文条目接上模型/缓存后，把中文标题补进去
                 if patch.get("title_zh") and not row.get("title_zh"):

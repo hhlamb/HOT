@@ -45,6 +45,7 @@ llm:
   max_summary_chars: 90        # 摘要硬上限
   min_summary_chars: 30
   disable_thinking: true       # GLM Flash 默认带思考，摘要任务关掉更省 token
+  backfill_per_run: 60         # 每轮把多少条「正文截断」的旧摘要重写成中文概括（0=关闭）
 
 extract:
   # HTML 列表页不给摘要时，抓详情页抽首段。零成本、不编造，默认开启。
