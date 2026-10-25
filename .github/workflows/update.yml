@@ -17,6 +17,14 @@ on:
     # UTC。对应北京时间 09:17 / 13:17 / 17:17 / 21:17 / 01:17 / 05:17
     - cron: "17 1,5,9,13,17,21 * * *"
   workflow_dispatch: {}   # 手动触发入口，方便第一次跑通和临时补抓
+  # 改了代码就自动跑一次，省得每次手工点 Run workflow。
+  # data/** 必须排除：build job 自己会提交数据，若不排除就会自己触发自己（死循环）。
+  push:
+    branches: [main]
+    paths-ignore:
+      - "data/**"
+      - "meta/**"
+      - "**.md"
 
 permissions:
   contents: write        # 提交抓取结果
