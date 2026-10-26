@@ -1,8 +1,12 @@
 {
  "_comment": "外文标题/摘要的中文译文缓存。命中即跳过翻译，省 token；由 llm.py 在接入模型后自动写入，也可手工补充。key 为原始标题的小写形式。",
+ "abbott agrees to settlement over closure of largest baby formula plant in the us - ap news": {
+  "summary": "雅培同意就关闭美国最大婴儿奶粉工厂达成和解。这一事件反映了美国婴幼儿奶粉市场的竞争压力和监管环境的变化，对行业从业者意味着需关注市场动态和监管政策，以应对潜在的市场变化和挑战。同时，这也提醒从业者需重视产品质量和合规性，以避免类似事件对品牌造成负面影响。",
+  "title": "雅培同意就关闭美国最大婴儿奶粉工厂达成和解"
+ },
  "abbott in $385m settlement with doj over infant formula recall - seeking alpha": {
-  "summary": "雅培与司法部就婴儿配方奶粉召回事件达成3.85亿美元和解协议。",
-  "title": "雅培与司法部就婴儿配方奶粉召回达成3.85亿美元和解"
+  "summary": "雅培与司法部就婴儿配方奶粉召回事件达成3.85亿美元和解协议。该协议涉及质量与安全争议，凸显了行业监管压力，可能影响品牌信任度及市场合规成本。对跨境奶粉企业而言，此类事件警示需重视产品质量与合规管理，以维护品牌形象和市场稳定。",
+  "title": "雅培与司法部就婴儿配方奶粉召回事件达成3.85亿美元和解协议"
  },
  "abbott laboratories agrees to $385m settlement over closure of largest baby formula plant in us - abc7 chicago": {
   "summary": "雅培同意支付3.85亿美元解决美国密歇根州最大奶粉厂关闭的调查，该事件涉及污染问题并导致2022年奶粉短缺。调查源于司法部对工厂的指控，并涉及对Similac等品牌的奶粉召回。该事件凸显了美国婴幼儿奶粉供应链的脆弱性，对行业从业者和消费者产生重大影响。美国政府的应急措施包括优先美国生产、从欧洲空运奶粉等，以缓解短缺。",
@@ -25,8 +29,8 @@
   "title": "雅培将因2022年婴儿配方奶粉召回支付3.85亿美元"
  },
  "abbott to pay $385 million to settle infant formula allegations - the new york times": {
-  "summary": "雅培同意支付3.85亿美元 settle 婴儿配方奶粉相关指控，涉及质量与安全争议。此案凸显行业监管压力，或影响品牌信任度及市场合规成本。",
-  "title": "雅培将支付3.85亿美元 settle 婴儿配方奶粉指控"
+  "summary": "雅培同意支付3.85亿美元解决婴儿配方奶粉相关指控，涉及质量与安全争议。此案凸显行业监管压力，或影响品牌信任度及市场合规成本。对跨境奶粉企业而言，此类事件警示需重视产品质量与合规管理，以维护品牌形象和市场稳定。",
+  "title": "雅培将支付3.85亿美元以解决婴儿配方奶粉相关指控"
  },
  "abbott to pay $385m to settle investigation of baby formula made in michigan - crain's detroit": {
   "summary": "雅培宣布将支付3.85亿美元解决密歇根州奶粉厂关闭的调查，该事件与污染问题有关。调查导致美国最大奶粉厂的关闭，并引发了对Similac等品牌的奶粉召回。该事件反映了美国婴幼儿奶粉供应链的挑战，对行业从业者和消费者产生重大影响。美国政府的应急措施包括优先美国生产、从欧洲空运奶粉等，以缓解短缺。",
@@ -38,55 +42,55 @@
  },
  "better dairy eyeing us market with gras notice": {
   "summary": "Better Dairy公司计划进入美国市场，并已申请GRAS（公认安全）认定以符合当地法规和消费者接受度。此举旨在通过产品改革配方，确保符合美国食品安全标准，为美国婴幼儿奶粉市场提供合规产品。对跨境电商和母婴行业从业者而言，这意味着更多符合美国标准的婴幼儿奶粉选择，有助于拓展美国市场业务。",
-  "title": "Better Dairy计划进军美国市场并申请GRAS认定"
+  "title": "Better Dairy公司计划进入美国市场"
  },
  "british dairy exports hit £973m as ahdb targets growth in asia and mexico": {
   "summary": "英国乳制品出口额达 9.73 亿英镑，行业机构 AHDB 把亚洲与墨西哥列为下一步增长市场。",
   "title": "英国乳制品出口达 9.73 亿英镑，重点开拓亚洲与墨西哥"
  },
  "broad support for eu’s revised cereulide controls in infant formula - foodsafetynews.com": {
-  "summary": "欧盟修订婴幼儿配方奶粉中脱氧雪腐镰刀菌烯醇（呕吐毒素）控制标准，获得广泛支持。此举旨在进一步保障婴幼儿食品安全，对相关原料供应链及检测标准提出新要求。对从业者而言，需关注标准变化，调整供应链和检测流程。",
-  "title": "欧盟修订婴幼儿配方奶粉中脱氧雪腐镰刀菌烯醇控制标准获广泛支持"
+  "summary": "欧盟修订婴幼儿配方奶粉中脱氧雪腐镰刀菌烯醇（呕吐毒素）控制标准，获得广泛支持。此举旨在进一步保障婴幼儿食品安全，对相关原料供应链及检测标准提出新要求。对从业者而言，需关注欧盟新标准，调整原料采购与检测流程，确保产品符合安全标准。",
+  "title": "欧盟修订婴幼儿配方奶粉中脱氧雪腐镰刀菌烯醇控制标准"
  },
  "calcium-rich whey protein side stream delivers post-menopausal bone health benefits": {
-  "summary": "一项新研究显示，连续 12 个月补充乳清蛋白生产中的高钙副产物，有助于维持绝经后女性的骨密度。",
-  "title": "高钙乳清蛋白副产物有助于绝经后女性骨骼健康"
+  "summary": "一项临床研究表明，补充富含钙的乳清蛋白副产物12个月有助于维持更年期女性的骨矿物质密度。该研究名为“RENEW项目”，旨在验证富含钙的乳清渗透液是否能够对抗已钙充足的更年期女性的骨量流失。研究将316名参与者随机分为安慰剂组或800mg钙组（来自碳酸钙或富含钙的乳清渗透液），结果发现，接受富含钙乳清渗透液组（n=78）的骨矿物质密度得以维持。",
+  "title": "富含钙的乳清蛋白副产物助力更年期女性骨骼健康"
  },
  "can chobani’s $1.2 billion plant stop the long-term decline of pa.’s dairy industry? - pennlive.com": {
-  "summary": "奇波拉计划在宾夕法尼亚州投资1.2亿美元建设新工厂，旨在提振当地乳业经济。此举被视为应对乳业长期衰退的关键举措，可能重塑区域供应链格局。",
-  "title": "奇波拉1.2亿美元工厂能否扭转宾夕法尼亚州乳业长期下滑趋势？"
+  "summary": "奇波拉计划在宾夕法尼亚州投资1.2亿美元建设新工厂，旨在提振当地乳业经济。此举被视为应对乳业长期衰退的关键举措，可能重塑区域供应链格局。对从业者而言，需关注投资对区域市场的影响及供应链变化趋势。",
+  "title": "奇波拉1.2亿美元工厂能否阻止宾夕法尼亚州乳业长期衰退？"
  },
  "dairy foods.com exclusive: fage celebrates 100th anniversary": {
   "summary": "希腊乳制品品牌FAGE迎来成立100周年。这一里程碑在乳品行业及更广泛的商业领域具有里程碑意义。",
   "title": "FAGE庆祝成立100周年"
  },
  "dairy trends: what are the key forces reshaping the global dairy market into 2027?": {
-  "summary": "根据Euromonitor的报告，预计2026年价值销售增长将强于2025年（5.4%），而体积增长将从2025年的0.7%放缓至2026年的0.5%。咖啡增白剂预计将成为预测期内领先类别，零售价值销售额将达到122亿美元，主要由美国需求驱动。家庭咖啡精品化推动了创新咖啡馆风格奶油和冷泡沫产品的需求。牛奶配方和植物基乳制品预计将是2026年唯一出现体积下降的类别，分别下降-0.2%和-0.6%。",
-  "title": "乳业趋势：哪些关键力量正在重塑2027年全球乳业市场？"
+  "summary": "居家消费与咖啡馆文化正在推动乳品及替代品品牌增长，这是重塑全球乳品市场的关键力量之一。",
+  "title": "乳业趋势：到 2027 年，哪些力量在重塑全球乳品市场"
  },
  "dairy uk rejects ‘mega-dairy’ environment claims as calls made for tighter regulation": {
-  "summary": "英国乳制品协会回应《野生动物信托》报告，称大型牧场未受同等监管，导致环境污染。报告指出英国超40家巨型牧场，其中最大可容纳2600头奶牛。协会呼吁加强监管，包括对大型封闭式牧场许可。对从业者意味着需关注乳业环保政策变化，企业需投入更多资源进行污染防控。",
-  "title": "Dairy UK否认巨型牧场环境指控，呼吁更严格监管"
+  "summary": "英国乳业协会（Dairy UK）反驳“超大型牧场”的环保指责，野生动物信托基金则呼吁收紧监管。",
+  "title": "英国乳业协会否认“超大型牧场”环保指控，业界呼吁加强监管"
  },
  "danone celebrates 200 years of evian® and opens a new chapter focused on resource preservation, industrial excellence, and innovation": {
   "summary": "达能庆祝 evian® 诞生200周年，宣布将聚焦资源保护、工业卓越与创新。",
   "title": "达能庆祝 evian® 200周年并开启资源保护新篇章"
  },
  "danone invests in regenerative agriculture to strengthen british oat supply chain": {
-  "summary": "达能通过LENs基金支持超过2500公顷土地的农民，包括其英国燕麦主要采购地区。资金将用于减少温室气体排放、改善土壤健康、增强生物多样性、提高水资源恢复力，并降低气候相关风险。措施包括实施减少耕作系统、种植覆盖作物和秸秆切碎。达能表示，该合作是其支持更具弹性的食品系统，同时保护和再生自然环境的雄心的一部分。全球范围内，达能与超过58,000名农民合作，致力于推动向更具再生农业实践的转变。",
-  "title": "达能投资再生农业以强化英国燕麦供应链"
+  "summary": "达能通过长期再生农业实践支持英国燕麦种植户，以稳定原料供应。",
+  "title": "达能投资再生农业，稳固英国燕麦供应链"
  },
  "danone joins nestlé and coca-cola in labelling changes": {
-  "summary": "根据欧盟委员会和欧洲消费者组织（BEUC）的声明，达能与雀巢和可口可乐达成协议，将塑料瓶标签上的可回收性声明修改得更清晰。此举旨在解决消费者对产品可回收性声明误导的担忧，符合欧盟反不正当商业行为规则。对从业者而言，这意味着需要关注并遵守相关法规，确保产品标签信息的准确性和透明度。",
+  "summary": "达能同意更改其塑料瓶标签，使可回收性声明更清晰。此前，雀巢和可口可乐已达成 2025 年和 2026 年的承诺。此举旨在减少误导消费者，符合欧盟不公平商业实践规则。对从业者而言，这意味着需关注欧盟相关法规，及时调整产品标签。",
   "title": "达能加入雀巢和可口可乐进行标签变更"
  },
  "danone partners in energy project to turn yogurt waste into renewable fuel": {
-  "summary": "达能与PurposeEnergy合作，在俄亥俄州Minster建设工业食物废料和废水预处理设施，将达能美国最大酸奶制造厂的废料转化为可再生能源。该项目预计每年产生约50,000 MMBtu的可再生生物燃气，替代传统天然气，减少约3,200吨CO2e排放。对从业者而言，这是可持续发展和循环经济实践的案例，有助于提升企业环保形象和降低运营成本。",
+  "summary": "达能与能源项目合作，将美国最大酸奶制造设施的废料转化为可再生能源。该项目由 PurposeEnergy 承建，预计年产生约 50,000 MMBtu 的生物燃气。这一举措体现了达能的可持续发展战略，对从业者而言，关注环保技术有助于提升企业社会责任形象，符合市场趋势。",
   "title": "达能与能源项目合作将酸奶废料转化为可再生能源"
  },
  "danone partners on $40m facility turning yogurt waste to renewable energy": {
-  "summary": "该项目由 PurposeEnergy 建设；达能同时正扩大高蛋白酸奶产能以应对需求增长。",
-  "title": "达能参与 4000 万美元项目，将酸奶废料转为可再生能源"
+  "summary": "达能与 PurposeEnergy 合作建设价值 4000 万美元的设施，将酸奶废料转化为可再生能源。同时，达能正扩大高蛋白酸奶产能以应对需求增长。这一合作项目体现了达能对可持续发展的承诺，也为其酸奶业务提供了新的增长动力。对从业者而言，这表明乳业企业正积极寻求环保和效率提升的解决方案。",
+  "title": "达能合作项目"
  },
  "danone positions steenvoorde as a leading european medical nutrition site and inaugurates its largest production line in france": {
   "summary": "达能宣布将斯泰恩福尔德定位为欧洲领先医疗营养中心，并启用法国最大生产线。",
@@ -97,16 +101,16 @@
   "title": "达能收购MADE Group拓展亚太健康营养市场"
  },
  "danone’s ai commerce goal: ‘trusted by machines and desired by humans’": {
-  "summary": "达能作为全球食品饮料巨头，正致力于在日益激烈的市场中保持其乳制品品牌如Oikos、Activia、Silk和国际乐途的竞争力。达能北美媒体与数字副总裁Arthur Sylvestre表示，公司已花费半个多世纪适应其数字渠道策略。达能最重要的数字销售技术能力包括数字零售媒体、数字货架技术和人工智能。Sylvestre强调，公司内部对未来有清晰愿景是其过去几年最大的成功。达能正努力成为‘被机器信任，受人类喜爱’的智能商业时代的企业。",
-  "title": "达能的AI商业目标：‘被机器信任，受人类喜爱’"
+  "summary": "达能希望旗下品牌既能被 AI 购物助手信任，也能被消费者主动选择；Arthur Sylvestre 解释了背后的数字化策略。",
+  "title": "达能的 AI 电商目标：被机器信任，被人选择"
  },
  "dr. ty wagner named california dairy innovation center director": {
   "summary": "加州牛奶委员会任命Ty Wagner博士担任加州乳业创新中心主任。此举旨在推动乳业创新与发展。",
   "title": "加州乳业创新中心任命新主任"
  },
  "european dairy association names frieslandcampina’s koert verkerk as president": {
-  "summary": "欧洲乳业协会任命FrieslandCampina的Koert Verkerk为总裁，他将与协会成员和政策制定者合作，增强欧洲乳业的竞争力、可持续性和韧性。Verkerk强调，食品安全是欧洲的战略性问题，竞争激烈的乳业对此有重要作用。他指出，欧洲不能在削弱食品生产经济基础的情况下加强其食品安全。Verkerk的三项优先事项是投资信心、创造价值的创新和开放公平的市场。他呼吁制定奖励可衡量进展的政策，允许农民和乳业公司选择实用的解决方案。",
-  "title": "欧洲乳业协会任命FrieslandCampina的Koert Verkerk为总裁"
+  "summary": "菲仕兰高管 Koert Verkerk 当选欧洲乳业协会（EDA）主席。",
+  "title": "荷兰皇家菲仕兰 Koert Verkerk 出任欧洲乳业协会主席"
  },
  "fda proposed rule on infant formula nutrient requirements advances to oira review - the national law review": {
   "summary": "美国食品药品监督管理局拟议的关于婴儿配方奶粉营养要求的规则已提交至总统行政管理与预算办公室审查。此举旨在提升奶粉营养标准，对婴幼儿奶粉行业产生重要影响，要求企业调整配方以满足新规。对从业者而言，需密切关注规则进展，及时调整产品配方和生产流程，确保合规性。",
@@ -129,48 +133,52 @@
   "title": "FDA将增加婴儿配方奶粉检测"
  },
  "fonterra buys nz dairies’ milk powder plant from receivers - businessdesk": {
-  "summary": "恒天然收购了新西兰乳制品公司（NZ Dairies）的奶粉加工厂，这是新西兰乳业的重要资产变动。此次收购涉及奶粉生产设施，可能影响当地乳制品供应链的布局与产能分配。对跨境母婴从业者而言，需关注新西兰乳业产能变化及潜在的市场供应影响。这意味着需关注新西兰乳业动态，以应对供应链变化。",
-  "title": "恒天然收购了新西兰乳制品公司（NZ Dairies）的奶粉加工厂"
+  "summary": "恒天然收购了新西兰乳制品公司NZ Dairies的奶粉加工厂，这是新西兰乳业的重要资产变动。此次收购涉及奶粉生产设施，可能影响当地乳制品供应链的布局与产能分配。对跨境母婴从业者而言，需关注新西兰乳业产能变化及潜在的市场供应影响。",
+  "title": "恒天然收购新西兰乳制品公司（NZ Dairies）的奶粉加工厂"
  },
  "fonterra to offer milk powder at gdt auction with guaranteed age limit at premium price - businessdesk": {
   "summary": "恒天然计划在GDT拍卖会上出售保证保质期的奶粉，并设定溢价价格。此举旨在通过优质产品提升收益，同时满足市场对新鲜度的高需求。对从业者而言，需关注GDT拍卖价格走势及恒天然在高端奶粉市场的策略调整。",
-  "title": "恒天然将在GDT拍卖会上出售保证保质期的奶粉并设定溢价价格"
+  "title": "恒天然计划在GDT拍卖会上出售保证保质期的奶粉，并设定溢价价格"
  },
  "food regulator proposes ban on added sugars in infant formula - the indian express": {
-  "summary": "印度食品监管机构提议禁止在婴儿奶粉中添加糖。此举涉及婴幼儿奶粉原料供应链监管，对从业者意味着需调整产品配方以符合法规要求，确保产品符合当地市场标准。",
+  "summary": "印度食品监管机构提议禁止在婴儿奶粉中添加糖，这一举措涉及婴幼儿奶粉原料供应链监管。对从业者而言，这意味着需要调整产品配方以符合法规要求，确保产品合规性。这一变化将推动行业更加注重产品配方和原料选择，以适应不同市场的监管需求。",
   "title": "印度食品监管机构提议禁止在婴儿奶粉中添加糖"
  },
  "food safety for dairy processors": {
-  "summary": "文章探讨了婴儿配方奶粉安全的未来方向，强调应通过更深入的理解而非单纯增加检测来提升安全性。",
+  "summary": "文章探讨婴儿配方奶粉安全未来方向，强调通过深入理解而非单纯增加检测提升安全性，这对乳企从业者意味着需关注安全管理体系创新，这类观点通常推动行业从被动检测转向主动预防，对提升产品安全水平有指导意义。",
   "title": "乳品加工商食品安全指南"
  },
  "formula recall: no sick babies yet - the namibian -": {
-  "summary": "纳米比亚地区发生的配方奶粉召回事件中，目前没有报告婴儿生病的病例。对从业者而言，需关注海外奶粉召回动态，及时掌握相关信息，防范潜在风险。",
-  "title": "纳米比亚配方奶粉召回事件中，目前没有报告婴儿生病的病例"
+  "summary": "纳米比亚地区发生配方奶粉召回事件，目前未报告婴儿生病病例。这一事件提醒从业者关注海外市场奶粉安全动态，及时了解召回信息，防范潜在风险。",
+  "title": "配方奶粉召回：目前没有婴儿生病"
  },
  "fssai clamps down on nestlé india over infant formula": {
   "summary": "印度食品安全标准局（FSSAI）针对雀巢印度的婴幼儿配方奶粉采取监管措施。",
   "title": "FSSAI 就婴幼儿配方奶粉问题对雀巢印度采取行动"
  },
  "global dairy blends market forecast to reach $15.4bn by 2035": {
-  "summary": "乳品复配（dairy blends）市场规模持续扩张，预计 2035 年达到 154 亿美元。",
-  "title": "全球乳品复配市场预计 2035 年达 154 亿美元"
+  "summary": "根据Credence Research的预测，全球乳制品混合市场预计到2035年将达到154亿美元，2025至2035年复合年均增长率（CAGR）为4.43%。2025年该市场规模为99.7亿美元，预计2026年将增至104亿美元。主要驱动因素包括依赖进口市场的家庭购买脂肪填充粉和填充罐装牛奶作为经济实惠的牛奶；食品工厂和餐饮连锁店购买按其配方制作的原料混合物；以及北欧和大洋洲的购物者购买涂抹型黄油混合物以方便使用。",
+  "title": "全球乳制品混合市场预计到2035年将达到154亿美元"
+ },
+ "graeter’s backstretch bourbon cherry wins 2026 dairy foods product of the year": {
+  "summary": "Graeter’s Backstretch Bourbon Cherry 获得 Dairy Foods 2026 年度产品奖。这一荣誉反映了该产品在乳制品领域的创新与市场认可度。对从业者而言，关注此类奖项有助于了解行业发展趋势，启发产品创新方向。",
+  "title": "Graeter’s Backstretch Bourbon Cherry 获 2026 年 Dairy Foods 年度产品奖"
  },
  "high whey prices create opening for alternatives": {
-  "summary": "乳清价格走高为替代蛋白让出空间，但其他蛋白在功能性上仍难以完全替代乳清。",
-  "title": "乳清价格高企，替代蛋白迎来机会"
+  "summary": "乳清价格持续上涨，促使市场寻求替代蛋白。虽然其他蛋白在功能性上难以完全替代乳清，但这一趋势为相关企业提供了发展机会。对婴幼儿奶粉行业的从业者而言，这意味着需要关注替代蛋白的研发和应用，以应对成本变化带来的挑战。",
+  "title": "乳清价格走高为替代蛋白让出空间"
  },
  "how dairy processors can strengthen food safety and prevent recalls": {
   "summary": "2026年涉及沙门氏菌和李斯特菌污染的食品召回事件频发。",
   "title": "乳品加工商如何加强食品安全并防止召回"
  },
  "india finds nestle baby food sample substandard, takes legal action - reuters": {
-  "summary": "印度监管机构发现雀巢婴儿食品样本不合格，已采取法律行动。此次事件凸显了婴幼儿食品质量安全的重要性，对跨国乳企在印度的市场运营构成挑战。相关法律行动可能影响雀巢品牌声誉和市场表现，提醒从业者需严格遵守当地法规，加强产品质量控制。",
+  "summary": "印度监管机构发现雀巢婴儿食品样本不合格，已采取法律行动。这一事件凸显了婴幼儿食品质量安全的重要性，对跨国乳企在印度的市场运营构成挑战。相关法律行动可能影响雀巢品牌声誉和市场表现，提醒从业者需严格遵守当地法规，加强产品质量控制。",
   "title": "印度发现雀巢婴儿食品样本不合格，采取法律行动"
  },
  "india’s food safety watchdog proposes ban on added sugars in infant formula - nutrition insight": {
-  "summary": "印度食品安全机构建议禁止在婴儿配方奶粉中添加糖分，旨在减少婴幼儿摄入添加糖，促进儿童健康。对行业从业者而言，需关注印度市场政策变化，评估现有产品配方是否符合新规，及时调整以适应市场需求。",
-  "title": "印度拟禁婴儿奶粉添加糖"
+  "summary": "印度食品安全机构提出禁止在婴儿配方奶粉中添加糖分的建议，旨在减少婴幼儿摄入添加糖，促进儿童健康。对行业从业者而言，需关注印度市场政策变化，评估现有产品配方是否符合新规，及时调整以适应市场需求。",
+  "title": "印度食品安全机构建议禁止婴儿奶粉添加糖"
  },
  "infant formula market size, share and growth report [2034] - fortune business insights": {
   "summary": "Fortune Business Insights发布的报告预测了2034年婴儿配方奶粉市场的规模、份额及增长情况，为行业从业者提供市场发展趋势的参考。",
@@ -180,9 +188,13 @@
   "summary": "据SNS Insider报告，2025年婴幼儿营养市场规模为1068.4亿美元，预计到2035年将达到2137.3亿美元，2026-2035年复合年增长率为7.18%。市场增长主要受工作母亲增多、城市人口扩张及家长对婴幼儿营养重视程度提升推动。家长更倾向于购买高品质配方奶粉、有机食品及针对过敏、反流和消化敏感问题的产品。亚太、拉丁美洲和中东地区可支配收入增长扩大了消费群体。幼儿牛奶和成长配方奶粉的快速发展延长了品牌忠诚度。",
   "title": "2026-2035年婴幼儿营养市场规模及行业分析"
  },
+ "ingredients for dairy processors": {
+  "summary": "文章探讨乳制品加工原料的设计、内容管理系统、主机托管及网页开发，涉及乳业生产技术。对乳业从业者而言，了解原料加工技术有助于优化生产流程，提升产品质量，适应市场变化。",
+  "title": "乳制品加工原料"
+ },
  "lake county-based abbott to pay nearly $385 million over claims it made baby formula in leaky, unsanitary plant - lake and mchenry county scanner": {
-  "summary": "美国雅培公司因在卫生条件不佳的工厂生产婴儿配方奶粉，被指控相关责任，最终同意支付近3.85亿美元和解。此案凸显了生产合规的重要性，对行业监管与质量标准提出更高要求。对从业者而言，需加强生产管理，确保合规运营。",
-  "title": "雅培因工厂卫生问题支付近3.85亿美元和解金"
+  "summary": "美国雅培公司因在卫生条件不佳的工厂生产婴儿配方奶粉被指控，最终同意支付近3.85亿美元和解。此案凸显生产合规的重要性，对行业监管与质量标准提出更高要求。对从业者意味着，需加强生产管理，确保符合国际质量标准，以应对日益严格的监管环境。",
+  "title": "美国雅培支付近3.85亿美元和解"
  },
  "michigan to get share of $384m settlement tied to baby formula recall - detroit free press": {
   "summary": "密歇根州将获得与配方奶粉召回相关的3.84亿美元和解金的一部分。",
@@ -193,47 +205,47 @@
   "title": "贝宁奶粉价格与贸易数据 | 市场概览2026 - Tridge"
  },
  "nestle , zydus , abbott face india scrutiny over claims on children products": {
-  "summary": "印度食品安全监管机构对雀巢、赛诺菲、雅培等公司在儿童产品宣传上的说法发出警告，涉及产品包括Complan、Lactogen Pro 1 Powder等。此举反映出印度对儿童食品安全的重视，并可能引发行业合规审查趋严。对从业者意味着，需关注各国法规变化，确保产品宣传合规。",
-  "title": "雀巢、赛诺菲、雅培在印度因儿童产品宣传受审查"
+  "summary": "雀巢、Zydus和雅培因儿童产品宣传问题面临印度监管机构的审查。印度监管机构对这三家公司进行了审查，涉及儿童产品的宣传内容。对母婴行业从业者而言，这意味着需要更加关注产品宣传的合规性，避免类似问题发生。",
+  "title": "雀巢、Zydus和雅培面临印度儿童产品宣传审查"
  },
  "nestle to shutter ohio production facility": {
-  "summary": "雀巢将关闭俄亥俄州工厂，相关 Nestlé Professional Solutions 袋装产品产能转移至南卡罗来纳州。",
+  "summary": "雀巢宣布关闭俄亥俄州工厂，相关Nestlé Professional Solutions袋装产品产能转移至南卡罗来纳州。对从业者而言，这意味着供应链布局的调整，需关注全球供应链变化，以应对潜在的市场波动。这类事件通常意味着行业在追求更高效的供应链管理，从业者需关注全球供应链动态，以保持竞争力。",
   "title": "雀巢将关闭俄亥俄州工厂"
  },
  "nestlé factory closure signals new era of industry consolidation": {
-  "summary": "雀巢关闭索隆工厂，凸显食品巨头简化制造运营的决心，反映行业整合生产、提升效率、适应消费者变化趋势。对从业者而言，需关注行业整合对供应链的影响。",
-  "title": "雀巢工厂关闭标志行业整合新时代"
+  "summary": "雀巢宣布其美国索伦工厂即将关闭，该工厂将于2027年底停止运营，生产将迁至南卡罗来纳州加夫尼。此举旨在适应客户需求和生产量的变化，将生产集中在提供更大规模和效率的设施中。尽管索伦工厂在雀巢运营中扮演了长期角色，但公司强调关闭仅涉及制造业务，研发和公司运营的索伦校区将保持开放。这一决策反映了雀巢调整其制造足迹以适应不断变化的客户需求和生产需求的努力，对行业整合趋势有重要影响，意味着从业者需要关注供应链的优化和效率提升。",
+  "title": "雀巢工厂关闭预示行业整合新时代"
  },
  "nestlé launches solgar prime for fast-growing healthy-longevity market": {
   "summary": "雀巢扩充健康长寿产品线，推出高端补充剂 Solgar Prime，主打肌肉力量、活力与行动力。",
   "title": "雀巢推出 Solgar Prime，切入健康长寿赛道"
  },
  "nestlé turnaround accelerates as volume growth gains pace": {
-  "summary": "雀巢报告2026年第三季度强劲业绩，销量增长加速，新兴市场表现突出，对其转型战略的信心增强。对从业者而言，新兴市场的增长潜力巨大，需关注其市场策略调整。",
-  "title": "雀巢第三季度业绩强劲，销量增长加速"
+  "summary": "雀巢报告2026年前三季度3.7%的有机增长（OG），实际内部增长（RIG）为1.9%。第三季度单季实现4%的OG，RIG提升至2.8%，价格涨幅放缓至1.1%，显示基础增长持续加强，销量驱动作用增强。第三季度RIG在所有市场均呈正值，显示更均衡的复苏。新兴市场继续超越成熟市场，成为雀巢增长的主要动力，亚洲、大洋洲、拉丁美洲及部分中欧地区的有机增长达6.8%。印度表现突出，尽管与去年强劲增长相比面临压力，仍实现20%的有机增长。",
+  "title": "雀巢转型加速，销量增长提速"
  },
  "nestlé turnaround taking shape a year after new ceo": {
   "summary": "CEO 菲利普·纳夫拉蒂尔表示，产品创新与业务剥离推动北美等关键市场改善，但他对整体业绩“仍不满意”。",
   "title": "新 CEO 上任一年，雀巢重组初见成效"
  },
  "nestlé usa and gerber lawsuit puts heavy metals in baby food back in the spotlight": {
-  "summary": "随着婴儿食品诉讼加速，德克萨斯州对嘉宝提出重金属污染和产品安全指控。对从业者意味着需加强产品安全监管，避免类似问题影响品牌声誉和销售。",
-  "title": "雀巢美国和嘉宝诉讼将重金属问题重新推上风口浪尖"
+  "summary": "随着婴幼儿食品诉讼加速，德克萨斯州对嘉宝提出重金属污染和产品安全指控。这一事件凸显了婴幼儿食品领域的质量安全问题正受到更严格的审视，对相关企业提出了更高的安全标准和监管要求。对从业者而言，这意味着需加强产品检测和质量控制，确保产品安全，以维护消费者信任和品牌声誉。",
+  "title": "雀巢美国与嘉宝诉讼将重金属问题重新推上焦点"
  },
  "preparing water systems for dairy growth in 2026": {
   "summary": "乳制品需求持续增长，为满足不断扩大的生产需求，加工商需提前规划供水系统以应对未来挑战。",
   "title": "为2026年乳制品增长准备供水系统"
  },
  "probiotic infant formula market forecast to reach us$5.80 - openpr.com": {
-  "summary": "益生菌婴儿奶粉市场预计将增长至5.8亿美元，这一市场发展趋势对从业者意味着需关注益生菌产品的市场潜力，考虑产品线拓展。对从业者而言，益生菌婴儿奶粉市场增长迅速，需关注产品研发和市场定位，以满足消费者对健康奶粉的需求。",
+  "summary": "益生菌婴儿奶粉市场预计将增长至5.8亿美元。这一市场发展趋势对从业者意味着需关注益生菌产品的市场潜力，考虑产品线拓展。益生菌婴儿奶粉市场的增长反映了消费者对婴幼儿健康产品的需求增加，为从业者提供了新的市场机遇。应密切关注这一细分市场的动态，适时调整产品策略，以满足市场需求，抢占市场先机。",
   "title": "益生菌婴儿奶粉市场预计将增长至5.8亿美元"
  },
  "publisher's platform: comments sought on fda petition to add botulism to the infant formula testing list - food safety news": {
-  "summary": "美国食品和药物管理局（FDA）正在征求公众意见，考虑将肉毒杆菌添加至婴儿配方奶粉检测清单。此前已有多起婴儿因食用含肉毒杆菌的奶粉住院事件，此次提议旨在加强食品安全监管，对行业影响重大。对从业者意味着需关注法规变化，加强产品检测以符合更高安全标准。",
-  "title": "美国食品和药物管理局征求公众意见拟将肉毒杆菌添加至婴儿配方奶粉检测清单"
+  "summary": "美国食品和药物管理局（FDA）正在征求公众意见，考虑将肉毒杆菌添加至婴儿配方奶粉检测清单。此前已有多起婴儿因食用含肉毒杆菌的奶粉住院事件，此次提议旨在加强食品安全监管，对行业影响重大。对从业者而言，需关注美国市场政策变化，评估产品安全性。",
+  "title": "FDA拟将肉毒杆菌添加至婴儿奶粉检测清单"
  },
  "sierra nevada cheese company, inc：sierra nevada cheese graziers raw milk sharp cheddar net wt. 40 lbs item 6516 被通报召回": {
-  "summary": "疑因大肠杆菌 O26:H11 污染被召回，风险分类尚未确定。",
+  "summary": "美国Sierra Nevada Cheese Company一款硬质切达奶酪因疑似大肠杆菌O26:H11污染被召回，但风险分类尚未确定。该事件提醒母婴行业从业者食品安全的重要性，需加强原料供应链管理，确保产品符合安全标准，避免类似风险对消费者健康造成威胁。",
   "title": "美国 Sierra Nevada Cheese 公司召回生牛乳切达奶酪（40 磅装，货号 6516）"
  },
  "skim milk powder leads gdt market - farmers weekly": {
@@ -242,7 +254,7 @@
  },
  "spotlight on america asks the question fda still hasn’t answered: how did botulism get into infant formula? - marler blog": {
   "summary": "美国媒体Spotlight on America质疑FDA未能解答婴儿奶粉肉毒杆菌污染问题。事件引发公众对奶粉安全的关注，要求监管机构提供明确解释。对行业从业者而言，需加强产品质量控制，确保生产过程安全，提升消费者信心。",
-  "title": "美国媒体质疑FDA未能解答婴儿奶粉肉毒杆菌污染问题"
+  "title": "美国媒体质疑FDA：婴儿奶粉如何被肉毒杆菌污染？"
  },
  "study: maternal gut bacteria may help predict infant eczema": {
   "summary": "一项覆盖 700 多对母子的研究发现，婴儿早期肠道菌群主要来自母亲，共享菌株比例随月龄下降，为预测婴儿湿疹提供了线索。",
@@ -265,31 +277,31 @@
   "title": "TOJI 公司召回 Cloud Cafe 胶原蛋白奶与草莓奶（无咖啡因，10 袋装）"
  },
  "us dairy industry invests $15bn in new processing capacity across 23 states": {
-  "summary": "美国乳制品行业计划到2030年通过超过85个项目投资150亿美元，覆盖23个州，涉及新工厂建设、设施扩建、生产线增加和现代化项目。此举旨在满足国内对高蛋白、营养密集型产品的增长需求，并扩大出口机会。预计未来十年，乳制品制造业的就业和产出增长将超过美国整体制造业。对从业者而言，这意味着美国乳制品市场潜力巨大，出口机会增多，需关注产能变化和市场布局调整。",
-  "title": "美国乳制品行业投资150亿美元新建加工产能"
+  "summary": "美国乳业行业在23个州投资150亿美元用于扩建新的加工产能，此举将提升行业整体产能，对跨境乳制品供应链带来积极影响，意味着更多优质原料供应可能，对从业者而言需关注产能变化对市场格局的影响。",
+  "title": "美国乳业行业在23个州投资150亿美元用于扩建新的加工产能"
  },
  "us milk powder rally raises export competitiveness concerns - czapp": {
   "summary": "美国乳制品价格因供应紧张而上涨。美国农业部下调了2026年和2027年的牛奶产量预测，同时上调了2027年全牛奶价格预测。强劲的需求和有限的供应支撑了脱脂奶粉、乳清和奶酪的价格上涨，而上涨的奶粉溢价引发了出口担忧，黄油价格则承受压力。这一信息来自Sosland Publishing的Dairy Report。美国非脂奶粉价格上涨，国内和墨西哥的强劲需求加上有限的产量，导致现货供应紧张。西部干燥厂满负荷运转，部分产量已预订到2027年。",
   "title": "美国奶粉价格上涨引发出口竞争力担忧 - Czapp"
  },
  "welsh dairy farmers face margin squeeze as production costs rise": {
-  "summary": "生产成本上升，威尔士奶农面临的利润压力持续加大。",
-  "title": "生产成本上升，威尔士奶农利润空间被压缩"
+  "summary": "威尔士乳农面临利润压力，部分牛奶供应价格低于生产成本，NFU Cymru警告称。持续的成本压力加上夏季持续高温干旱导致冬季饲料成本上升。尽管出厂牛奶价格在极端波动和低价后开始恢复，但全球地缘政治不稳定导致燃料和化肥成本显著上升。威尔士乳业对经济贡献达9.29亿英镑，支持数千个就业岗位，提供气候友好、营养丰富的牛奶和乳制品。为维持增长，需要盈利的乳业企业具备投资未来的信心和现金流。",
+  "title": "威尔士乳农面临利润压缩，生产成本上升"
  },
  "whole milk baby formula is having a moment, but is it actually better for babies? - parents": {
   "summary": "全脂牛奶婴儿奶粉市场正在增长，引发关于其是否更适合婴儿的讨论。这一趋势对从业者意味着需关注市场变化，评估产品配方对婴幼儿健康的影响。",
-  "title": "全脂牛奶婴儿奶粉市场增长"
+  "title": "全脂牛奶婴儿奶粉市场增长引关注"
  },
  "whole milk powder apr '28 futures price history - barchart.com": {
-  "summary": "Barchart.com网站提供全脂奶粉期货价格历史数据，对跨境电商从业者了解奶粉市场价格波动有参考价值。这一信息有助于从业者进行市场分析和风险预测，制定更有效的经营策略。",
+  "summary": "Barchart.com网站提供了全脂奶粉期货价格的历史数据，对跨境电商从业者了解奶粉市场价格波动有参考价值。这一信息有助于从业者把握市场趋势，制定合理的采购和销售策略。乳业市场价格波动直接影响跨境奶粉的采购成本和销售价格，掌握历史数据是进行市场预测和风险控制的基础。",
   "title": "全脂奶粉期货价格历史数据"
  },
  "why is saputo saying farewell to uk dairy?": {
-  "summary": "加拿大乳企Saputo出售英国多家知名乳制品品牌，包括Davidstow、Wensleydale等，其中Cathedral City是英国最大奶酪品牌。此举因英国经济波动及市场竞争力下降，Saputo需调整全球布局。对从业者意味着需关注国际乳业市场变化，企业战略调整影响供应链与渠道布局。",
-  "title": "Saputo告别英国乳业"
+  "summary": "Cathedral City 曾是萨普托英国乳业资产中的核心品牌，如今该集团选择退出英国市场。",
+  "title": "萨普托为何退出英国乳业？"
  },
  "wwf operating company：so delicious dairy free salted caramel cluster cashewmilk, non-dairy frozen dessert. 16 oz paper tub with an attached paper lid.": {
-  "summary": "产品可能含有小石子和其他硬物。属于II类召回，涉及非乳制冷冻甜点，对跨境电商进口食品安全监管提出警示，从业者需关注产品安全风险和召回动态。",
-  "title": "WWF运营公司：So Delicious无乳糖焦糖腰果奶，非乳制冷冻甜点。16盎司纸盒带纸盖"
+  "summary": "So Delicious无乳制品焦糖腰果牛奶因可能含小石子和其他硬物被召回，属于II类召回。事件涉及非乳制冷冻甜点，对跨境电商进口食品安全监管提出警示。从业者需关注产品安全风险和召回动态，加强供应链质量把控，避免类似问题发生。",
+  "title": "WWF运营公司：So Delicious无乳制品焦糖腰果牛奶，16盎司纸盒装带纸盖"
  }
 }
