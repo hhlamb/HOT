@@ -140,15 +140,20 @@ def apply_updates(items: list[dict]) -> int:
                 short_old = len(old_sum) < 120
                 longer = len(new_sum) > len(old_sum) + 40
                 upgrade = (
+                    # 模型重写过的版本优先于抽取值
                     (patch.get("summary_source") == "llm" and row.get("summary_source") != "llm")
-                    or (patch.get("summary_source") == "extract" and row.get("summary_source") != "llm" and short_old and longer)
+                    # 抽取出明显更长的内容：旧摘要短得离谱就允许盖，
+                    # 哪怕是模型写的——小模型偶尔会把摘要写崩到二十来字，
+                    # 这种明显失手的输出不该一直占着位置
+                    or (patch.get("summary_source") == "extract" and short_old and longer)
+                    # 模型覆盖模型：新版要求 180 字，旧版只有六七十
                     or (patch.get("summary_source") == "llm" and row.get("summary_source") == "llm" and short_old and longer)
                 )
                 if new_sum and (not row.get("summary") or upgrade):
                     row["summary"] = new_sum
                     changed = True
                 if upgrade:
-                    row["summary_source"] = "llm"
+                    row["summary_source"] = patch.get("summary_source") or "extract"
                     # 摘要来源变了，AI 归纳标记也要跟着变：
                     # 有正文时是「改写」，没正文时才是「归纳」，前端据此显示标注
                     if patch.get("summary_kind"):
