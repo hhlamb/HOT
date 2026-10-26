@@ -75,11 +75,22 @@ jobs:
           if git diff --cached --quiet; then
             echo "本轮没有新增内容，跳过提交"
             echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            git commit -m "chore: update feed $(date -u +'%Y-%m-%dT%H:%MZ')"
-            git push
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          git commit -m "chore: update feed $(date -u +'%Y-%m-%dT%H:%MZ')"
+          # 抓取跑了十几分钟，期间 main 可能已经被别的提交推前了，
+          # 直接 push 会被拒。rebase 后重试，别把这一轮抓到的数据丢掉。
+          for i in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "推送冲突，第 $i 次重试…"
+            git rebase --abort 2>/dev/null || true
+            sleep 3
+          done
+          echo "::error::推送失败，本轮数据未提交"
+          exit 1
 
       # 公开仓库连续 60 天没有提交，schedule 会被 GitHub 自动停用（很隐蔽的坑）。
       # 只在「7 天没有数据提交」时补一次心跳；内容恒定，内容不变就不会产生新 blob。

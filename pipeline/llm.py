@@ -32,6 +32,9 @@ CACHE_FILE = ROOT / "data" / "zh_cache.json"
 #   1220 无权访问该模型    1211 模型不存在（下线/改名）
 SWITCH_CODES = {"1305", "1220", "1211"}
 
+# 1301 内容安全过滤：这批里有一条踩线，重试没用，直接跳过这批
+SKIP_CODES = {"1301"}
+
 
 def _error_code(resp) -> str:
     """从智谱的 {"error":{"code":"1305",...}} 里取错误码，取不到就返回空串。"""
@@ -249,12 +252,26 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
         relaxed = False
         fatal = False
         rate_limited = False
+        blocked = False
         tries = 0
         for attempt in range(retries + 1):
             tries += 1
             try:
                 resp = (caller or _post)(url, headers, payload, int(cfg.get("timeout_seconds", 90)))
                 if resp.status_code >= 400:
+                    code = _error_code(resp)
+                    # 先认错误码再谈补救：1301/1305 这类都是 HTTP 400/429 包着的业务码，
+                    # 按状态码走"去可选参数重试"纯粹浪费一次调用。
+                    if code in SKIP_CODES:
+                        blocked = True
+                        raise RuntimeError(f"内容安全过滤（{code}）")
+                    # 这个模型本身不可用（免费池拥塞 1305 / 无权限 1220 / 名字不对 1211）：
+                    # 换降级链里的下一个模型，比在同一模型上退避有效得多。
+                    if code in SWITCH_CODES and mi + 1 < len(models):
+                        log(f"  · {models[mi]} 不可用（{code}），切到 {models[mi + 1]}")
+                        mi += 1
+                        payload["model"] = models[mi]
+                        continue
                     # 不同 GLM 版本对 thinking / response_format 的支持不一致，报 400 时
                     # 先去掉这两个可选参数重试一次（_parse_json_loose 本来就能兜住非 JSON 输出），
                     # 免得因为一个可选字段让整轮一个摘要都出不来。
@@ -264,20 +281,16 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                         relaxed = True
                         log(f"  · 接口拒绝可选参数（{resp.text[:60]}），去掉后重试")
                         continue
-                    # 这个模型本身不可用（免费池拥塞 1305 / 无权限 1220 / 名字不对 1211）：
-                    # 换降级链里的下一个模型，比在同一模型上退避有效得多。
-                    code = _error_code(resp)
-                    if code in SWITCH_CODES and mi + 1 < len(models):
-                        log(f"  · {models[mi]} 不可用（{code}），切到 {models[mi + 1]}")
-                        mi += 1
-                        payload["model"] = models[mi]
-                        continue
                     fatal = resp.status_code in (401, 403, 404)
                     rate_limited = resp.status_code == 429
                     raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:160]}")
                 data = resp.json()
                 break
             except Exception as exc:
+                if blocked:
+                    stats["skipped"] += len(batch)
+                    log(f"  · 第 {i // batch_size + 1} 批含敏感内容被拦下，跳过 {len(batch)} 条")
+                    break
                 if fatal or attempt >= retries:
                     log(f"  ! 模型调用失败（第 {i // batch_size + 1} 批）：{str(exc)[:120]}")
                     stats["failed"] += len(batch)
