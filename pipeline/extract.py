@@ -24,7 +24,8 @@ from bs4 import BeautifulSoup
 
 from .clean import clip, strip_html
 
-# 站点常见正文容器（命中一个就用它的首段）
+# 站点常见正文容器。命中不再是"第一个就返回"，而是全部评分取最优
+# （见 _container_score），所以宁可多列一些，列错也只是评分低被淘汰。
 CONTENT_SELECTORS = [
     "article .article-content",
     "div.article-content",
@@ -35,10 +36,26 @@ CONTENT_SELECTORS = [
     "div.art-content",
     "div.detail-content",
     "div.TRS_Editor",  # 政府站常见的正文容器
+    "div.article",
+    "div.article-body",
+    "div.article_content",
+    "div.news-content",
+    "div.news_content",
+    "div.content_area",
+    "div.text",
+    "div.article-text",
+    "div.detail",
     "div#content",
     "div.content",
     "article",
     "main",
+    # 属性匹配：类名带这些片段的容器多半是正文区，能兜住二次改版的站
+    "div[class*='article-content']",
+    "div[class*='articleContent']",
+    "div[class*='main-content']",
+    "div[class*='news-content']",
+    "div[class*='detail-content']",
+    "div[class*='conTxt']",
 ]
 
 # 样板话术：命中的段落视为非正文
@@ -102,12 +119,102 @@ def _meta_desc(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 14, target: int = 2400) -> str:
-    """按"先容器后全文"的顺序挑段；返回拼好的前几段正文。"""
-    for selector in CONTENT_SELECTORS:
-        node = soup.select_one(selector)
-        if node is None:
+def _container_score(node) -> int:
+    """给候选正文容器打分：段落文字越多越好，链接文字多了扣分。
+
+    只用"第一个命中的选择器"会踩坑：很多站在侧栏、面包屑、相关阅读上都挂了
+    `.content` 这种类名，`select_one` 拿到的往往是空壳，于是明明页面有 1600 字
+    正文，抽出来却是 0 字。改成把所有候选容器都评分、取最高分那个。
+    """
+    paras = node.find_all("p")
+    if not paras:
+        return 0
+    text_len = sum(len(_clean_text(p.get_text(" ", strip=True))) for p in paras)
+    if text_len < 60:
+        return 0
+    link_len = sum(len(_clean_text(a.get_text(" ", strip=True))) for a in node.find_all("a"))
+    # 导航区几乎全是链接：文字一半以上是链接文字，基本可以排除了
+    return max(0, text_len - link_len * 2)
+
+
+def _table_text(soup: BeautifulSoup, limit: int = 6) -> str:
+    """把页面里最大的数据表压成文字。
+
+    通报、召回、抽检这类页面（食品伙伴网 RASFF、FDA enforcement）正文不在 <p> 里，
+    整页只有表头和一行行数据，按段落抽只能抽到"通报时间""通报国"这种字段名。
+    但表格里的信息密度恰恰最高，转成"字段：值"反而是最好的原文摘录。
+    """
+    best, best_score = None, 0
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        if len(rows) < 2 or len(rows) > 40:
             continue
+        # 页面里最大的表往往是"相关阅读""导航"这类纯链接表，
+        # 真正要的是通报数据表：文字多、链接少。链接文字占比高的直接淘汰。
+        text_len = len(_clean_text(table.get_text(" ", strip=True)))
+        link_len = sum(len(_clean_text(a.get_text(" ", strip=True))) for a in table.find_all("a"))
+        if text_len < 30 or link_len * 2 >= text_len:
+            continue
+        score = text_len - link_len * 2
+        if score > best_score:
+            best, best_score = table, score
+    if best is None:
+        return ""
+
+    def cells(tr) -> list[str]:
+        return [_clean_text(c.get_text(" ", strip=True)) for c in tr.find_all(["th", "td"])]
+
+    header = cells(best.find_all("tr")[0])
+    out: list[str] = []
+    for tr in best.find_all("tr")[1 : limit + 1]:
+        raw = cells(tr)
+        if not any(raw):
+            continue
+        if header and len(header) == len(raw):
+            pairs = []
+            for h, v in zip(header, raw):
+                v = v.strip()
+                if not v or DATE_ONLY.match(v):
+                    continue
+                h = h.strip()
+                pairs.append(f"{h}：{v}" if h and not DATE_ONLY.match(h) else v)
+            line = "；".join(pairs)
+        else:
+            line = "；".join(v.strip() for v in raw if v.strip())
+        if len(line) >= 12:
+            out.append(line)
+    return " ｜ ".join(out)
+
+
+def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 14, target: int = 2400) -> str:
+    """挑正文段落：候选容器评分取最优 → 全页 <p> 兜底。"""
+    candidates = []
+    seen: set[int] = set()
+    for selector in CONTENT_SELECTORS:
+        for node in soup.select(selector):
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            candidates.append(node)
+
+    # 通用兜底：整页段落文字最多的 div。新闻站正文基本都在这种结构里，
+    # 不依赖类名，所以对改版的站也能兜住。
+    best_div, best_len = None, 0
+    for div in soup.find_all("div"):
+        n = len(div.find_all("p", recursive=False))
+        if n < 2:
+            continue
+        total = sum(len(_clean_text(p.get_text(" ", strip=True))) for p in div.find_all("p", recursive=False))
+        if total > best_len:
+            best_div, best_len = div, total
+    if best_div is not None and best_len >= 200:
+        candidates.append(best_div)
+
+    scored = [( _container_score(n), i, n) for i, n in enumerate(candidates)]
+    scored = [s for s in scored if s[0] > 0]
+    scored.sort(key=lambda s: -s[0])
+
+    for score, _, node in scored[:3]:  # 前三个候选都试，取第一个能凑出段落的
         picked: list[str] = []
         for p in node.find_all(["p", "div"], recursive=True):
             # div 里往往还套着 p，重复取会拼接两遍
@@ -116,13 +223,16 @@ def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 14
             text = _clean_text(p.get_text(" ", strip=True))
             if not _acceptable(text, title, min_chars):
                 continue
+            # 容器里常见的"相关阅读 / 版权声明"尾巴，抽到就停
+            if len(text) < 40 and BOILERPLATE.search(text):
+                continue
             picked.append(text)
             if sum(len(x) for x in picked) >= target or len(picked) >= limit:
                 break
-        if picked:
+        if sum(len(x) for x in picked) >= min_chars * 2:
             return " ".join(picked)
 
-    # 兜底：不猜容器，直接扫全文 p 标签
+    # 最后兜底：不猜容器，直接扫全文 p 标签
     picked = []
     for p in soup.find_all("p"):
         text = _clean_text(p.get_text(" ", strip=True))
@@ -342,6 +452,11 @@ def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> t
 
     image = _meta_image(soup, url)
     body = _paragraphs(soup, min_chars, title)
+    # 通报/召回/抽检类页面正文全在表格里，段落抽不出东西时用表格内容顶上
+    if len(body) < 200:
+        table = _table_text(soup)
+        if len(table) > len(body):
+            body = table if not body else f"{body} {table}"
     desc = _meta_desc(soup)
     if body:
         summary = make_digest(body, title, 260)

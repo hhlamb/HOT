@@ -64,6 +64,12 @@ SYSTEM_PROMPT = """你是跨境母婴与婴幼儿奶粉行业的资讯编辑，�
 5. tags：从下面列表里选 1~3 个最贴切的，不要自造：
    品牌动态 / 政策法规 / 质量安全 / 市场数据 / 供应链 / 跨境电商 / 海外动态
 6. 所有字段一律用简体中文，除品牌与产品专有名词外不出现英文单词。
+7. 每个条目带 body_available 字段。为 false 表示原文正文抓不到，你只能看到标题和一小段摘要。
+   这种情况下 summary 仍然要写满 150~220 字，做法是：
+   - 先把标题和摘要里确定的事实讲清楚（谁、什么品类、什么动作）
+   - 再补这个事件所处的行业背景（这类事情通常意味着什么、从业者为什么要关心）
+   - 绝不能编造具体的数字、时间、金额、人名、机构表态；没有依据的细节一律不写
+   为 true 时按第 3 条写，不要空泛铺陈背景。
 """
 
 TAG_LIST = ["品牌动态", "政策法规", "质量安全", "市场数据", "供应链", "跨境电商", "海外动态"]
@@ -169,6 +175,9 @@ def _batch_payload(items: list[dict], cfg: dict) -> list[dict]:
     payload = []
     for item in items:
         body = (item.get("_body") or "").strip()
+        # 正文抓不到的条目（站点反爬/JS 渲染/只有图片）在 payload 里显式标出来，
+        # 让模型知道这条只能靠标题和已有摘要写，别假装引用了原文。
+        has_body = len(body) >= 200
         payload.append(
             {
                 "id": item["id"],
@@ -176,6 +185,7 @@ def _batch_payload(items: list[dict], cfg: dict) -> list[dict]:
                 "source": item.get("source_name", ""),
                 "language": item.get("language", "zh"),
                 "content": clip(body or item.get("summary") or "", 1800),
+                "body_available": has_body,
             }
         )
     return payload
@@ -379,6 +389,10 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                         int(cfg.get("max_summary_chars", 220)),
                     )
                 item["summary_source"] = "llm"
+                # 正文抓不到的条目：详情页没有原文可摘，摘要就是唯一的信息源，
+                # 打个标记让前端说明"这是 AI 归纳、不是原文摘录"，别让人误会。
+                if len((item.get("_body") or "").strip()) < 200:
+                    item["summary_kind"] = "brief"
             points = [clip(re.sub(r"\s+", " ", str(x)).strip(), 60) for x in (row.get("points") or []) if str(x).strip()]
             # 小模型爱写 3~6 字的短语（"战略布局协同"），既没信息量又占版面，
             # 宁可少一条也别在页面上摆一排空话

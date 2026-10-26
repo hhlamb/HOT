@@ -149,6 +149,12 @@ def apply_updates(items: list[dict]) -> int:
                     changed = True
                 if upgrade:
                     row["summary_source"] = "llm"
+                    # 摘要来源变了，AI 归纳标记也要跟着变：
+                    # 有正文时是「改写」，没正文时才是「归纳」，前端据此显示标注
+                    if patch.get("summary_kind"):
+                        row["summary_kind"] = patch["summary_kind"]
+                    elif row.get("summary_kind"):
+                        row.pop("summary_kind", None)
                     changed = True
                 if patch.get("tags") and patch.get("tags") != row.get("tags"):
                     row["tags"] = patch["tags"]
