@@ -25,6 +25,9 @@ on:
       - "data/**"
       - "meta/**"
       - "**.md"
+      # 诊断脚本和诊断工作流专属，改它们不该顺带跑一遍 15 分钟的完整抓取
+      - "scripts/diag_*.py"
+      - ".github/workflows/diag-*.yml"
 
 permissions:
   contents: write        # 提交抓取结果
