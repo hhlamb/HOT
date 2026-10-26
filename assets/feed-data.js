@@ -162,6 +162,7 @@
     else if (hours <= 24) h += 30;
     else if (hours <= 72) h += 15;
     else if (hours <= 168) h += 6;
+    else h -= 20; // 一周以上的老稿（常被翻出来转载）不该跟当天的稿子抢榜
 
     const tags = item.tags || [];
     for (const tag of tags) h += HEAT_TAGS[tag] || 0;

@@ -378,8 +378,10 @@ function makeCard(item, opts = {}) {
   const foot = document.createElement("div");
   foot.className = "card-foot";
   const time = document.createElement("span");
-  time.textContent = FD.timeAgo(item.published_at);
-  if (item.published_at) time.title = FD.fmtFull(item.published_at);
+  const stamp = item.published_at || item.fetched_at;
+  // 源没给发布时间的老稿不少，写"时间未知"观感很差；用抓取时间并标明是收录时间
+  time.textContent = item.published_at ? FD.timeAgo(item.published_at) : "收录于 " + FD.hm(stamp);
+  if (stamp) time.title = FD.fmtFull(stamp);
   foot.appendChild(time);
 
   if (item.language === "en") {
@@ -442,9 +444,8 @@ function renderHot(rows) {
     t.textContent = item.title_zh || item.title || "";
     const meta = document.createElement("div");
     meta.className = "rank-meta";
-    meta.textContent = [item.source_name, (item.tags || [])[0], FD.timeAgo(item.published_at)]
-      .filter(Boolean)
-      .join(" · ");
+    const when = item.published_at ? FD.timeAgo(item.published_at) : "收录于 " + FD.hm(item.fetched_at);
+    meta.textContent = [item.source_name, (item.tags || [])[0], when].filter(Boolean).join(" · ");
     main.appendChild(t);
     main.appendChild(meta);
 

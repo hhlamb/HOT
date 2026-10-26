@@ -304,6 +304,28 @@ def main() -> int:
             if bad.get("source_id") in per_source:
                 per_source[bad["source_id"]]["relevant"] -= 1
 
+    # ---------------- 未来时间夹取 ----------------
+    # 部分站点（如雨果跨境的排期稿）会给未来日期，直接顶到时间轴最前面，观感很差。
+    # 超过 2 小时的一律按当前时间算，并打标 published_guessed 供前端提示。
+    now_utc = datetime.now(timezone.utc)
+    clamped = 0
+    for item in candidates:
+        raw = (item.get("published_at") or "").strip()
+        if not raw:
+            continue
+        try:
+            d = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        if (d - now_utc).total_seconds() > 7200:
+            item["published_at"] = now_utc.astimezone(d.tzinfo).isoformat(timespec="seconds")
+            item["published_guessed"] = True
+            clamped += 1
+    if clamped:
+        print(f"  未来时间夹取 {clamped} 条")
+
     # ---------------- 去重 ----------------
     print("[4/6] 去重…")
     recent_for_sim = [
