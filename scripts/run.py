@@ -216,9 +216,20 @@ def main() -> int:
                 i for i in all_recent
                 if len((i.get("body") or "").strip()) < 200 or not (i.get("image") or "").strip()
             ]
+            # 链接还挂在 Google News 中转页上的优先——解出来才有正文和配图，
+            # 排在后面的话永远轮不到（每轮额度有限）
+            no_body.sort(
+                key=lambda i: (
+                    0 if "news.google.com" in (i.get("original_url") or "") else 1,
+                    0 if not (i.get("image") or "").strip() else 1,
+                    len((i.get("body") or "").strip()),
+                )
+            )
             if no_body:
+                pool = no_body[:body_cap]
+                before = {i["id"]: (i.get("body") or "", i.get("image") or "") for i in pool}
                 fill_summaries(
-                    no_body[:body_cap],
+                    pool,
                     client,
                     cfg,
                     min_chars=int(extract_cfg.get("min_chars", 40)),
@@ -228,12 +239,17 @@ def main() -> int:
                     body_chars=int(extract_cfg.get("body_chars", 800)),
                     need_body=True,
                 )
-                got = sum(1 for i in no_body if (i.get("body") or "").strip())
-                with_img = sum(1 for i in no_body[:body_cap] if (i.get("image") or "").strip())
-                for old in no_body[:body_cap]:
+                got = sum(1 for i in pool if (i.get("body") or "").strip() != before[i["id"]][0])
+                with_img = sum(
+                    1 for i in pool
+                    if (i.get("image") or "").strip() and (i.get("image") or "") != before[i["id"]][1]
+                )
+                resolved = sum(1 for i in pool if i.get("link_resolved"))
+                for old in pool:
                     if (old.get("body") or "").strip() or (old.get("image") or "").strip():
                         old["_patched"] = True
-                print(f"  正文回填 {got}/{len(no_body[:body_cap])} 条 · 其中带配图 {with_img} 条")
+                tail = f" · 解开跳转链 {resolved} 条" if resolved else ""
+                print(f"  正文回填 {got}/{len(pool)} 条 · 新增配图 {with_img} 条{tail}")
     client.close()
 
     llm_cfg = cfg.get("llm", {})

@@ -156,9 +156,25 @@ def apply_updates(items: list[dict]) -> int:
                     row["title_zh"] = patch["title_zh"]
                     row["translated"] = True
                     changed = True
+                # 跳转链后补：Google News 中转链解出原文地址后必须落盘，
+                # 不然每轮都要重新解码一遍（每条一次 600KB 壳页 + 一次接口调用）
+                if (
+                    patch.get("link_resolved")
+                    and patch.get("original_url")
+                    and patch["original_url"] != row.get("original_url")
+                ):
+                    row["original_url"] = patch["original_url"]
+                    row["link_resolved"] = True
+                    changed = True
                 # 正文摘录后补：详情页要展示原文核心。老条目只有 120 字摘要，
-                # 这里把后抓到的正文写进去；已有正文的不覆盖。
-                if patch.get("body") and not (row.get("body") or "").strip():
+                # 这里把后抓到的正文写进去；已有完整正文的不覆盖。
+                old_body = (row.get("body") or "").strip()
+                new_body = (patch.get("body") or "").strip()
+                if new_body and not old_body:
+                    row["body"] = patch["body"]
+                    changed = True
+                elif new_body and len(old_body) < 300 and len(new_body) > len(old_body) + 200:
+                    # 早先 800 字上限时代的短正文，用新抓的完整段落升级
                     row["body"] = patch["body"]
                     changed = True
                 # 配图后补

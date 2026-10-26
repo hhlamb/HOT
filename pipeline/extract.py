@@ -170,77 +170,105 @@ def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> t
 
 GNEWS_HOST = "news.google.com"
 
-# 每轮最多解码多少条 Google News 跳转链。每条要两次请求，
+# 每轮最多解码多少条 Google News 跳转链。每条要两次请求（壳页 600KB + 接口），
 # 全量解码会把抓取阶段拖长一倍，这里按优先级取前 N 条。
-GNEWS_DECODE_MAX = 40
+GNEWS_DECODE_MAX = 80
 
 _DECODE_ENDPOINT = "https://news.google.com/_/DotsSplashUi/data/batchexecute"
 
 
-def _decode_gnews_once(client, url: str, html: str = "") -> str:
-    """按 Google News 前端自身用的 batchexecute 接口解开跳转链。
+_DECODE_HEADERS = {
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    ),
+}
 
-    中转页现在是纯 JS 壳，GET 只会拿到空页面，但页面里仍带有
-    data-n-a-sg（签名）与 data-n-a-ts（时间戳），拿这两个值调内部接口
-    就能换回原文地址。接口一旦改版，这里会静默失败、退回原链接。
+
+def _garturlreq(article_id: str, ts: str, sig: str) -> str:
+    """batchexecute 里 garturlreq 的参数串，字段位置不能动，动了就只回空。"""
+    return (
+        '["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,'
+        'null,null,null,null,null,0,1],"X","X",1,[1,1,1],1,1,null,0,0,null,0],'
+        f'"{article_id}",{ts},"{sig}"]'
+    )
+
+
+def _parse_decode_reply(text: str) -> str:
+    """从 batchexecute 的多段响应里抠出原文地址。
+
+    响应体形如：")]}'" + 空行 + '[["wrb.fr","Fbv4je","[\\"garturlres\\",\\"https://...\\"]",...]]'
+    真正有用的东西在第三列那个被二次转义的 JSON 字符串的第 2 个元素里。
     """
-    if not html:
-        resp = client.get(url)
-        html = getattr(resp, "text", "") or ""
-    m_sig = re.search(r'data-n-a-sg="([^"]+)"', html)
-    m_ts = re.search(r'data-n-a-ts="([^"]+)"', html)
-    if not (m_sig and m_ts):
-        return ""
-    article_id = url.split("/articles/")[-1].split("?")[0]
-    inner = (
-        '["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,null,null,null,null,null,0,1],'
-        f'"X","X",1,[1,1,1],1,1,null,0,0,null,0],"{article_id}",{m_ts.group(1)},"{m_sig.group(1)}"]'
-    )
-    body = "f.req=" + quote(json.dumps([["Fbv4je", inner, None, "generic"]]))
-    r = client.post(
-        _DECODE_ENDPOINT,
-        data=body,
-        headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
-    )
-    text = getattr(r, "text", "") or ""
-    # 返回体是 ")]}'" 开头的多段文本，真正结果在第二段
-    for chunk in text.split("\n\n"):
-        if "garturlres" in chunk:
+    for chunk in (text or "").split("\n\n"):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if chunk.startswith(")]}'"):
+            nl = chunk.find("\n")
+            chunk = chunk[nl + 1 :] if nl >= 0 else chunk[4:]
+        if "garturlres" not in chunk:
+            continue
+        try:
+            parsed = json.loads(chunk)
+        except Exception:
+            continue
+        if not isinstance(parsed, list):
+            continue
+        for row in parsed:
+            if not (isinstance(row, list) and len(row) > 2):
+                continue
+            payload = row[2]
+            if not (isinstance(payload, str) and "garturlres" in payload):
+                continue
             try:
-                payload = json.loads(chunk)
-                inner_json = json.loads(payload[0][2])
-                real = inner_json[1]
-                if real.startswith("http"):
-                    return real
+                inner = json.loads(payload)
             except Exception:
                 continue
+            if isinstance(inner, list) and len(inner) > 1 and isinstance(inner[1], str):
+                if inner[1].startswith("http"):
+                    return inner[1]
     return ""
 
 
-def resolve_google_news(client, url: str) -> str:
-    """把 news.google.com 的跳转链解析成媒体原文地址，失败就原样返回。"""
+def resolve_google_news(client, url: str) -> tuple[str, str]:
+    """把 news.google.com 的跳转链解析成媒体原文地址。
+
+    返回 (真实地址, 页面 html)。失败时真实地址为原链接、html 可能为空。
+    中转页现在是一张 600KB 的纯 JS 壳，地址不在 HTML 里，只能靠
+    data-n-a-sg（签名）+ data-n-a-ts（时间戳）调内部接口换。
+    """
     if GNEWS_HOST not in (url or ""):
-        return url
-    # 依次尝试：重定向后地址 → 页面里明写的真实地址 → batchexecute 解码
+        return url, ""
     try:
         resp = client.get(url)
     except Exception:
-        resp = None
-    if resp is not None:
-        final = getattr(resp, "url", "") or ""
-        if final and GNEWS_HOST not in final:
-            return final
-        html = getattr(resp, "text", "") or ""
-        m = re.search(r'data-n-au="(https?://[^"]+)"', html)
-        if m and GNEWS_HOST not in m.group(1):
-            return m.group(1)
+        return url, ""
+    final = str(getattr(resp, "url", "") or "")
+    if final and GNEWS_HOST not in final:
+        return final, ""
+    html = getattr(resp, "text", "") or ""
+    # 老版本中转页会直接把地址写在 data-n-au 上，仍然兼容
+    m = re.search(r'data-n-au="(https?://[^"]+)"', html)
+    if m and GNEWS_HOST not in m.group(1):
+        return m.group(1), html
+    m_sig = re.search(r'data-n-a-sg="([^"]+)"', html)
+    m_ts = re.search(r'data-n-a-ts="([^"]+)"', html)
+    if not (m_sig and m_ts):
+        return url, html
+    article_id = url.split("/articles/")[-1].split("?")[0]
+    inner = _garturlreq(article_id, m_ts.group(1), m_sig.group(1))
+    # 请求体是 [[[方法名, 参数串]]] —— 外面必须再包一层数组，多带参数会直接空响应
+    body = "f.req=" + quote(json.dumps([[["Fbv4je", inner]]]))
     try:
-        real = _decode_gnews_once(client, url, html)
-        if real and GNEWS_HOST not in real:
-            return real
+        r = client.post(_DECODE_ENDPOINT, data=body, headers=_DECODE_HEADERS)
     except Exception:
-        pass
-    return url
+        return url, html
+    real = _parse_decode_reply(getattr(r, "text", "") or "")
+    if real and GNEWS_HOST not in real:
+        return real, html
+    return url, html
 
 
 def fill_summaries(
@@ -290,23 +318,18 @@ def fill_summaries(
             # 检索类来源先换成真实地址，否则拿到的永远是空壳页
             if GNEWS_HOST in url and decode_budget[0] < GNEWS_DECODE_MAX:
                 decode_budget[0] += 1
-                real = resolve_google_news(client, url)
-                if decode_budget[0] == 1 and GNEWS_HOST in real:
-                    # 首次失败留个现场：中转页是否给到签名、有多长，决定下一步怎么改
-                    try:
-                        probe = client.get(url)
-                        h = getattr(probe, "text", "") or ""
-                        log(
-                            f"  · 跳转链解码失败（html {len(h)} 字节 / "
-                            f"sg={bool(re.search(chr(34) + 'data-n-a-sg' + chr(34), h))} / "
-                            f"n-au={bool(re.search('data-n-au', h))})"
-                        )
-                    except Exception:
-                        pass
+                real, shell = resolve_google_news(client, url)
                 if real and GNEWS_HOST not in real:
                     item["original_url"] = real
                     item["link_resolved"] = True
                     url = real
+                elif decode_budget[0] == 1:
+                    # 首次失败留个现场：壳页有多长、签名在不在，决定下一步怎么改
+                    log(
+                        f"  · 跳转链解码失败（壳页 {len(shell)} 字节 / "
+                        f"sg={bool(re.search(chr(34) + 'data-n-a-sg' + chr(34), shell))} / "
+                        f"ts={bool(re.search(chr(34) + 'data-n-a-ts' + chr(34), shell))}）"
+                    )
             resp = client.get(url)
             if resp.status_code >= 400:
                 raise RuntimeError(f"HTTP {resp.status_code}")
