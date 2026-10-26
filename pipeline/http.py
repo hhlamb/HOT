@@ -138,6 +138,46 @@ class PoliteClient:
             raise last_exc
         return resp
 
+    def post(self, url: str, *, data=None, headers=None, retries: Optional[int] = None,
+             timeout: Optional[float] = None):
+        """POST 用得很窄：目前只有解 Google News 跳转链时会用到。同样走限速与重试。"""
+        parts = urlparse(url)
+        host = parts.netloc
+        attempts = (self.retries if retries is None else retries) + 1
+        last_exc: Optional[Exception] = None
+        resp = None
+
+        for i in range(attempts):
+            with self._lock_for(host):
+                self._throttle(host)
+                try:
+                    resp = self._session().post(
+                        url,
+                        data=data,
+                        timeout=timeout or self.timeout,
+                        headers={
+                            "User-Agent": self.user_agent,
+                            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+                            **(headers or {}),
+                        },
+                    )
+                except Exception as exc:
+                    last_exc = exc
+                    resp = None
+
+            if resp is not None:
+                if resp.status_code < 400:
+                    return resp
+                if resp.status_code != 429 and resp.status_code < 500:
+                    return resp
+
+            if i < attempts - 1:
+                time.sleep(1.5 * (i + 1) + random.uniform(0, 0.5))
+
+        if resp is None and last_exc is not None:
+            raise last_exc
+        return resp
+
     def close(self) -> None:
         sess = getattr(self._local, "session", None)
         if sess is not None:

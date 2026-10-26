@@ -14,9 +14,11 @@
 
 from __future__ import annotations
 
+import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
@@ -168,34 +170,76 @@ def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> t
 
 GNEWS_HOST = "news.google.com"
 
+# 每轮最多解码多少条 Google News 跳转链。每条要两次请求，
+# 全量解码会把抓取阶段拖长一倍，这里按优先级取前 N 条。
+GNEWS_DECODE_MAX = 40
+
+_DECODE_ENDPOINT = "https://news.google.com/_/DotsSplashUi/data/batchexecute"
+
+
+def _decode_gnews_once(client, url: str, html: str = "") -> str:
+    """按 Google News 前端自身用的 batchexecute 接口解开跳转链。
+
+    中转页现在是纯 JS 壳，GET 只会拿到空页面，但页面里仍带有
+    data-n-a-sg（签名）与 data-n-a-ts（时间戳），拿这两个值调内部接口
+    就能换回原文地址。接口一旦改版，这里会静默失败、退回原链接。
+    """
+    if not html:
+        resp = client.get(url)
+        html = getattr(resp, "text", "") or ""
+    m_sig = re.search(r'data-n-a-sg="([^"]+)"', html)
+    m_ts = re.search(r'data-n-a-ts="([^"]+)"', html)
+    if not (m_sig and m_ts):
+        return ""
+    article_id = url.split("/articles/")[-1].split("?")[0]
+    inner = (
+        '["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,null,null,null,null,null,0,1],'
+        f'"X","X",1,[1,1,1],1,1,null,0,0,null,0],"{article_id}",{m_ts.group(1)},"{m_sig.group(1)}"]'
+    )
+    body = "f.req=" + quote(json.dumps([["Fbv4je", inner, None, "generic"]]))
+    r = client.post(
+        _DECODE_ENDPOINT,
+        data=body,
+        headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+    )
+    text = getattr(r, "text", "") or ""
+    # 返回体是 ")]}'" 开头的多段文本，真正结果在第二段
+    for chunk in text.split("\n\n"):
+        if "garturlres" in chunk:
+            try:
+                payload = json.loads(chunk)
+                inner_json = json.loads(payload[0][2])
+                real = inner_json[1]
+                if real.startswith("http"):
+                    return real
+            except Exception:
+                continue
+    return ""
+
 
 def resolve_google_news(client, url: str) -> str:
-    """把 news.google.com 的跳转链解析成媒体原文地址。
-
-    Google News 的 RSS 给的是自己的中转链，直接抓只会拿到一个空白壳页，
-    所以正文和配图全丢。三级兜底：
-        1. 跟随重定向后的最终地址（部分条目仍有效）
-        2. 页面里的 data-n-au 属性（老版中转页会带真实地址）
-        3. 页面里第一个外链
-    任何一步失败都原样返回，不影响主流程。
-    """
+    """把 news.google.com 的跳转链解析成媒体原文地址，失败就原样返回。"""
     if GNEWS_HOST not in (url or ""):
         return url
+    # 依次尝试：重定向后地址 → 页面里明写的真实地址 → batchexecute 解码
     try:
         resp = client.get(url)
     except Exception:
-        return url
-    final = getattr(resp, "url", "") or ""
-    if final and GNEWS_HOST not in final:
-        return final
-    html = getattr(resp, "text", "") or ""
-    m = re.search(r'data-n-au="(https?://[^"]+)"', html)
-    if m and GNEWS_HOST not in m.group(1):
-        return m.group(1)
-    for m in re.finditer(r'<a[^>]+href="(https?://[^"]+)"', html):
-        target = m.group(1)
-        if GNEWS_HOST not in target and "google.com" not in target:
-            return target
+        resp = None
+    if resp is not None:
+        final = getattr(resp, "url", "") or ""
+        if final and GNEWS_HOST not in final:
+            return final
+        html = getattr(resp, "text", "") or ""
+        m = re.search(r'data-n-au="(https?://[^"]+)"', html)
+        if m and GNEWS_HOST not in m.group(1):
+            return m.group(1)
+    try:
+        real = _decode_gnews_once(client, url, html)
+        if real and GNEWS_HOST not in real:
+            return real
+    except Exception:
+        pass
     return url
 
 
@@ -236,6 +280,7 @@ def fill_summaries(
 
     stats = {"tried": 0, "ok": 0, "failed": 0}
     lock_free_counter = []
+    decode_budget = [0]  # 本轮还剩多少次跳转链解码额度
 
     def work(item: dict) -> None:
         url = item.get("original_url", "")
@@ -243,7 +288,8 @@ def fill_summaries(
             return
         try:
             # 检索类来源先换成真实地址，否则拿到的永远是空壳页
-            if GNEWS_HOST in url:
+            if GNEWS_HOST in url and decode_budget[0] < GNEWS_DECODE_MAX:
+                decode_budget[0] += 1
                 real = resolve_google_news(client, url)
                 if real and GNEWS_HOST not in real:
                     item["original_url"] = real
