@@ -456,6 +456,8 @@ button { font: inherit; color: inherit; }
   font-size: 12px;
 }
 
+.more-btn[hidden] { display: none; }
+
 .more-btn {
   display: block;
   width: 100%;
