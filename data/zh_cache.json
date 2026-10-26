@@ -1,5 +1,9 @@
 {
  "_comment": "外文标题/摘要的中文译文缓存。命中即跳过翻译，省 token；由 llm.py 在接入模型后自动写入，也可手工补充。key 为原始标题的小写形式。",
+ "abbott in $385m settlement with doj over infant formula recall - seeking alpha": {
+  "summary": "雅培与司法部就婴儿配方奶粉召回事件达成3.85亿美元和解协议。",
+  "title": "雅培与司法部就婴儿配方奶粉召回达成3.85亿美元和解"
+ },
  "abbott laboratories agrees to $385m settlement over closure of largest baby formula plant in us - abc7 chicago": {
   "summary": "雅培实验室同意支付3.85亿美元以解决美国最大婴儿配方奶粉工厂关闭问题。",
   "title": "雅培实验室同意支付3.85亿美元以解决美国最大婴儿配方奶粉工厂关闭问题"
@@ -57,7 +61,7 @@
   "title": "达能投资再生农业，稳固英国燕麦供应链"
  },
  "danone joins nestlé and coca-cola in labelling changes": {
-  "summary": "受欧盟打击漂绿行为影响，达能加入雀巢和可口可乐行列，修订塑料瓶回收相关标签声明。",
+  "summary": "受欧盟打击漂绿行为影响，达能加入雀巢和可口可乐行列，修订塑料瓶回收相关宣传用语。",
   "title": "达能加入雀巢和可口可乐行列，调整塑料瓶回收标签"
  },
  "danone partners in energy project to turn yogurt waste into renewable fuel": {
@@ -89,12 +93,16 @@
   "title": "荷兰皇家菲仕兰 Koert Verkerk 出任欧洲乳业协会主席"
  },
  "fda to increase testing on baby formula - livenow from fox": {
-  "summary": "美国FDA将增加对婴儿配方奶粉的检测。",
-  "title": "FDA将增加对婴儿配方奶粉的检测"
+  "summary": "美国FDA宣布将增加对婴儿配方奶粉的检测力度。",
+  "title": "FDA将增加婴儿配方奶粉检测"
  },
  "food safety for dairy processors": {
   "summary": "文章探讨了婴儿配方奶粉安全的未来方向，强调应通过更深入的理解而非单纯增加检测来提升安全性。",
   "title": "乳品加工商食品安全指南"
+ },
+ "formula recall: no sick babies yet - the namibian -": {
+  "summary": "Namibia地区发生的配方奶粉召回事件中，目前没有报告婴儿生病的病例。",
+  "title": "配方奶粉召回：目前没有婴儿生病"
  },
  "fssai clamps down on nestlé india over infant formula": {
   "summary": "印度食品安全标准局（FSSAI）针对雀巢印度的婴幼儿配方奶粉采取监管措施。",
@@ -113,8 +121,8 @@
   "title": "乳品加工商如何加强食品安全并防止召回"
  },
  "michigan to get share of $384m settlement tied to baby formula recall - detroit free press": {
-  "summary": "密歇根州将获得与雅培婴儿配方奶粉召回相关的3.84亿美元和解金的一部分。",
-  "title": "密歇根州将获得与婴儿配方奶粉召回相关的3.84亿美元和解金"
+  "summary": "密歇根州将获得与配方奶粉召回相关的3.84亿美元和解金的一部分。",
+  "title": "密歇根州将获得与配方奶粉召回相关的3.84亿美元和解金"
  },
  "nestle , zydus , abbott face india scrutiny over claims on children products": {
   "summary": "雀巢、Zydus和雅培因儿童产品宣传问题面临印度监管机构的审查。",
@@ -125,24 +133,24 @@
   "title": "雀巢将关闭俄亥俄州工厂"
  },
  "nestlé factory closure signals new era of industry consolidation": {
-  "summary": "雀巢关闭索伦工厂，旨在精简制造运营，反映了行业向生产整合转型的更广泛趋势。",
-  "title": "雀巢索伦工厂关闭，标志乳业整合新趋势"
+  "summary": "雀巢关闭索伦工厂，旨在精简制造运营，反映了乳业生产整合的更广泛趋势。",
+  "title": "雀巢关闭索伦工厂，标志乳业整合新趋势"
  },
  "nestlé launches solgar prime for fast-growing healthy-longevity market": {
   "summary": "雀巢扩充健康长寿产品线，推出高端补充剂 Solgar Prime，主打肌肉力量、活力与行动力。",
   "title": "雀巢推出 Solgar Prime，切入健康长寿赛道"
  },
  "nestlé turnaround accelerates as volume growth gains pace": {
-  "summary": "雀巢第三季度业绩强劲，销量增长加速，新兴市场表现优于预期，市场对其扭亏为盈策略信心增强。",
-  "title": "雀巢扭亏为盈，销量增长加速"
+  "summary": "雀巢第三季度业绩强劲，销量增长加速，新兴市场表现优于预期，市场对其扭亏策略信心增强。",
+  "title": "雀巢扭亏为盈加速，销量增长提速"
  },
  "nestlé turnaround taking shape a year after new ceo": {
   "summary": "CEO 菲利普·纳夫拉蒂尔表示，产品创新与业务剥离推动北美等关键市场改善，但他对整体业绩“仍不满意”。",
   "title": "新 CEO 上任一年，雀巢重组初见成效"
  },
  "nestlé usa and gerber lawsuit puts heavy metals in baby food back in the spotlight": {
-  "summary": "德州起诉嘉宝涉嫌重金属污染，雀巢美国与嘉宝的诉讼案将婴幼儿食品重金属问题再次推向风口浪尖。",
-  "title": "雀巢美国与嘉宝诉讼案，重金属问题引发关注"
+  "summary": "德州起诉嘉宝涉嫌重金属污染，婴儿食品诉讼加速，引发对产品安全性的关注。",
+  "title": "雀巢美国与嘉宝诉讼案，将重金属问题推回公众视野"
  },
  "preparing water systems for dairy growth in 2026": {
   "summary": "乳制品需求持续增长，为满足不断扩大的生产需求，加工商需提前规划供水系统以应对未来挑战。",
