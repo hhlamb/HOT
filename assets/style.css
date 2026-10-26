@@ -1166,3 +1166,45 @@ button[hidden], [hidden] { display: none !important; }
 
 /* 头条卡片的大图压缩一点，主题插画留白多，太高会显得空 */
 .card--lead .thumb { height: 172px; }
+
+/* ------------------------------------------------------------
+   手机端收尾
+   ------------------------------------------------------------ */
+
+@media (max-width: 860px) {
+  /* 分类条横向滚动，但右侧被硬切看着像少了几个栏目。
+     加一道渐隐 + 右侧留白，让人知道还能往右滑。 */
+  .cat-list {
+    padding-right: 22px;
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+  }
+  /* 缩小一点内边距，一行能多露一个分类 */
+  .cat-item { padding: 6px 8px; font-size: 13px; }
+  .cat-item .n { display: none; }
+
+  /* 原文信息表在窄屏改成两列，四列会挤成一团 */
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* 日报里的分类分布：用分类色标记，比一排灰色文字更容易扫读 */
+.daily-cat span[data-tag] { position: relative; padding-left: 9px; }
+.daily-cat span[data-tag]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--dot, var(--line-strong));
+}
+.daily-cat span[data-tag="品牌动态"] { --dot: var(--c-brand); }
+.daily-cat span[data-tag="市场数据"] { --dot: var(--c-market); }
+.daily-cat span[data-tag="质量安全"] { --dot: var(--c-safety); }
+.daily-cat span[data-tag="供应链"]   { --dot: var(--c-supply); }
+.daily-cat span[data-tag="跨境电商"] { --dot: var(--c-cross); }
+.daily-cat span[data-tag="政策法规"] { --dot: var(--c-policy); }
+.daily-cat span[data-tag="海外动态"] { --dot: var(--c-global); }
+.daily-cat span[data-tag="行业动态"] { --dot: var(--c-industry); }

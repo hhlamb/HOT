@@ -607,6 +607,7 @@ function renderDaily(rows) {
       cat.className = "daily-cat";
       for (const [t, n] of catList) {
         const span = document.createElement("span");
+        span.dataset.tag = t; // 借分类色，日报里一眼看出各栏目的构成
         span.innerHTML = `${FD.escapeHtml(t)} <b>${n}</b>`;
         cat.appendChild(span);
       }
