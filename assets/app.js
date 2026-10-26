@@ -80,7 +80,9 @@ async function load() {
   }
 
   for (const it of state.items) {
-    for (const t of it.tags || []) state.tagCounts[t] = (state.tagCounts[t] || 0) + 1;
+    // 只统计主分类：侧栏数字相加必须等于总条数，否则读者会怀疑数据错了
+    const t = FD.primaryTag(it);
+    state.tagCounts[t] = (state.tagCounts[t] || 0) + 1;
   }
   // 预先把热度算好，排序、榜单、日报都复用，避免每处各算一遍
   FD.rankByHeat(state.items);
@@ -207,18 +209,33 @@ function withinHours(item, hours) {
   return !Number.isNaN(t) && Date.now() - t <= hours * 36e5;
 }
 
+/* 时间倒序比较。不能比字符串：ISO 串带时区偏移，`…T21:30+08:00` 字典序
+   排在 `…T14:00+00:00` 之后，可它其实更早（13:30Z）。源里 +08:00 / Z / 空
+   混着来，只能解析成毫秒数比。解析失败的一律沉底，不让坏数据顶到第一条。 */
+function pubTs(item) {
+  const t = Date.parse(item.published_at || item.fetched_at || "");
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function newestFirst(a, b) {
+  return pubTs(b) - pubTs(a);
+}
+
 function filtered() {
   const q = state.query.trim().toLowerCase();
   let rows = state.items;
-  if (state.tag !== "all") rows = rows.filter((i) => (i.tags || []).includes(state.tag));
+  if (state.tag !== "all") rows = rows.filter((i) => FD.primaryTag(i) === state.tag);
   if (q) {
     rows = rows.filter((i) => {
       const hay = `${i.title_zh || ""} ${i.title || ""} ${i.summary || ""} ${i.source_name || ""}`.toLowerCase();
       return hay.includes(q);
     });
   }
-  // 转载稿标题完全相同，任何视图里都只留一条
-  return dedupeByTitle(rows);
+  /* 这里只做筛选与排序，不在过滤层去重。
+     原因：主题页的"每类多少条"、侧栏分类计数、全部动态的总数，三处必须
+     用同一个分母，否则读者一加就发现少了二三十条。转载稿的标题去重
+     交给各个视图自己做（时间轴、榜单、日报列表、主题预览各去一次）。 */
+  return rows.slice().sort(newestFirst);
 }
 
 /* ------------------------------------------------------------ 精选：当前热点 + 时间轴 */
@@ -276,7 +293,11 @@ function renderTimeline(rows, isPick) {
     return;
   }
 
-  const shown = rows.slice(0, state.limit);
+  // 转载稿标题完全相同，这一屏里只留一条（列表视图在这里去重，
+  // 主题页的计数才不会被削减）。总数也用去重后的，否则"还有 N 条"
+  // 会把重复稿算进去，点到底却是空的。
+  const uniq = dedupeByTitle(rows);
+  const shown = uniq.slice(0, state.limit);
   // 精选视图里，最新一条若有摘要就放大成头条，让页面有视觉重心
   const leadId =
     isPick && !state.query && shown[0] && (shown[0].summary || "").length >= 40 ? shown[0].id : null;
@@ -301,8 +322,8 @@ function renderTimeline(rows, isPick) {
     el.view.appendChild(row);
   }
 
-  el.more.hidden = rows.length <= state.limit;
-  if (!el.more.hidden) el.more.textContent = `加载更多（还有 ${rows.length - state.limit} 条）`;
+  el.more.hidden = uniq.length <= state.limit;
+  if (!el.more.hidden) el.more.textContent = `加载更多（还有 ${uniq.length - state.limit} 条）`;
 }
 
 function dayBar(iso, rows, key) {
@@ -373,17 +394,19 @@ function makeCard(item, opts = {}) {
   const card = document.createElement("a");
   card.className = "card" + (opts.lead ? " card--lead" : "");
   card.href = FD.articleHref(item.id);
+  card.dataset.tag = FD.primaryTag(item); // 无图行靠它取分类色
 
   const body = document.createElement("div");
   body.className = "card-body";
 
   /* 缩略图：有原文配图用原文的，没有就用分类卡通插画。
-     同一张图最多出现两次（quota），第三条起不再配图，
-     这样一屏里不会连着几张一模一样的画。 */
+     每张图全页只用一次（quota = 1）——同一张插画在信息流里重复出现，
+     读者第一反应是"这几条是不是同一篇"，而且一屏里连着几张一样的画很难看。
+     用完的图不再复用，这条卡片就退成纯文字行（左侧一条分类色竖线做区分，
+     不是把图放大凑数）。 */
   const realImg = usableImage(item);
   const imgKey = realImg || "topic:" + FD.topicCover(item);
-  const quota = realImg ? 1 : 2;
-  if ((usedImages.get(imgKey) || 0) < quota) {
+  if ((usedImages.get(imgKey) || 0) < 1) {
     usedImages.set(imgKey, (usedImages.get(imgKey) || 0) + 1);
     const thumb = document.createElement("div");
     thumb.className = "thumb";
@@ -396,10 +419,15 @@ function makeCard(item, opts = {}) {
       thumb.classList.add("thumb--topic");
       img.classList.add("is-art");     // 卡通位图，暗色下不能走反相
     }
+    /* 原文图加载失败 → 退回分类插画，而不是退回逐条线稿。
+       列表和详情页都用同一套卡通插画，混两套风格会出现"首页线稿、
+       点进去变卡通"的割裂；实在退不了就直接隐藏缩略图。 */
     const fallback = () => {
       if (!img.dataset.fb) {
         img.dataset.fb = "1";
-        img.src = FD.itemCover(item) || FD.topicCover(item);
+        img.src = FD.topicCover(item);
+        thumb.classList.add("thumb--topic");
+        img.classList.add("is-art");
       } else {
         thumb.classList.add("is-broken");
       }
@@ -407,6 +435,9 @@ function makeCard(item, opts = {}) {
     img.addEventListener("error", fallback);
     thumb.appendChild(img);
     body.appendChild(thumb);
+    card.classList.add("card--pic");
+  } else {
+    card.classList.add("card--text"); // 无图行：靠左侧分类色竖线保持节奏
   }
 
   const main = document.createElement("div");
@@ -458,6 +489,7 @@ function makeCard(item, opts = {}) {
   const foot = document.createElement("div");
   foot.className = "card-foot";
   const time = document.createElement("span");
+  time.className = "time";
   const stamp = item.published_at || item.fetched_at;
   // 源没给发布时间的老稿不少，写"时间未知"观感很差；用抓取时间并标明是收录时间
   time.textContent = item.published_at ? FD.timeAgo(item.published_at) : "收录于 " + FD.hm(stamp);
@@ -504,7 +536,7 @@ function renderHot(rows) {
     el.more.hidden = true;
     return;
   }
-  const sorted = rows.slice().sort((a, b) => (b._heat || 0) - (a._heat || 0)).slice(0, 100);
+  const sorted = dedupeByTitle(rows).sort((a, b) => (b._heat || 0) - (a._heat || 0)).slice(0, 100);
   const list = document.createElement("div");
   list.className = "ranklist";
 
@@ -563,7 +595,7 @@ function renderDaily(rows) {
   }
 
   const groups = new Map();
-  for (const item of rows) {
+  for (const item of dedupeByTitle(rows)) {
     const k = FD.dayKey(item.published_at || item.fetched_at);
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(item);
@@ -571,9 +603,7 @@ function renderDaily(rows) {
   const keys = [...groups.keys()].sort().reverse().slice(0, 14);
 
   for (const key of keys) {
-    const dayRows = groups.get(key).sort(
-      (a, b) => (b.published_at || "") > (a.published_at || "") ? 1 : -1
-    );
+    const dayRows = groups.get(key).sort(newestFirst);
 
     /* 关键词 */
     const counts = new Map();
@@ -679,10 +709,11 @@ const TOPIC_DESC = {
 function renderTopics(rows) {
   const groups = new Map();
   for (const item of rows) {
-    for (const t of item.tags || []) {
-      if (!groups.has(t)) groups.set(t, []);
-      groups.get(t).push(item);
-    }
+    // 只按主分类归组：一条稿只出现在一个主题卡片里，卡片上的条数之和
+    // 等于总条数。原来遍历全部 tags，同一条会同时挂在两三个主题下。
+    const t = FD.primaryTag(item);
+    if (!groups.has(t)) groups.set(t, []);
+    groups.get(t).push(item);
   }
   const sorted = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
   if (!sorted.length) {
@@ -717,7 +748,7 @@ function renderTopics(rows) {
     }
 
     const ul = document.createElement("ul");
-    const latest = list.slice().sort((a, b) => (b.published_at || "") > (a.published_at || "") ? 1 : -1).slice(0, 4);
+    const latest = dedupeByTitle(list.slice().sort(newestFirst)).slice(0, 4);
     for (const it of latest) {
       const li = document.createElement("li");
       const a = document.createElement("a");

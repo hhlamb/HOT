@@ -1,5 +1,5 @@
 {
- "last_updated": "2026-10-26T15:14:56+00:00",
+ "last_updated": "2026-10-26T23:37:04+08:00",
  "total": 295,
  "months": [
   {
@@ -22,9 +22,5 @@
   "行业动态",
   "质量安全",
   "跨境电商"
- ],
- "sources_total": 52,
- "sources_ok": 47,
- "with_summary": 295,
- "retention_days": 90
+ ]
 }

@@ -14,8 +14,11 @@
   --surface-3: #eeece6;
   --ink: #14160f;
   --ink-2: #41453e;
-  --muted: #83877f;
-  --faint: #a8aca4;
+  /* 次级文字也要过 WCAG AA 4.5:1。原来 --muted #83877f 在纸底纸上只有 3.27、
+     --faint #a8aca4 只有 2.06，摘要和时间戳看着"发虚"，是真实的读不清，
+     不只是审美问题。这里压深一档，最低 4.72（--faint 在 --surface-2 上）。 */
+  --muted: #5c605a;   /* 5.73 : 1 on #f4f2ed */
+  --faint: #696d66;   /* 4.72 : 1 on #f4f2ed */
   --line: #e9e6df;
   --line-strong: #d5d1c7;
   --accent: #0e5b4f;
@@ -58,8 +61,8 @@
   --surface-3: #242827;
   --ink: #eceee9;
   --ink-2: #c2c6bf;
-  --muted: #8b908a;
-  --faint: #6d726c;
+  --muted: #a3a89f;   /* 7.30 : 1 on #0e100f，暗底上要更亮才读得清 */
+  --faint: #8b908a;   /* 5.44 : 1 on #0e100f */
   --line: #262b29;
   --line-strong: #3a403d;
   --accent: #4fd1b8;
@@ -467,6 +470,19 @@ button[hidden], [hidden] { display: none !important; }
 }
 .card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
 
+/* 无图行：同一张插画全页只用一次，用完之后这条卡片就退成纯文字。
+   靠左侧一条 2px 分类色竖线保持视觉节奏——它是"有意的版式"，
+   不是"图没加载出来"，所以不做整块灰底占位。
+   颜色沿用文件末尾 .card:has(.card-tag…) 那套，这里只负责把线常亮；
+   选择器必须多一层 .card，否则压不过那条 hover 规则里的 opacity:0。 */
+.card.card--text { padding-left: 18px; }
+.card.card--text::before {
+  left: 8px;
+  top: 15px;
+  bottom: 15px;
+  opacity: .7;
+}
+
 .card-body { display: flex; gap: 14px; align-items: flex-start; }
 .card-main { min-width: 0; flex: 1; }
 
@@ -501,6 +517,30 @@ button[hidden], [hidden] { display: none !important; }
 .card-tag[data-tag="海外动态"] { background: color-mix(in srgb, var(--c-global) 12%, var(--surface)); color: var(--c-global); }
 .card-tag[data-tag="行业动态"] { background: color-mix(in srgb, var(--c-industry) 12%, var(--surface)); color: var(--c-industry); }
 .card-tag--warn { background: var(--flag-soft); color: var(--flag); }
+
+/* 详情页：主分类实色，辅分类描边。
+   一条稿常同时挂"质量安全 + 政策法规"，两个都做淡底小字，读者分不出
+   它到底归在哪个栏目；实色只给主分类，层级一眼就能看出来。 */
+.card-tag.card-tag--main {
+  background: var(--cat, var(--accent));
+  color: #fff;
+  border: 1px solid transparent;
+}
+.card-tag--main[data-tag="品牌动态"] { --cat: var(--c-brand); }
+.card-tag--main[data-tag="市场数据"] { --cat: var(--c-market); }
+.card-tag--main[data-tag="质量安全"] { --cat: var(--c-safety); }
+.card-tag--main[data-tag="供应链"]   { --cat: var(--c-supply); }
+.card-tag--main[data-tag="跨境电商"] { --cat: var(--c-cross); }
+.card-tag--main[data-tag="政策法规"] { --cat: var(--c-policy); }
+.card-tag--main[data-tag="海外动态"] { --cat: var(--c-global); }
+.card-tag--main[data-tag="行业动态"] { --cat: var(--c-industry); }
+
+.card-tag.card-tag--sub {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line-strong);
+  font-weight: 500;
+}
 .card-source { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-sep { opacity: .45; }
 
@@ -533,8 +573,12 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--faint);
 }
 .card-foot .heat { font-family: var(--font-num); color: var(--muted); }
-.card-foot .more { margin-left: auto; color: var(--muted); opacity: 0; transition: opacity .13s; }
-.card:hover .card-foot .more { opacity: 1; }
+/* 每行左侧已经有时刻（.row-time），脚注再写一遍"3 小时前"是重复信息，
+   所以这里压到最弱；"阅读全文"反而是唯一的行为入口，不能藏到 hover 里
+   ——触屏设备根本没有 hover。 */
+.card-foot .time { color: var(--faint); font-size: 11px; }
+.card-foot .more { margin-left: auto; color: var(--muted); opacity: .85; transition: opacity .13s, color .13s; }
+.card:hover .card-foot .more { opacity: 1; color: var(--accent); }
 
 /* 缩略图 */
 .thumb {
@@ -789,6 +833,21 @@ button[hidden], [hidden] { display: none !important; }
   margin-bottom: 9px;
 }
 
+/* 详情页区块之间加一道"实分隔"：原来只靠 .section-label 上的 margin-top，
+   长页里 AI 速览、原文摘录、事件脉络、原文信息四块黏在一起，
+   滚动时看不出这是一段新内容。用一根细线 + 更大的上间距划开，
+   不动字号字重，读起来还是同一篇文章。 */
+.article > section + section { margin-top: 30px; }
+.article > section + section::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background: var(--line);
+  margin: 0 0 22px;
+}
+/* 上面那条分隔已经负责间距，清掉各区块内联的 margin-top */
+.article > section + section > .section-label[style] { margin-top: 0 !important; }
+
 .ai-box {
   font-size: 15px;
   line-height: 1.78;
@@ -819,7 +878,9 @@ button[hidden], [hidden] { display: none !important; }
 
 .body-text { font-size: 15.5px; line-height: 1.85; color: var(--ink-2); }
 .body-text p { margin: 0 0 15px; }
-.body-text p:first-child { color: var(--ink); }
+/* 第一段是"读不读下去"的分水岭：提一档字号、颜色压到正文色，
+   后面段落维持原样，形成落差但不靠加粗（中文加粗容易糊） */
+.body-text p:first-child { color: var(--ink); font-size: 16.4px; line-height: 1.8; }
 .body-note { margin: 14px 0 0; font-size: 12px; color: var(--faint); line-height: 1.6; }
 
 .origin {
@@ -1227,3 +1288,36 @@ button[hidden], [hidden] { display: none !important; }
 .daily-cat span[data-tag="政策法规"] { --dot: var(--c-policy); }
 .daily-cat span[data-tag="海外动态"] { --dot: var(--c-global); }
 .daily-cat span[data-tag="行业动态"] { --dot: var(--c-industry); }
+
+/* ============================================================
+   窄屏悬浮主题切换
+   ------------------------------------------------------------
+   手机上侧栏被压成一条横向滚动条，.rail-foot 整体隐藏，
+   侧栏底部那个切换按钮就点不到了——等于手机上没有深色模式入口。
+   这里单独挂一个右下角悬浮按钮，只在 ≤860px 出现。
+   位置避开了滚动到底时的版权页脚：贴右下 16px，半透明描边，
+   不抢内容，但一直够得着。
+   ============================================================ */
+.theme-float { display: none; }
+
+@media (max-width: 860px) {
+  .theme-float {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 14px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    z-index: 60;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink-2);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow);
+    font-size: 16px;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .theme-float:active { transform: scale(.94); }
+}

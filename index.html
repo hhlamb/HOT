@@ -63,7 +63,7 @@
 
     <div class="rail-foot">
       <div class="rail-stat" id="rail-stat"></div>
-      <button class="icon-btn" id="theme-btn" type="button" aria-label="切换深浅色" title="切换深浅色">☾</button>
+      <button class="icon-btn" id="theme-btn" type="button" data-theme-toggle aria-label="切换深浅色" title="切换深浅色">☾</button>
     </div>
   </aside>
 
@@ -109,6 +109,10 @@
     </div>
   </main>
 </div>
+
+<!-- 窄屏才显示的深浅色切换：手机上侧栏变成横条，.rail-foot 被隐藏，
+     侧栏那个按钮点不到，所以单独挂一个悬浮按钮 -->
+<button class="icon-btn theme-float" type="button" data-theme-toggle aria-label="切换深浅色" title="切换深浅色">☾</button>
 
 <script src="assets/feed-data.js"></script>
 <script src="assets/app.js"></script>

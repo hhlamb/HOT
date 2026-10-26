@@ -56,6 +56,25 @@ def month_files() -> list[Path]:
     return sorted((p for p in DATA_DIR.iterdir() if MONTH_FILE.match(p.name)), reverse=True)
 
 
+def _pub_ts(item: dict) -> float:
+    """发布时间 → 数值时间戳，用于排序。
+
+    不能直接比字符串：ISO 串带时区偏移，`2026-10-15T21:30+08:00` 按字典序
+    排在 `2026-10-15T14:00+00:00` 后面，但它其实更晚（13:30Z）。
+    抓取源里 +08:00、+00:00、Z 混着来，只能解析成时间戳再比。
+    解析不了就退回 0，宁可排到最后也不让整批排序崩掉。
+    """
+    for key in ("published_at", "fetched_at"):
+        raw = item.get(key) or ""
+        if not raw:
+            continue
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            continue
+    return 0.0
+
+
 def load_recent(days: int, now: datetime) -> tuple[list[dict], dict[str, int]]:
     """读取最近 N 天的条目，返回 (条目列表, 每月条数)。id 重复时后者覆盖前者。"""
     cutoff = now - timedelta(days=days)
@@ -83,7 +102,7 @@ def load_recent(days: int, now: datetime) -> tuple[list[dict], dict[str, int]]:
                 pass
             merged[item["id"]] = item  # 后写覆盖先写
         counts[month] = n
-    items = sorted(merged.values(), key=lambda x: x.get("published_at") or "", reverse=True)
+    items = sorted(merged.values(), key=_pub_ts, reverse=True)
     return items, counts
 
 

@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from pipeline import llm, report, store  # noqa: E402
+from pipeline import guard, llm, report, store  # noqa: E402
 from pipeline.clean import clip, title_key  # noqa: E402
 from pipeline.dedupe import dedupe  # noqa: E402
 from pipeline.extract import fill_summaries  # noqa: E402
@@ -403,8 +403,29 @@ def main() -> int:
     for item in kept:
         per_source[item["source_id"]]["new"] += 1
 
-    # ---------------- 写盘 ----------------
+    # ---------------- 入库质量闸门 ----------------
+    # 摘要串稿（聚合页把人家的正文当成本篇的）、同一段摘要挂到多条、
+    # 正文段落对不上、配图是二维码/站标/占位图 —— 这些在写盘前机械拦掉。
+    # 存量条目已经由 scripts/repair_data.py 洗过一遍，这里只把它们的摘要
+    # 登记进 seen，防止新条目复用旧条目的话。
+    print("[4.5/6] 质量闸门…")
     patched = [i for i in all_recent if i.get("_patched")]
+    qa_seen = {
+        guard.summary_key(i.get("summary")): i.get("id", "")
+        for i in all_recent
+        if (i.get("summary") or "").strip()
+    }
+    qa = guard.sanitize(kept, qa_seen)
+    if patched:
+        for k, v in guard.sanitize(patched, qa_seen).items():
+            qa[k] = qa.get(k, 0) + v
+    if qa:
+        print("  " + " · ".join(f"{k} {v}" for k, v in sorted(qa.items())))
+        cleared = qa.get("summary-cleared", 0) + qa.get("summary-fallback", 0)
+        if cleared:
+            print(f"  其中 {cleared} 条摘要不可信，已清空并标记待重写（下一轮模型会补）")
+
+    # ---------------- 写盘 ----------------
     archived: list[str] = []
     if args.dry_run:
         print("[5/6] --dry-run：跳过写盘")
@@ -444,7 +465,7 @@ def main() -> int:
             },
         )
         n_latest = store.write_latest_js(
-            sorted(final_items, key=sort_key, reverse=True),
+            final_items,  # load_recent 已按时间戳数值倒序，不用再排一次
             cfg["output"]["latest_js_max_items"],
             last_updated,
         )

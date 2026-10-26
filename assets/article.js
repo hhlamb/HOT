@@ -94,8 +94,13 @@ function fail(msg) {
 }
 
 function renderRail(items, current) {
+  // 与首页同一口径：只统计主分类，各栏相加必须等于总条数。
+  // 原来遍历全部 tags，同一篇稿在三个栏目里各计一次，合计 447 > 实际 289 条。
   const counts = {};
-  for (const it of items) for (const t of it.tags || []) counts[t] = (counts[t] || 0) + 1;
+  for (const it of items) {
+    const t = FD.primaryTag(it);
+    counts[t] = (counts[t] || 0) + 1;
+  }
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   el.cats.innerHTML = "";
   for (const [tag, n] of sorted) {
@@ -120,15 +125,25 @@ function render(item, all) {
   const title = item.title_zh || item.title || "（无标题）";
   document.title = title + " · " + SITE;
 
-  /* 顶部元信息 */
+  /* 顶部元信息：主分类实色，辅分类描边。
+     一条稿常挂两个标签，全都做成一样的淡底小字，读者分不清哪个才是
+     它所属的栏目——实色只给主分类，辅分类退成描边，层级一眼就出来。 */
   el.meta.innerHTML = "";
-  const tag = (item.tags || [])[0];
-  if (tag) {
-    const span = document.createElement("span");
-    span.className = "card-tag";
-    span.dataset.tag = tag;
-    span.textContent = tag;
-    el.meta.appendChild(span);
+  const tags = item.tags || [];
+  if (tags.length) {
+    const main = document.createElement("span");
+    main.className = "card-tag card-tag--main";
+    main.dataset.tag = tags[0];
+    main.textContent = tags[0];
+    el.meta.appendChild(main);
+
+    for (const t of tags.slice(1)) {
+      const sub = document.createElement("span");
+      sub.className = "card-tag card-tag--sub";
+      sub.dataset.tag = t;
+      sub.textContent = t;
+      el.meta.appendChild(sub);
+    }
   }
   el.meta.appendChild(text(item.source_name || "未知来源"));
   el.meta.appendChild(sepDot());
@@ -164,19 +179,21 @@ function render(item, all) {
     }
   }
   if (ownImg || (item.tags || []).length) {
-    /* 详情页大图用分类卡通插画（8 张一套，构图完整、撑得住 660px）；
-       图缺失再退回这条新闻自己的矢量示意图 */
-    const local = FD.itemCover(item);
-    const src = ownImg ? item.image : FD.topicCover(item);
-    el.heroImg.src = src;
+    /* 详情页大图用分类卡通插画（8 张一套，构图完整、撑得住 660px）。
+       原文配图存在就先用原文的，加载失败再退回同一套卡通——
+       不退回"逐条线稿"，否则列表是插画、点进来变线稿，两套风格打架。 */
+    const art = FD.topicCover(item);
+    el.heroImg.src = ownImg ? item.image : art;
     el.heroImg.alt = title;
     el.hero.classList.toggle("hero-img--topic", !ownImg);
     el.hero.classList.toggle("hero-img--art", !ownImg);
     let tried = false;
     el.heroImg.addEventListener("error", () => {
-      if (!ownImg && !tried && local) {
+      if (!tried && el.heroImg.src !== art) {
         tried = true;
-        el.heroImg.src = local;
+        el.heroImg.src = art;
+        el.hero.classList.add("hero-img--topic", "hero-img--art");
+        el.heroCap.textContent = "主题配图 · 按分类绘制的示意图，非原文配图";
         return;
       }
       el.hero.hidden = true;
@@ -316,6 +333,15 @@ function tlShare(a, b) {
   return n;
 }
 
+/* 标题归一化：去掉空白与标点后取前 24 个字。
+   转载稿的标题常常只差一个"- 某网"后缀或几个空格，按 id 去重拦不住，
+   同一件事会在"事件脉络"里连出三条一样的标题，看着像 bug。 */
+function tlTitleKey(item) {
+  return String(item.title_zh || item.title || "")
+    .replace(/[\s\u3000·—\-–|｜:：,，。.、!！?？"'“”‘’()（）\[\]【】]/g, "")
+    .slice(0, 24);
+}
+
 /* 同一分类 + 标题有共同实体词，才算"同一件事的进展"。
    原文抓不到时，这是读者唯一能获得上下文的途径；能抓到正文时也有用——
    一件事从发酵到落地往往跨好几天、好几家媒体。 */
@@ -328,6 +354,8 @@ function renderTimeline(item, all) {
 
   const cur = Date.parse(item.published_at || item.fetched_at || "") || 0;
   const mine = tlEntities(item.title_zh || item.title);
+  const mineKey = tlTitleKey(item);
+  const titleKeys = new Set([mineKey]);
 
   const pool = all
     .filter((i) => i.id !== item.id && !shownIds.has(i.id))
@@ -335,9 +363,18 @@ function renderTimeline(item, all) {
     .map((i) => ({
       item: i,
       t: Date.parse(i.published_at || i.fetched_at || "") || 0,
+      key: tlTitleKey(i),
       share: tlShare(mine, tlEntities(i.title_zh || i.title)),
     }))
-    .filter((x) => x.t && x.share >= 1) // 没有共同实体词的一律不算脉络
+    // 两个共同二字组才算一件事：只重合一个（"乳业""奶粉"）会把无关的稿子也串进来，
+    // 脉络就退化成"同分类随机推荐"了。
+    .filter((x) => x.t && x.share >= 2)
+    // 标题级去重：同一件事的不同转载只留一条
+    .filter((x) => {
+      if (titleKeys.has(x.key)) return false;
+      titleKeys.add(x.key);
+      return true;
+    })
     .sort((a, b) => b.share - a.share || Math.abs(a.t - cur) - Math.abs(b.t - cur))
     .slice(0, 6)
     .sort((a, b) => a.t - b.t); // 头部按时间正序摆，读起来才像脉络
@@ -349,6 +386,7 @@ function renderTimeline(item, all) {
 
   el.timelineList.innerHTML = "";
   for (const { item: other, t } of pool) {
+    shownIds.add(other.id);
     const li = document.createElement("li");
     li.className = "tl-item";
 
@@ -378,7 +416,9 @@ function renderTimeline(item, all) {
 function renderRelated(item, all) {
   const tags = item.tags || [];
   const rest = all.filter((i) => i.id !== item.id);
-  const byTime = (a, b) => ((b.published_at || "") > (a.published_at || "") ? 1 : -1);
+  const byTime = (a, b) =>
+    (Date.parse(b.published_at || b.fetched_at || "") || 0) -
+    (Date.parse(a.published_at || a.fetched_at || "") || 0);
 
   const sameTag = rest.filter((i) => (i.tags || []).some((t) => tags.includes(t))).sort(byTime);
   const used = new Set(sameTag.slice(0, 3).map((i) => i.id));

@@ -156,6 +156,22 @@
     return "assets/topic/cartoon/industry.webp";
   };
 
+  /* ---------------- 主分类口径 ----------------
+     一条稿可以带两三个标签，但"它在哪个栏目里"只能有一个答案：
+     tags[0] 是主分类，后面是辅分类（详情页上主分类实色、辅分类描边）。
+
+     之前侧栏计数、主题页聚合、列表筛选各自遍历整个 tags 数组，导致
+     同一篇稿同时出现在"质量安全"和"政策法规"两个主题页里，
+     左侧栏各分类相加还大于总条数——读者会以为数据错了。
+     现在这三处统一只认主分类，一条稿只归一个栏目，数字能对上。 */
+  FEED.primaryTag = function (item) {
+    return (item.tags || [])[0] || "行业动态";
+  };
+
+  FEED.secondaryTags = function (item) {
+    return (item.tags || []).slice(1);
+  };
+
   /* 每条新闻一张专属示意图，由 scripts/gen_item_art.py 按标题/摘要关键词生成，
      落在 assets/items/<id>.svg。文件缺失时前端回退到上面的分类图。 */
   FEED.itemCover = function (item) {
@@ -303,28 +319,40 @@
 
   const THEME_KEY = "milkradar-theme";
 
+  /* 深浅色切换。
+     页面上可能有两个按钮：侧栏底部那个（宽屏可见）和右下角悬浮那个
+     （窄屏才出现，因为侧栏在手机上是横条，.rail-foot 被隐藏了）。
+     所有带 data-theme-toggle 的按钮共用一份状态，点哪个都同步。 */
   FEED.initTheme = function (btn) {
+    const btns = Array.from(document.querySelectorAll("[data-theme-toggle]"));
+    if (btn && btns.indexOf(btn) < 0) btns.push(btn);
+
     function apply(mode) {
       if (mode === "dark") document.documentElement.dataset.theme = "dark";
       else delete document.documentElement.dataset.theme;
-      if (btn) {
-        btn.textContent = mode === "dark" ? "☀" : "☾";
-        btn.title = mode === "dark" ? "切换到浅色" : "切换到深色";
+      for (const b of btns) {
+        b.textContent = mode === "dark" ? "☀" : "☾";
+        b.title = mode === "dark" ? "切换到浅色" : "切换到深色";
+        b.setAttribute("aria-label", b.title);
+        b.setAttribute("aria-pressed", String(mode === "dark"));
       }
     }
+
     let mode = "light"; // 默认浅色：读长文更舒服
     try {
       mode = localStorage.getItem(THEME_KEY) || "light";
     } catch (e) {}
     apply(mode);
-    if (!btn) return;
-    btn.addEventListener("click", () => {
+    if (!btns.length) return;
+
+    const toggle = () => {
       mode = mode === "dark" ? "light" : "dark";
       try {
         localStorage.setItem(THEME_KEY, mode);
       } catch (e) {}
       apply(mode);
-    });
+    };
+    for (const b of btns) b.addEventListener("click", toggle);
   };
 
   FEED.initTopbar = function (bar) {

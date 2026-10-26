@@ -76,41 +76,53 @@ BLOCKLIST = [
     "中美关系", "台独", "涉台", "涉港",
 ]
 
-# 分类标签规则：按顺序命中，一条可多标签。
-# 顺序即优先级，前面的更"硬"。
-TAG_RULES: list[tuple[str, list[str]]] = [
+# 分类标签规则：一条可多标签，第一个是主分类。
+# 顺序即同分时的优先级，前面的更"硬"。
+# 第三个元素是权重：地名、公司名只是"维度"不是主题——一条讲英国出口的稿子
+# 当然会提到英国，但它的主题是出口数据。所以「海外动态」压到 0.5、
+# 「品牌动态」压到 0.75，让标题里的行业词（召回/价格/奶源/注册）优先。
+# 硬编码在列表里而不是另开一张表：改词的时候顺手就能看到权重，不用两头对。
+TAG_RULES: list[tuple[str, list[str], float]] = [
     ("质量安全", ["召回", "通报", "不合格", "检出", "超标", "沙门氏菌", "阪崎肠杆菌",
                   "克罗诺杆菌", "污染", "中毒", "投诉", "处罚", "下架", "停售",
                   "recall", "contaminat", "outbreak", "warning", "safety alert",
-                  "listeria", "salmonella", "cronobacter"]),
-    ("政策法规", ["配方注册", "注册制", "国标", "食品安全国家标准", "海关总署", "市场监管总局",
+                  "listeria", "salmonella", "cronobacter"], 1.0),
+    ("政策法规", ["配方注册", "注册制", "国标", "新国标", "食品安全国家标准", "海关总署", "市场监管总局",
                   "卫健委", "农业农村部", "意见", "办法", "规定", "条例", "政策", "关税",
+                  "新规", "标签标识", "征求意见", "修订", "审议", "施行", "生效", "禁售", "禁令",
                   "正面清单", "监管", "抽检", "备案", "许可", "标准",
                   "regulation", "policy", "standard", "fda", "efsa", "fsanz", "fsma",
-                  "tariff", "ban", "rule"]),
+                  "tariff", "ban", "rule"], 1.0),
     ("市场数据", ["营收", "财报", "业绩", "市占率", "市场份额", "销售额", "增长", "下滑",
                   "销量", "价格", "涨价", "降价", "数据", "报告", "调研",
+                  "参考价", "交易价", "收购价", "奶价", "价格指数", "批发价", "零售价",
+                  "存栏", "出栏", "产量", "进口量", "出口量", "均价",
                   "earnings", "sales", "revenue", "market share", "forecast", "price",
-                  "outlook", "quarter",
-                  "milk price", "farmgate", "payout", "auction", "gdt"]),
+                  "outlook", "quarter", "index",
+                  "milk price", "farmgate", "payout", "auction", "gdt"], 1.0),
     ("供应链", ["奶源", "原奶", "生鲜乳", "乳清", "乳铁蛋白", "大包粉", "基粉", "牧场",
-                "奶牛", "产能", "工厂", "原料", "供应", "库存", "物流",
+                "奶牛", "产能", "工厂", "原料", "供应", "库存", "物流", "冷链",
+                "能源", "限电", "电力", "停产", "复工", "运输",
                 "dairy", "whey", "lactoferrin", "milk powder", "raw milk", "supply",
-                "ingredient", "plant", "capacity",
+                "ingredient", "plant", "capacity", "energy", "logistics",
                 "milk collection", "milk supply", "milk production", "dairy farmer",
-                "dairy cow", "herd", "farm system"]),
-    ("跨境电商", ["跨境电商", "保税", "海淘", "代购", "进口", "出口", "跨境",
-                  "cross-border", "e-commerce", "import", "export", "bonded"]),
+                "dairy cow", "herd", "farm system"], 1.0),
+    # 「进口/出口」不放这里：那只是贸易流向，讲出口数据的稿子不该被打成跨境电商。
+    # 真正的跨境电商要有渠道词（跨境/保税/海淘/代购/直邮/海外仓）。
+    ("跨境电商", ["跨境电商", "保税", "保税仓", "海淘", "代购", "跨境", "直邮", "海外仓",
+                  "cross-border", "e-commerce", "bonded", "direct mail"], 1.0),
     ("品牌动态", ["达能", "雀巢", "飞鹤", "伊利", "蒙牛", "君乐宝", "爱他美", "美素佳儿",
                   "惠氏", "雅培", "a2", "贝因美", "合生元", "澳优", "佳贝艾特", "圣元",
                   "新品", "上市", "发布", "官宣", "签约", "合作", "代言", "收购", "并购",
+                  "融资", "A轮", "B轮", "战略合作", "投产", "开店", "新店", "任命", "卸任",
+                  "参与", "项目", "投资", "分拆", "重组", "战略", "转型", "加码",
                   "danone", "nestle", "nestlé", "wyeth", "aptamil", "friso", "similac",
                   "abbott", "meiji", "lactalis", "launch", "partnership", "acquisition",
-                  "merger", "appoint", "ceo"]),
+                  "merger", "appoint", "ceo"], 0.72),
     ("海外动态", ["欧盟", "美国", "澳新", "新西兰", "澳大利亚", "日本", "韩国", "荷兰",
                   "爱尔兰", "德国", "法国", "英国", "加拿大", "海外", "全球",
                   "eu", "europe", "usda", "new zealand", "australia", "japan",
-                  "global", "overseas", "international"]),
+                  "global", "overseas", "international"], 0.5),
 ]
 
 _NORMALIZED: list[tuple[str, int]] = [(k.lower(), v) for k, v in KEYWORDS.items()]
@@ -146,15 +158,34 @@ def is_blocked(title: str, summary: str = "") -> bool:
 
 
 def classify(title: str, summary: str = "") -> list[str]:
-    """打标签，最多 3 个，避免卡片上一堆标签。"""
-    text = f"{title} {summary}".lower()
-    tags: list[str] = []
-    for tag, words in TAG_RULES:
-        if any(_count(text, w.lower()) for w in words):
-            tags.append(tag)
-        if len(tags) >= 3:
-            break
-    return tags or ["行业动态"]
+    """打标签，最多 3 个：第一个是主分类（列表只展示它），后面是辅分类。
+
+    为什么要按标题加权而不是「按规则表顺序命中就收」：
+        原实现顺着 TAG_RULES 取前三个命中的标签，导致「质量安全」「政策法规」
+        永远排在前面——只要摘要里出现过"污染""标准"这类字眼，一条讲达能
+        把酸奶废料转化为能源的稿子也会被打成"质量安全"。
+        标题才是这篇稿在讲什么，摘要里的词可能只是举例或背景。
+    具体口径：
+        标题命中一次算 4 分，摘要命中一次算 1 分（最多计 3 分），
+        于是"标题里明确提到的品类"必然压过"摘要里顺带一提的词"。
+        同分时按 TAG_RULES 的顺序决定主分类，保证结果可复现。
+    """
+    title_low = (title or "").lower()
+    body_low = (summary or "").lower()
+    scored: list[tuple[float, int, str]] = []
+    for idx, (tag, words, weight) in enumerate(TAG_RULES):
+        t_hit = sum(1 for w in words if _count(title_low, w.lower()))
+        b_hit = sum(1 for w in words if _count(body_low, w.lower()))
+        # 摘要单独的命中不足以成为一个标签：它经常是背景举例，
+        # 要求它至少出现两个不同关键词，或者标题里已经点到
+        if not t_hit and b_hit < 2:
+            continue
+        raw = t_hit * 4 + min(b_hit, 3)
+        scored.append((round(raw * weight, 2), -idx, tag))
+    if not scored:
+        return ["行业动态"]
+    scored.sort(reverse=True)
+    return [tag for _, _, tag in scored[:3]]
 
 
 def judge(title: str, summary: str, min_score: float = 4.0) -> tuple[bool, float, list[str], list[str]]:
