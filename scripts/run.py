@@ -187,6 +187,7 @@ def main() -> int:
             max_per_run=limit,
             workers=int(extract_cfg.get("workers", 4)),
             summary_chars=int(extract_cfg.get("summary_chars", 120)),
+            body_chars=int(extract_cfg.get("body_chars", 800)),
         )
         # 回填：库里已有但一直没有摘要的条目（首次接入抽取时会有几百条）
         backfill = [i for i in all_recent if not (i.get("summary") or "").strip()]
@@ -200,10 +201,33 @@ def main() -> int:
                 max_per_run=cap,
                 workers=int(extract_cfg.get("workers", 4)),
                 summary_chars=int(extract_cfg.get("summary_chars", 120)),
+                body_chars=int(extract_cfg.get("body_chars", 800)),
             )
             for old in backfill:
                 if (old.get("summary") or "").strip():
                     old["_patched"] = True
+        # 正文回填：站内详情页要靠 body 展示原文核心。老条目当初只存了 120 字摘要，
+        # 这里每轮补一批（只补 body，不碰已有摘要），额度用尽下一轮继续。
+        body_cap = int(extract_cfg.get("body_backfill_per_run", 40))
+        if body_cap > 0:
+            no_body = [i for i in all_recent if len((i.get("body") or "").strip()) < 200]
+            if no_body:
+                fill_summaries(
+                    no_body[:body_cap],
+                    client,
+                    cfg,
+                    min_chars=int(extract_cfg.get("min_chars", 40)),
+                    max_per_run=body_cap,
+                    workers=int(extract_cfg.get("workers", 4)),
+                    summary_chars=int(extract_cfg.get("summary_chars", 120)),
+                    body_chars=int(extract_cfg.get("body_chars", 800)),
+                    need_body=True,
+                )
+                got = sum(1 for i in no_body if (i.get("body") or "").strip())
+                for old in no_body:
+                    if (old.get("body") or "").strip():
+                        old["_patched"] = True
+                print(f"  正文回填 {got}/{len(no_body[:body_cap])} 条（供详情页展示）")
     client.close()
 
     llm_cfg = cfg.get("llm", {})

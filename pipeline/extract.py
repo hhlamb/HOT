@@ -53,6 +53,10 @@ NAV_SMELL = re.compile(r"(»|›|>>|\|\s*\S+\s*\|)")
 
 DATE_ONLY = re.compile(r"^[\d\s\-/:年月日\.]+$")
 
+# 正文摘录的最低长度：低于这个值说明详情页没抽到正文（或只有一段导语），
+# 既不值得存，也说明下一轮可以再试一次。存与重试用同一个阈值，避免反复抓同一条。
+MIN_BODY = 100
+
 
 def _clean_text(raw: str) -> str:
     text = re.sub(r"\s+", " ", strip_html(raw or "")).strip()
@@ -143,14 +147,27 @@ def fill_summaries(
     max_per_run: int = 60,
     workers: int = 4,
     summary_chars: int = 120,
+    body_chars: int = 800,
+    need_body: bool = False,
     log=print,
 ) -> dict[str, int]:
-    """给缺摘要的条目抓详情页补摘要，原地修改 items。
+    """给缺摘要（或 need_body 时缺正文）的条目抓详情页，原地修改 items。
+
+    落盘字段：
+        summary  120 字以内，列表页展示
+        body     800 字左右正文摘录，站内详情页展示（不存全文，避免整篇转载）
+        _body    更长的正文，只在内存里给模型用，落盘时被 _clean 过滤
 
     返回统计：{"tried": n, "ok": n, "failed": n}
     """
-    targets = [i for i in items if not (i.get("summary") or "").strip()]
-    targets = targets[:max_per_run]
+
+    def lacks(item: dict) -> bool:
+        if not (item.get("summary") or "").strip():
+            return True
+        # 补 body 模式：已经有摘要但正文摘录太短/缺失的也要抓
+        return need_body and len((item.get("body") or "").strip()) < MIN_BODY
+
+    targets = [i for i in items if lacks(i)][:max_per_run]
     if not targets:
         return {"tried": 0, "ok": 0, "failed": 0}
 
@@ -170,14 +187,18 @@ def fill_summaries(
                 raise RuntimeError(f"content-type={ctype[:30]}")
             summary, body = extract_from_html(resp.text, resp.url or url, item.get("title", ""), min_chars)
             summary = clip(re.sub(r"\s+", " ", summary).strip(), summary_chars)
+            body = re.sub(r"\s+", " ", body or "").strip()
+            if body and len(body) >= MIN_BODY:
+                item["body"] = clip(body, body_chars)
+                item["_body"] = body  # 更长的正文，只给模型用，落盘时会被 _clean 过滤
             if summary:
-                item["summary"] = summary
-                item["summary_source"] = "extract"
-                if body:
-                    item["_body"] = body  # 只在内存里给模型用，落盘时会被 _clean 过滤
+                # 已有摘要（尤其是模型精加工过的）不覆盖，只补缺失的
+                if not (item.get("summary") or "").strip():
+                    item["summary"] = summary
+                    item["summary_source"] = "extract"
                 lock_free_counter.append(1)
-            else:
-                item["summary"] = ""
+            elif body:
+                lock_free_counter.append(1)
         except Exception as exc:  # 单条失败不影响其它条目
             item.setdefault("_extract_error", str(exc)[:80])
 

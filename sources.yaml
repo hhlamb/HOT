@@ -52,8 +52,8 @@ sources:
     type: html
     lang: zh
     priority: P2
-    enabled: true
-    note: 无 RSS；本地探测 403，疑为沙箱代理干扰，待 Actions 复测
+    enabled: false
+    note: 2026-10-26 复核：卫健委同属境外 IP 拦截，无法抓取。食品安全标准动态由食品伙伴网/中国食品安全报覆盖
 
   - id: gov_cn_policy
     name: 中国政府网·最新政策
@@ -61,8 +61,8 @@ sources:
     type: html
     lang: zh
     priority: P2
-    enabled: true
-    note: 本地未发现可识别链接（疑 JS 渲染），待 Actions 复测
+    enabled: false
+    note: 2026-10-26 复核：gov.cn 对境外 IP 做 WAF 拦截，Actions 恒定失败。政策内容改由 Google News 定向查询 + 食品伙伴网兜底
 
   - id: cfsn
     name: 中国食品安全报
@@ -98,8 +98,8 @@ sources:
     type: html
     lang: zh
     priority: P1
-    enabled: true
-    note: 行业数据与协会口径；本地 403，待 Actions 复测
+    enabled: false
+    note: 2026-10-26 复核：http://www.dairy.org.cn 返回 502，站点不可用（非反爬）
 
   - id: muyingguancha
     name: 母婴行业观察
@@ -252,8 +252,8 @@ sources:
     type: rss
     lang: en
     priority: P1
-    enabled: true
-    note: 本地 403，待 Actions 复测
+    enabled: false
+    note: 2026-10-26 复核：just-food.com 由 Cloudflare 保护，数据中心 IP 一律 403
 
   # ---------- D. 海外监管与安全通报 ----------
   - id: openfda_food_recall
@@ -282,8 +282,8 @@ sources:
     type: html
     lang: en
     priority: P1
-    enabled: true
-    note: a2/爱他美相关召回常出此处；本地连接失败，待 Actions 复测
+    enabled: false
+    note: 2026-10-26 复核：FSANZ 改版后列表页需 JS，且对境外爬虫限流。改由 Google News 定向查询覆盖
 
   - id: rasff
     name: RASFF 欧盟食品饲料预警
@@ -291,8 +291,8 @@ sources:
     type: html
     lang: en
     priority: P2
-    enabled: true
-    note: 大概率 JS 渲染，抓不到就放弃
+    enabled: false
+    note: 2026-10-26 复核：RASFF Window 需要会话与验证码，无公开接口。改由 openFDA + Google News 覆盖
 
   - id: usda_fas
     name: USDA FAS 全球农业信息
@@ -300,8 +300,8 @@ sources:
     type: html
     lang: en
     priority: P2
-    enabled: true
-    note: 以 PDF 报告为主，本期只取标题；本地 403
+    enabled: false
+    note: 2026-10-26 复核：FAS 数据页为 JS 渲染的图表应用，无可抓列表。改由 Google News 覆盖
 
   # ---------- E. 品牌官方 newsroom ----------
   - id: nestle_media
@@ -310,8 +310,8 @@ sources:
     type: html
     lang: en
     priority: P1
-    enabled: true
-    note: 惠氏/能恩母公司；本地 403，待 Actions 复测
+    enabled: false
+    note: 2026-10-26 复核：nestle.com 对数据中心 IP 返回 403。雀巢动态改由 Google News 品牌查询覆盖
 
   - id: danone_news
     name: 达能·新闻
@@ -337,8 +337,8 @@ sources:
     type: html
     lang: zh
     priority: P1
-    enabled: true
-    note: 国产头部；本地未发现链接，待复测
+    enabled: false
+    note: 2026-10-26 复核：飞鹤官网为前端渲染，静态 HTML 无可抓列表。改由 Google News 品牌查询覆盖
 
   - id: yili
     name: 伊利
@@ -355,8 +355,8 @@ sources:
     type: html
     lang: zh
     priority: P2
-    enabled: true
-    note: 本地可解析（3 条候选链接）
+    enabled: false
+    note: 2026-10-26 复核：君乐宝官网同上，改为 Google News 品牌查询覆盖
 
   # ---------- F. 聚合检索源（补漏）----------
   - id: gnews_zh_formula
@@ -387,8 +387,8 @@ sources:
     api: gdelt
     lang: en
     priority: P1
-    enabled: true
-    note: 免费无 Key，实测可用但单次条数少（2~10 条），定位是补漏不是主力
+    enabled: false
+    note: 2026-10-26 复核：GDELT DOC API 对高频查询限流，且返回结果多为重复转载，性价比低
 
   # ---------- G. 用户指定的垂直媒体（2026-10-25 增补实测）----------
   - id: muyingqianyan
@@ -429,3 +429,46 @@ sources:
     priority: P3
     enabled: false
     note: 海关"单一窗口"查询页，JS 动态渲染 + 需人机验证，无列表接口。实测 200 但页面无任何文章链接，抓取不可行
+
+  # ---------- 替代源（2026-10-26 新增）----------
+  # 政府站与品牌官网从境外抓不到，改用 Google News 的定向查询"借道"：
+  # 它的索引里既有 gov.cn 的通告，也有媒体对雀巢/飞鹤的报道，且对 Actions 的 IP 友好。
+  - id: gnews_cn_policy
+    name: Google News·配方注册与监管（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%E5%A9%B4%E5%B9%BC%E5%84%BF%E9%85%8D%E6%96%B9%E4%B9%B3%E7%B2%89%20(%E6%B3%A8%E5%86%8C%20OR%20%E5%9B%BD%E6%A0%87%20OR%20%E6%96%B0%E8%A7%84%20OR%20%E7%9B%91%E7%AE%A1%20OR%20%E6%8A%BD%E6%A3%80)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 替代 gov.cn / 卫健委。链接为 Google 跳转，正文抽取成功率低，但标题+摘要足够定位政策变动
+
+  - id: gnews_cn_crossborder
+    name: Google News·跨境电商与海关（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%E8%B7%A8%E5%A2%83%E7%94%B5%E5%95%86%20(%E5%A5%B6%E7%B2%89%20OR%20%E5%A9%B4%E9%85%8D%20OR%20%E6%AF%8D%E5%A9%B4)%20OR%20%E6%B5%B7%E5%85%B3%20(%E5%A9%B4%E5%B9%BC%E5%84%BF%E9%85%8D%E6%96%B9%E4%B9%B3%E7%B2%89%20OR%20%E5%A5%B6%E7%B2%89)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 替代 customs.gov.cn（该站境外 IP 恒 412/502）。覆盖海关政策、跨境保税、进口奶粉监管
+
+  - id: gnews_cn_brands
+    name: Google News·奶粉品牌动态（中文）
+    url: >-
+      https://news.google.com/rss/search?q=(%E9%9B%80%E5%B7%A2%20OR%20%E8%BE%BE%E8%83%BD%20OR%20%E9%A3%9E%E9%B9%A4%20OR%20%E5%90%9B%E4%B9%90%E5%AE%9D%20OR%20%E4%BC%8A%E5%88%A9%20OR%20%E6%BE%B3%E4%BC%98)%20(%E5%A5%B6%E7%B2%89%20OR%20%E5%A9%B4%E9%85%8D)%20-%E8%82%A1%E7%A5%A8&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 替代雀巢/飞鹤/君乐宝官网（均为 JS 渲染或 403）。用 -股票 过滤掉大量行情稿
+
+  - id: gnews_en_recall
+    name: Google News·海外奶粉召回预警（英文）
+    url: >-
+      https://news.google.com/rss/search?q=%22infant%20formula%22%20(recall%20OR%20RASFF%20OR%20FSANZ%20OR%20withdrawal%20OR%20alert)&hl=en-US&gl=US&ceid=US:en
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 替代 RASFF / FSANZ（前者需验证码，后者改版）。英文条目会由模型翻成中文

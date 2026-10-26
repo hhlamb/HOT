@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INCLUDE_DIRS = ["assets", "data"]
-INCLUDE_FILES = ["index.html", "robots.txt"]
+INCLUDE_FILES = ["index.html", "article.html", "robots.txt"]
 
 
 def main() -> int:

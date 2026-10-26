@@ -54,6 +54,8 @@ extract:
   enabled: true
   min_chars: 40                # 短于此长度的段落不算正文
   summary_chars: 120           # 抽取结果的展示上限（接模型后会被压到 90）
+  body_chars: 800              # 站内详情页展示的正文摘录长度（不存全文，避免整篇转载）
+  body_backfill_per_run: 40    # 每轮给多少条老记录补正文摘录（详情页需要）
   max_per_run: 80              # 单轮最多抓多少篇详情页，防止首次运行太久
   backfill_per_run: 40         # 每轮回填多少条"库里已有但没有摘要"的旧条目
   workers: 4

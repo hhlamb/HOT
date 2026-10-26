@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="奶链雷达">
+  <path d="M16 3.2C16 3.2 6.6 13.6 6.6 20a9.4 9.4 0 0 0 18.8 0C25.4 13.6 16 3.2 16 3.2Z" fill="#0E5B4F"/>
+  <circle cx="16" cy="19.9" r="1.55" fill="#fff"/>
+  <path d="M13.6 19.9a2.4 2.4 0 0 1 4.8 0" fill="none" stroke="#fff" stroke-width="1.55" stroke-linecap="round" opacity=".9"/>
+  <path d="M11.2 19.9a4.8 4.8 0 0 1 9.6 0" fill="none" stroke="#fff" stroke-width="1.55" stroke-linecap="round" opacity=".55"/>
+</svg>

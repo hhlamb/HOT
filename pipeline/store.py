@@ -147,6 +147,11 @@ def apply_updates(items: list[dict]) -> int:
                     row["title_zh"] = patch["title_zh"]
                     row["translated"] = True
                     changed = True
+                # 正文摘录后补：详情页要展示原文核心。老条目只有 120 字摘要，
+                # 这里把后抓到的正文写进去；已有正文的不覆盖。
+                if patch.get("body") and not (row.get("body") or "").strip():
+                    row["body"] = patch["body"]
+                    changed = True
                 if changed:
                     updated += 1
             lines.append(json.dumps(row, ensure_ascii=False, separators=(",", ":")))

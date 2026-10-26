@@ -3,40 +3,60 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- 个人聚合站，不希望被搜索引擎收录。真正私密请改用 Cloudflare Access，见 README -->
+<!-- 个人聚合站，不希望被搜索引擎收录 -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
-<title>跨境母婴 · 奶粉行业资讯</title>
+<meta name="description" content="跨境母婴与婴幼儿配方奶粉的行业情报雷达：监管通告、品牌动态、质量召回、供应链与跨境电商政策，每 4 小时自动更新。">
+<title>奶链雷达 · 跨境母婴奶粉情报</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-<header class="site-header">
+<header class="topbar" id="topbar">
   <div class="wrap">
-    <div class="head-row">
-      <div class="brand">
-        <h1><a href="./">跨境母婴 · 奶粉行业资讯</a></h1>
-        <p class="sub">品牌动态 / 政策法规 / 质量安全 / 供应链 / 跨境电商</p>
-      </div>
+    <a class="brand" href="./">
+      <img class="mark" src="assets/logo.svg" alt="" width="26" height="26">
+      <span class="brand-text">
+        <span class="brand-cn">奶链雷达</span>
+        <span class="brand-en">Milk Radar</span>
+      </span>
+    </a>
+    <div class="topbar-right">
       <button id="theme-btn" class="icon-btn" type="button" aria-label="切换深浅色" title="切换深浅色">◐</button>
     </div>
-
-    <div class="meta-row">
-      <span id="updated">正在读取数据…</span>
-      <span class="sep">·</span>
-      <span class="hint">每日自动更新 6 次（每 4 小时）</span>
-      <button id="reload-btn" class="link-btn" type="button">手动刷新</button>
-    </div>
-
-    <div class="search-row">
-      <input id="search" type="search" placeholder="搜索标题或摘要，例如：配方注册" autocomplete="off" spellcheck="false">
-      <span id="count" class="count"></span>
-    </div>
-
-    <nav id="tags" class="tags" aria-label="按分类筛选"></nav>
   </div>
 </header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="hero-eyebrow">跨境母婴 · 婴幼儿配方奶粉</span>
+    <h1>跨境奶粉的<em>每一次变动</em><br>都在这里</h1>
+    <p class="hero-lede">
+      自动盯住监管通告、品牌动向、质量召回、供应链与跨境电商政策，每 4 小时刷新一次。
+      不用翻二十个网站，打开这一页就够。
+    </p>
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat-num" id="s-today">–</div><div class="stat-label">近 24 小时</div></div>
+      <div class="stat"><div class="stat-num" id="s-total">–</div><div class="stat-label">已收录</div></div>
+      <div class="stat"><div class="stat-num" id="s-sources">–</div><div class="stat-label">信源</div></div>
+      <div class="stat"><div class="stat-num" id="s-updated">–</div><div class="stat-label">最近更新</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="toolbar">
+  <div class="wrap">
+    <div class="searchbox">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <circle cx="8.6" cy="8.6" r="5.4"/><path d="M12.7 12.7 16.5 16.5" stroke-linecap="round"/>
+      </svg>
+      <input id="search" type="search" placeholder="搜索标题、摘要或来源" autocomplete="off" spellcheck="false" aria-label="搜索资讯">
+      <span id="count" class="search-count"></span>
+    </div>
+    <nav id="tags" class="tags" aria-label="按分类筛选"></nav>
+  </div>
+</div>
 
 <main class="wrap">
   <div id="feed" class="feed" aria-live="polite"></div>
@@ -45,10 +65,11 @@
 </main>
 
 <footer class="wrap site-footer">
-  <p>个人自用的行业信息聚合，仅呈现标题与摘要，版权归原媒体所有。</p>
+  <p>奶链雷达是个人自用的行业信息聚合，仅呈现标题、摘要与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
   <p id="foot-meta" class="foot-meta"></p>
 </footer>
 
+<script src="assets/feed-data.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
