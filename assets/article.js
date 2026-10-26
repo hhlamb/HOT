@@ -18,6 +18,7 @@ const el = {
   body: document.getElementById("a-body"),
   originText: document.getElementById("a-origin-text"),
   origin: document.getElementById("a-origin"),
+  originBox: document.getElementById("a-origin-box"),
   status: document.getElementById("status"),
   related: document.getElementById("related"),
   relatedList: document.getElementById("related-list"),
@@ -126,9 +127,12 @@ function render(item, all) {
     el.titleEn.hidden = false;
   }
 
-  // AI 速览
-  if (item.summary) {
-    el.summary.textContent = item.summary;
+  // AI 速览：检索类来源的 description 往往就是标题本身，重复展示等于浪费版面
+  const norm = (t) => String(t || "").replace(/\s+/g, "").replace(/[|｜\-—:：,，。.]/g, "");
+  const summaryText = (item.summary || "").trim();
+  const redundant = summaryText && (norm(title).includes(norm(summaryText)) || norm(summaryText) === norm(title));
+  if (summaryText && !redundant) {
+    el.summary.textContent = summaryText;
     el.ai.hidden = false;
   }
 
@@ -149,7 +153,7 @@ function render(item, all) {
     hint.textContent = item.summary
       ? "这条来源给的是检索跳转或数据接口，抓不到网页正文，上面的速览 + 下方原文链接足够判断内容。"
       : "这篇还没抓到正文，可以直接查看原文。";
-    el.origin.parentNode.insertBefore(hint, el.origin);
+    el.originBox.parentNode.insertBefore(hint, el.originBox);
   }
 
   // 原文出口
