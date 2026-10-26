@@ -198,6 +198,7 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
     cache = load_cache()
     cache_dirty = False
     fatal_fails = 0
+    rl_streak = 0  # 连续限流批次数
 
     for i in range(0, len(items), batch_size):
         # 免费模型高峰期限流严重，攒够时间预算就收工，剩下的下一轮接着补，别把 job 拖超时
@@ -268,15 +269,24 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                     log(f"  ! 连续 {fatal_fails} 批鉴权失败，跳过剩余 {rest} 条（查 Key / 余额 / 模型名）")
                     break
             elif rate_limited:
-                # 限流是全池拥塞，硬打后面的批次只会全撞墙，本轮到此为止
-                rest = len(items) - (i + len(batch))
-                stats["skipped"] += rest
-                stats["rate_limited"] = True
-                log(f"  · 免费模型持续限流，本轮先处理已成功的，剩余 {rest} 条下一轮继续")
-                break
+                rl_streak += 1
+                stats["skipped"] += len(batch)
+                if rl_streak >= 4:
+                    # 连着四批都撞墙，说明这会儿整池都满，继续打只是耗时间预算
+                    rest = len(items) - (i + len(batch))
+                    stats["skipped"] += rest
+                    stats["rate_limited"] = True
+                    log(f"  · 连续 {rl_streak} 批限流，本轮先处理已成功的，剩余 {rest} 条下一轮继续")
+                    break
+                # 单批限流 ≠ 全池满：跳过这批、放慢节奏继续试后面的，
+                # 实测免费池是"抖动式放行"，隔几分钟往往又能挤进去几条。
+                pace = min(90.0, pace * 2 + 5)
+                log(f"  · 第 {i // batch_size + 1} 批限流，放慢到 {int(pace)}s 后继续")
+                continue
             time.sleep(pace)
             continue
         fatal_fails = 0
+        rl_streak = 0
         # 自适应节奏：退避后才成功 → 说明这个速度太快，放慢；一次就过 → 慢慢加速回来
         if tries > 1:
             pace = min(60.0, pace * 2 + 4)

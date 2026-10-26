@@ -538,38 +538,3 @@ sources:
     enabled: true
     note: 上市公司口径的销量与市占率，比公关稿可靠
 
-  - id: tmtpost
-    name: 钛媒体
-    url: https://www.tmtpost.com/rss
-    type: rss
-    lang: zh
-    priority: P2
-    enabled: true
-    note: 科技财经综合源，靠关键词筛；命中多为消费与渠道类稿件
-
-  - id: jiemian
-    name: 界面新闻
-    url: https://a.jiemian.com/index.php?m=article&a=rss
-    type: rss
-    lang: zh
-    priority: P2
-    enabled: true
-    note: 同上，商业报道质量较好，命中率不高但偶有独家
-
-  - id: fooddive
-    name: Food Dive
-    url: https://www.fooddive.com/feeds/news/
-    type: rss
-    lang: en
-    priority: P2
-    enabled: true
-    note: 美国食品行业 B2B，乳品与配方相关报道较密
-
-  - id: foodbusinessnews
-    name: Food Business News
-    url: https://www.foodbusinessnews.net/rss/articles
-    type: rss
-    lang: en
-    priority: P2
-    enabled: true
-    note: 英文食品商业媒体，覆盖乳企财报与新品

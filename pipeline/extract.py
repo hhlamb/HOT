@@ -166,6 +166,39 @@ def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> t
     return summary, body[:4000], image
 
 
+GNEWS_HOST = "news.google.com"
+
+
+def resolve_google_news(client, url: str) -> str:
+    """把 news.google.com 的跳转链解析成媒体原文地址。
+
+    Google News 的 RSS 给的是自己的中转链，直接抓只会拿到一个空白壳页，
+    所以正文和配图全丢。三级兜底：
+        1. 跟随重定向后的最终地址（部分条目仍有效）
+        2. 页面里的 data-n-au 属性（老版中转页会带真实地址）
+        3. 页面里第一个外链
+    任何一步失败都原样返回，不影响主流程。
+    """
+    if GNEWS_HOST not in (url or ""):
+        return url
+    try:
+        resp = client.get(url)
+    except Exception:
+        return url
+    final = getattr(resp, "url", "") or ""
+    if final and GNEWS_HOST not in final:
+        return final
+    html = getattr(resp, "text", "") or ""
+    m = re.search(r'data-n-au="(https?://[^"]+)"', html)
+    if m and GNEWS_HOST not in m.group(1):
+        return m.group(1)
+    for m in re.finditer(r'<a[^>]+href="(https?://[^"]+)"', html):
+        target = m.group(1)
+        if GNEWS_HOST not in target and "google.com" not in target:
+            return target
+    return url
+
+
 def fill_summaries(
     items: list[dict],
     client,
@@ -192,8 +225,10 @@ def fill_summaries(
     def lacks(item: dict) -> bool:
         if not (item.get("summary") or "").strip():
             return True
-        # 补 body 模式：已经有摘要但正文摘录太短/缺失的也要抓
-        return need_body and len((item.get("body") or "").strip()) < MIN_BODY
+        if not need_body:
+            return False
+        # 补 body 模式：正文摘录太短，或者图片还空着，都值得再抓一次
+        return len((item.get("body") or "").strip()) < MIN_BODY or not (item.get("image") or "").strip()
 
     targets = [i for i in items if lacks(i)][:max_per_run]
     if not targets:
@@ -207,6 +242,13 @@ def fill_summaries(
         if not url.startswith("http"):
             return
         try:
+            # 检索类来源先换成真实地址，否则拿到的永远是空壳页
+            if GNEWS_HOST in url:
+                real = resolve_google_news(client, url)
+                if real and GNEWS_HOST not in real:
+                    item["original_url"] = real
+                    item["link_resolved"] = True
+                    url = real
             resp = client.get(url)
             if resp.status_code >= 400:
                 raise RuntimeError(f"HTTP {resp.status_code}")

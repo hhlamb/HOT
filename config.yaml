@@ -42,7 +42,7 @@ llm:
   temperature: 0.2
   timeout_seconds: 90
   retries: 3                   # 429（免费池拥塞）时按 12s/24s/48s 退避重试
-  max_wall_seconds: 720        # 模型阶段最多花 12 分钟，超了就收工留给下一轮，别把 job 拖超时
+  max_wall_seconds: 1020       # 模型阶段最多花 17 分钟（对应 workflow 的 28 分钟上限）
   batch_gap_seconds: 1.5       # 批次之间歇一下，免费池更容易过
   max_summary_chars: 220       # 摘要硬上限（列表只显示前两行，详情页读全段）
   min_summary_chars: 30
