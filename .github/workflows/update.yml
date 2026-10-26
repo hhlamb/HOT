@@ -38,7 +38,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 源从 32 个扩到 42 个、正文摘录从 800 字扩到 2400 字，单轮抓取量翻倍，
+    # 20 分钟开始吃紧。上限提到 28 分钟，同时 llm 内部有 12 分钟时间预算兜底。
+    timeout-minutes: 28
     outputs:
       changed: ${{ steps.commit.outputs.changed }}
     steps:

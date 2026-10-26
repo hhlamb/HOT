@@ -173,6 +173,48 @@ def _clean_summary(raw: str) -> str:
     return text
 
 
+def _pick_image_from_entry(entry) -> str:
+    """从 RSS 条目里找一张配图。
+
+    feedparser 把不同写法的图分别放在几个位置，按"越大越可能是头图"的顺序试：
+    media:content / media:thumbnail / enclosure / 正文 HTML 里的第一个 img。
+    """
+    candidates: list[tuple[int, str]] = []
+    for media in entry.get("media_content") or []:
+        url = (media.get("url") or "").strip()
+        if url.startswith("http"):
+            width = int(media.get("width") or 0)
+            candidates.append((width or 300, url))
+    for thumb in entry.get("media_thumbnail") or []:
+        url = (thumb.get("url") or "").strip()
+        if url.startswith("http"):
+            candidates.append((int(thumb.get("width") or 0) or 200, url))
+    for enc in entry.get("enclosures") or []:
+        url = (enc.get("href") or enc.get("url") or "").strip()
+        if url.startswith("http") and re.search(r"\.(jpe?g|png|webp|gif|avif)", url, re.I):
+            candidates.append((260, url))
+    for links in (entry.get("links") or []):
+        if links.get("rel") == "enclosure" and str(links.get("type", "")).startswith("image"):
+            url = (links.get("href") or "").strip()
+            if url.startswith("http"):
+                candidates.append((260, url))
+    if candidates:
+        candidates.sort(key=lambda x: -x[0])
+        return candidates[0][1]
+
+    # 兜底：正文里第一张图（部分源（如母婴前沿）的 summary 就是一段带 <img> 的 HTML）
+    raw = entry.get("summary") or entry.get("description") or ""
+    if not raw:
+        content = entry.get("content") or []
+        if content and isinstance(content, list):
+            raw = content[0].get("value", "")
+    if "<img" in (raw or "").lower():
+        m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', raw, re.I)
+        if m and m.group(1).startswith("http"):
+            return m.group(1)
+    return ""
+
+
 def make_item(
     *,
     source: dict,
@@ -183,6 +225,7 @@ def make_item(
     date_guessed: bool = True,
     author: str = "",
     extra_tags: list[str] | None = None,
+    image: str = "",
 ) -> dict | None:
     title = re.sub(r"\s+", " ", strip_html(title or "")).strip()
     if len(title) < 6:
@@ -204,7 +247,7 @@ def make_item(
         "author": clip(author, 60) if author else "",
         "tags": extra_tags or [],
         "priority": source.get("priority", "P1"),
-    }
+    } | ({"image": image} if image else {})
 
 
 # ---------------------------------------------------------------- RSS / Atom
@@ -256,6 +299,7 @@ def fetch_rss(client, source: dict, fetch_cfg: dict, now: datetime) -> FetchResu
             published_at=published,
             date_guessed=guessed,
             author=entry.get("author", ""),
+            image=_pick_image_from_entry(entry),
         )
         if item:
             result.items.append(item)

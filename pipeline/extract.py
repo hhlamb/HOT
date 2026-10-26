@@ -91,7 +91,7 @@ def _meta_desc(soup: BeautifulSoup) -> str:
     return ""
 
 
-def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 6) -> str:
+def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 14, target: int = 2400) -> str:
     """按"先容器后全文"的顺序挑段；返回拼好的前几段正文。"""
     for selector in CONTENT_SELECTORS:
         node = soup.select_one(selector)
@@ -106,7 +106,7 @@ def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 6)
             if not _acceptable(text, title, min_chars):
                 continue
             picked.append(text)
-            if sum(len(x) for x in picked) >= 600 or len(picked) >= limit:
+            if sum(len(x) for x in picked) >= target or len(picked) >= limit:
                 break
         if picked:
             return " ".join(picked)
@@ -118,24 +118,52 @@ def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 6)
         if not _acceptable(text, title, min_chars):
             continue
         picked.append(text)
-        if sum(len(x) for x in picked) >= 500 or len(picked) >= 3:
+        if sum(len(x) for x in picked) >= target * 0.7 or len(picked) >= 10:
             break
     return " ".join(picked)
 
 
-def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> tuple[str, str]:
-    """返回 (摘要, 正文片段)。摘要用于直接展示，正文片段留给模型精加工。"""
+def _meta_image(soup: BeautifulSoup, page_url: str) -> str:
+    """详情页主图。og:image 命中率最高，其次 twitter:image、首图 <img>。"""
+    for attr, key in (
+        ("property", "og:image"),
+        ("name", "og:image"),
+        ("name", "twitter:image"),
+        ("property", "twitter:image"),
+        ("itemprop", "image"),
+    ):
+        tag = soup.find("meta", attrs={attr: key})
+        content = (tag.get("content") or "").strip() if tag else ""
+        if content.startswith("//"):
+            content = "https:" + content
+        if content.startswith("http"):
+            return content
+    for img in soup.find_all("img", limit=8):
+        src = (img.get("src") or img.get("data-src") or img.get("data-original") or "").strip()
+        if src.startswith("//"):
+            src = "https:" + src
+        # 站点常把广告条、二维码、角标做成 <img>，这些进详情页当主图很难看
+        if src.startswith("http") and not re.search(
+            r"(logo|icon|avatar|sprite|qrcode|placeholder|advert|/ads?/|banner|ad\d{6,})", src, re.I
+        ):
+            return src
+    return ""
+
+
+def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> tuple[str, str, str]:
+    """返回 (摘要, 正文片段, 配图)。摘要用于直接展示，正文片段留给模型精加工。"""
     soup = BeautifulSoup(html, "lxml")
     for tag in soup(["script", "style", "noscript", "svg", "iframe", "form", "nav", "footer", "header"]):
         tag.decompose()
 
+    image = _meta_image(soup, url)
     body = _paragraphs(soup, min_chars, title)
     desc = _meta_desc(soup)
     if body:
         summary = body[:400]
     else:
         summary = desc
-    return summary, body[:1500]
+    return summary, body[:4000], image
 
 
 def fill_summaries(
@@ -185,9 +213,11 @@ def fill_summaries(
             ctype = resp.headers.get("content-type", "")
             if "html" not in ctype and "xml" not in ctype:
                 raise RuntimeError(f"content-type={ctype[:30]}")
-            summary, body = extract_from_html(resp.text, resp.url or url, item.get("title", ""), min_chars)
+            summary, body, image = extract_from_html(resp.text, resp.url or url, item.get("title", ""), min_chars)
             summary = clip(re.sub(r"\s+", " ", summary).strip(), summary_chars)
             body = re.sub(r"\s+", " ", body or "").strip()
+            if image and not (item.get("image") or "").strip():
+                item["image"] = image
             if body and len(body) >= MIN_BODY:
                 item["body"] = clip(body, body_chars)
                 item["_body"] = body  # 更长的正文，只给模型用，落盘时会被 _clean 过滤

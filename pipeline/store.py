@@ -152,6 +152,14 @@ def apply_updates(items: list[dict]) -> int:
                 if patch.get("body") and not (row.get("body") or "").strip():
                     row["body"] = patch["body"]
                     changed = True
+                # 配图后补
+                if patch.get("image") and not (row.get("image") or "").strip():
+                    row["image"] = patch["image"]
+                    changed = True
+                # 要点后补（模型新版输出）
+                if patch.get("points") and not row.get("points"):
+                    row["points"] = patch["points"]
+                    changed = True
                 if changed:
                     updated += 1
             lines.append(json.dumps(row, ensure_ascii=False, separators=(",", ":")))

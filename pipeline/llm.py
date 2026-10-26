@@ -26,23 +26,25 @@ from .sources import ROOT
 
 CACHE_FILE = ROOT / "data" / "zh_cache.json"
 
-SYSTEM_PROMPT = """你是跨境母婴与婴幼儿奶粉行业的资讯编辑，服务对象是从业者。
+SYSTEM_PROMPT = """你是跨境母婴与婴幼儿奶粉行业的资讯编辑，服务对象是跨境电商与母婴行业的从业者。
 用户会给你一个 JSON 数组，每个元素是一篇待处理的文章。请逐条处理并只输出 JSON。
 
 输出格式（不要 Markdown 代码块，不要任何解释）：
-{"items":[{"id":"输入里的 id","relevant":1,"title":"中文标题","summary":"中文摘要","tags":["标签"]}]}
+{"items":[{"id":"输入里的 id","relevant":1,"title":"中文标题","summary":"中文摘要","points":["要点1","要点2"],"tags":["标签"]}]}
 
 规则：
 1. relevant：与「婴幼儿奶粉 / 母婴喂养 / 乳业与食品安全政策 / 原料供应链 / 跨境渠道」强相关填 1；
    泛消费、纯企业形象稿、与行业无关的社会新闻、招聘与活动通知填 0。
 2. title：外文标题翻译成中文（品牌名、产品名保留原文或通用译名）；已是中文就原样返回，不要改写。
-3. summary：1~3 句中文，不超过 90 字，只陈述事实（谁、做了什么、有什么影响）。
-   - 禁止营销话术、禁止「本文」「据悉」「值得一提」这类填充词，禁止复述标题
-   - 外文内容直接用中文写摘要，不要保留英文原句
-   - 信息不足时，宁可写一句短的，也不要编造数字、时间、金额
-4. tags：从下面列表里选 1~3 个最贴切的，不要自造：
+3. summary：3~5 句中文，120~200 字。要把「谁、做了什么、涉及什么品类/市场/数字、对从业者意味着什么」讲清楚，
+   信息足够时可以补一句背景或影响判断；信息不足时只写确凿事实，绝不编造数字、时间、金额、机构表态。
+   - 禁止营销话术，禁止「本文」「据悉」「值得一提」「总而言之」这类填充词，禁止复述标题
+   - 外文内容直接用中文写，不要保留英文原句
+4. points：2~4 条要点，每条不超过 32 字，只放摘要里没展开、但值得单列的关键事实
+   （具体数字、生效时间、涉及品类、监管动作、渠道变化）。信息不足就返回空数组 []。
+5. tags：从下面列表里选 1~3 个最贴切的，不要自造：
    品牌动态 / 政策法规 / 质量安全 / 市场数据 / 供应链 / 跨境电商 / 海外动态
-5. 所有字段一律用简体中文，除品牌与产品专有名词外不出现英文单词。
+6. 所有字段一律用简体中文，除品牌与产品专有名词外不出现英文单词。
 """
 
 TAG_LIST = ["品牌动态", "政策法规", "质量安全", "市场数据", "供应链", "跨境电商", "海外动态"]
@@ -154,7 +156,7 @@ def _batch_payload(items: list[dict], cfg: dict) -> list[dict]:
                 "title": item["title"],
                 "source": item.get("source_name", ""),
                 "language": item.get("language", "zh"),
-                "content": clip(body or item.get("summary") or "", 900),
+                "content": clip(body or item.get("summary") or "", 1800),
             }
         )
     return payload
@@ -311,8 +313,11 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
             if title_zh and is_cjk_text(title_zh):
                 item["title_zh"] = clip(title_zh, 120)
             if summary:
-                item["summary"] = clip(re.sub(r"\s+", " ", summary), int(cfg.get("max_summary_chars", 90)))
+                item["summary"] = clip(re.sub(r"\s+", " ", summary), int(cfg.get("max_summary_chars", 220)))
                 item["summary_source"] = "llm"
+            points = [clip(re.sub(r"\s+", " ", str(x)).strip(), 60) for x in (row.get("points") or []) if str(x).strip()]
+            if points:
+                item["points"] = points[:4]
             tags = [t for t in (row.get("tags") or []) if t in TAG_LIST][:3]
             if tags:
                 item["tags"] = tags

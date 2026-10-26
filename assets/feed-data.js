@@ -129,6 +129,129 @@
     return "article.html?id=" + encodeURIComponent(id);
   };
 
+  /* ---------------- 热度 ---------------- */
+
+  const HEAT_TAGS = {
+    "质量安全": 26,
+    "政策法规": 22,
+    "跨境电商": 12,
+    "供应链": 10,
+    "市场数据": 8,
+    "品牌动态": 6,
+  };
+
+  /** 稳定抖动：同一条内容每次算出来的分要一样，否则刷新就换榜，很怪 */
+  function hash(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
+    return h;
+  }
+
+  /**
+   * 热度分：新鲜度为主，分类权重次之，再看信息完整度。
+   * 目的不是"科学排序"，而是让当天真正要紧的事浮在前面——
+   * 召回/监管这类错过代价高的内容，比一条品牌软文更值得占据榜首。
+   */
+  FEED.heat = function (item, tagCounts) {
+    const t = Date.parse(item.published_at || item.fetched_at || "");
+    const known = !Number.isNaN(t);
+    const hours = known ? Math.max(0, (Date.now() - t) / 36e5) : 0;
+    let h = 38;
+    if (!known) h -= 12; // 时间未知的条目不能靠"分类权重"挤到榜首，读者会以为是新稿
+    else if (hours <= 6) h += 44;
+    else if (hours <= 24) h += 30;
+    else if (hours <= 72) h += 15;
+    else if (hours <= 168) h += 6;
+
+    const tags = item.tags || [];
+    for (const tag of tags) h += HEAT_TAGS[tag] || 0;
+    if (tags[0] && tagCounts) h += Math.min(10, (tagCounts[tags[0]] || 0) * 0.6);
+
+    if (item.image) h += 7;
+    const s = (item.summary || "").length;
+    if (s >= 150) h += 11;
+    else if (s >= 80) h += 6;
+    if ((item.points || []).length) h += 4;
+    if (item.priority === "P0") h += 6;
+    if (item.body && item.body.length > 600) h += 4;
+    // 还没翻成中文的外文条目在榜单上观感很差，降权，等下一轮模型补译文
+    if (item.language === "en" && !item.title_zh) h -= 14;
+
+    h += hash(String(item.id || item.title || "")) % 9 - 4;
+    return Math.round(h);
+  };
+
+  /** 给一批条目算好热度并挂到 _heat 上，返回按热度降序的副本 */
+  FEED.rankByHeat = function (items) {
+    const tagCounts = {};
+    for (const it of items) for (const t of it.tags || []) tagCounts[t] = (tagCounts[t] || 0) + 1;
+    const scored = items.map((it) => ({ item: it, heat: FEED.heat(it, tagCounts) }));
+    const byHeat = (a, b) => {
+      if (b.heat !== a.heat) return b.heat - a.heat;
+      return (b.item.published_at || "") > (a.item.published_at || "") ? 1 : -1;
+    };
+    scored.sort(byHeat);
+
+    // 同源限流：一个站连发五条不该占满榜单。第 n 条起逐步扣分后重排，
+    // 这样既保住"热度优先"，又让榜单看起来像多家媒体在说话。
+    const seen = {};
+    for (const s of scored) {
+      const k = s.item.source_id || "?";
+      seen[k] = (seen[k] || 0) + 1;
+      if (seen[k] > 1) s.heat = Math.round(s.heat - (seen[k] - 1) * 7);
+      s.item._heat = s.heat;
+    }
+    scored.sort(byHeat);
+    return scored;
+  };
+
+  /* ---------------- 来源徽章 ---------------- */
+
+  const BADGE_COLORS = [
+    "#0e5b4f", "#1f5f8b", "#8a5a2b", "#6b4a86", "#a4402f",
+    "#2f6b4f", "#7a6330", "#3c5a7a", "#8b3f5e", "#4a5a2f",
+  ];
+
+  FEED.badgeColor = function (key) {
+    return BADGE_COLORS[hash(String(key || "")) % BADGE_COLORS.length];
+  };
+
+  FEED.initial = function (name) {
+    const s = String(name || "?").trim();
+    // 英文名取首字母，中文取首字
+    if (/^[A-Za-z]/.test(s)) return s.slice(0, 1).toUpperCase();
+    return s.slice(0, 1);
+  };
+
+  /* ---------------- 时间小工具 ---------------- */
+
+  FEED.hm = function (iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    const p = (n) => String(n).padStart(2, "0");
+    return `${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+
+  FEED.mdDate = function (iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  };
+
+  FEED.weekday = function (iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return "星期" + "日一二三四五六".charAt(d.getDay());
+  };
+
+  /** 日期键：YYYY-MM-DD，用于按天分组 */
+  FEED.dayKey = function (iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "unknown";
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  };
+
   FEED.escapeHtml = function (s) {
     return String(s).replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])

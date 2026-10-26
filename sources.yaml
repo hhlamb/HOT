@@ -472,3 +472,104 @@ sources:
     priority: P1
     enabled: true
     note: 替代 RASFF / FSANZ（前者需验证码，后者改版）。英文条目会由模型翻成中文
+
+  # ---------- 扩充源（2026-10-26 第二轮）----------
+  # 上一轮只有 32 个源可用、每天十来条新稿，信息面偏窄。
+  # 这里按"渠道 / 原料 / 合规 / 人口 / 海外"五个角度各补一个 Google News 定向查询，
+  # 再补 4 个实测可访问的行业媒体 RSS。
+
+  - id: gnews_cn_channel
+    name: Google News·渠道与母婴零售（中文）
+    url: >-
+      https://news.google.com/rss/search?q=(%E6%AF%8D%E5%A9%B4%E5%BA%97%20OR%20%E5%A9%B4%E5%84%BF%E6%B8%A0%E9%81%93%20OR%20%E7%BB%8F%E9%94%80%E5%95%86%20OR%20%E8%BF%9E%E9%94%81%E9%97%A8%E5%BA%97%20OR%20%E7%9B%B4%E6%92%AD%E5%B8%A6%E8%B4%A7)%20(%E5%A5%B6%E7%B2%89%20OR%20%E5%A9%B4%E9%85%8D%20OR%20%E6%AF%8D%E5%A9%B4)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 补渠道侧信息：母婴连锁、经销商库存、直播与私域卖奶粉
+
+  - id: gnews_cn_supply
+    name: Google News·奶源与原料价格（中文）
+    url: >-
+      https://news.google.com/rss/search?q=(%E5%8E%9F%E5%A5%B6%20OR%20%E7%94%9F%E9%B2%9C%E4%B9%B3%20OR%20%E4%B9%B3%E6%B8%85%20OR%20%E4%B9%B3%E9%93%81%E8%9B%8B%E7%99%BD%20OR%20%E5%A4%A7%E5%8C%85%E7%B2%89%20OR%20%E5%8E%9F%E6%96%99%E5%A5%B6%E7%B2%89)%20(%E4%BB%B7%E6%A0%BC%20OR%20%E6%8B%8D%E5%8D%96%20OR%20%E4%BE%9B%E5%BA%94%20OR%20%E4%BA%A7%E8%83%BD)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 原料端是奶粉成本的核心变量，之前完全缺这块
+
+  - id: gnews_cn_compliance
+    name: Google News·抽检与处罚（中文）
+    url: >-
+      https://news.google.com/rss/search?q=(%E5%A9%B4%E5%B9%BC%E5%84%BF%E9%85%8D%E6%96%B9%E4%B9%B3%E7%B2%89%20OR%20%E5%A5%B6%E7%B2%89)%20(%E6%8A%BD%E6%A3%80%20OR%20%E4%B8%8D%E5%90%88%E6%A0%BC%20OR%20%E5%A4%84%E7%BD%9A%20OR%20%E7%AB%8B%E6%A1%88%20OR%20%E9%80%9A%E6%8A%A5%20OR%20%E4%B8%8B%E6%9E%B6%20OR%20%E5%8F%AC%E5%9B%9E)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 质量安全是这类站点最该盯的部分，单独一条查询提高召回率
+
+  - id: gnews_cn_demography
+    name: Google News·出生率与母婴消费（中文）
+    url: >-
+      https://news.google.com/rss/search?q=(%E5%87%BA%E7%94%9F%E4%BA%BA%E5%8F%A3%20OR%20%E7%94%9F%E8%82%B2%E8%A1%A5%E8%B4%B4%20OR%20%E8%82%B2%E5%84%BF%E8%A1%A5%E8%B4%B4%20OR%20%E6%AF%8D%E5%A9%B4%E6%B6%88%E8%B4%B9)%20(%E5%A5%B6%E7%B2%89%20OR%20%E6%AF%8D%E5%A9%B4%20OR%20%E5%A9%B4%E5%84%BF)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 需求端的根本变量，从业者判断长期盘子要看这个
+
+  - id: gnews_en_dairy
+    name: Google News·海外乳业与配方（英文）
+    url: >-
+      https://news.google.com/rss/search?q=(%22infant%20formula%22%20OR%20%22dairy%20industry%22%20OR%20%22milk%20powder%22)%20(price%20OR%20export%20OR%20regulation%20OR%20plant)&hl=en-US&gl=US&ceid=US:en
+    type: rss
+    lang: en
+    priority: P1
+    enabled: true
+    note: 覆盖 DairyReporter/FoodNavigator 这类抓不到 RSS 的英文媒体，由模型翻成中文
+
+  - id: gnews_cn_brand_fin
+    name: Google News·乳企财报与资本（中文）
+    url: >-
+      https://news.google.com/rss/search?q=(%E4%BC%8A%E5%88%A9%20OR%20%E8%92%99%E7%89%9B%20OR%20%E9%A3%9E%E9%B9%A4%20OR%20%E5%90%9B%E4%B9%90%E5%AE%9D%20OR%20%E5%85%89%E6%98%8E%E5%AD%95%E4%B8%9A)%20(%E8%B4%A2%E6%8A%A5%20OR%20%E8%90%A5%E6%94%B6%20OR%20%E5%B8%82%E5%8D%A0%E7%8E%87%20OR%20%E4%B8%9A%E7%BB%A9)&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 上市公司口径的销量与市占率，比公关稿可靠
+
+  - id: tmtpost
+    name: 钛媒体
+    url: https://www.tmtpost.com/rss
+    type: rss
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 科技财经综合源，靠关键词筛；命中多为消费与渠道类稿件
+
+  - id: jiemian
+    name: 界面新闻
+    url: https://a.jiemian.com/index.php?m=article&a=rss
+    type: rss
+    lang: zh
+    priority: P2
+    enabled: true
+    note: 同上，商业报道质量较好，命中率不高但偶有独家
+
+  - id: fooddive
+    name: Food Dive
+    url: https://www.fooddive.com/feeds/news/
+    type: rss
+    lang: en
+    priority: P2
+    enabled: true
+    note: 美国食品行业 B2B，乳品与配方相关报道较密
+
+  - id: foodbusinessnews
+    name: Food Business News
+    url: https://www.foodbusinessnews.net/rss/articles
+    type: rss
+    lang: en
+    priority: P2
+    enabled: true
+    note: 英文食品商业媒体，覆盖乳企财报与新品

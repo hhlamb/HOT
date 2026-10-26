@@ -13,61 +13,102 @@
 </head>
 <body>
 
-<header class="topbar" id="topbar">
-  <div class="wrap">
+<div class="shell">
+
+  <!-- ==================== 左侧竖栏 ==================== -->
+  <aside class="rail" id="rail">
     <a class="brand" href="./">
-      <img class="mark" src="assets/logo.svg" alt="" width="26" height="26">
+      <img class="mark" src="assets/logo.svg" alt="" width="27" height="27">
       <span class="brand-text">
         <span class="brand-cn">奶链雷达</span>
         <span class="brand-en">Milk Radar</span>
       </span>
     </a>
-    <div class="topbar-right">
-      <button id="theme-btn" class="icon-btn" type="button" aria-label="切换深浅色" title="切换深浅色">◐</button>
-    </div>
-  </div>
-</header>
 
-<section class="hero">
-  <div class="wrap">
-    <span class="hero-eyebrow">跨境母婴 · 婴幼儿配方奶粉</span>
-    <h1>跨境奶粉的<em>每一次变动</em><br>都在这里</h1>
-    <p class="hero-lede">
-      自动盯住监管通告、品牌动向、质量召回、供应链与跨境电商政策，每 4 小时刷新一次。
-      不用翻二十个网站，打开这一页就够。
-    </p>
-    <div class="stats" id="stats">
-      <div class="stat"><div class="stat-num" id="s-today">–</div><div class="stat-label">近 24 小时</div></div>
-      <div class="stat"><div class="stat-num" id="s-total">–</div><div class="stat-label">已收录</div></div>
-      <div class="stat"><div class="stat-num" id="s-sources">–</div><div class="stat-label">信源</div></div>
-      <div class="stat"><div class="stat-num" id="s-updated">–</div><div class="stat-label">最近更新</div></div>
+    <div class="rail-group">
+      <div class="rail-label">内容</div>
+      <button class="nav-item" type="button" data-view="pick">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 2.6 12.3 7.4l5.2.66-3.85 3.6.99 5.14L10 14.28l-4.64 2.52.99-5.14L2.5 8.06l5.2-.66Z"/></svg>
+        精选
+        <span class="n" id="n-pick"></span>
+      </button>
+      <button class="nav-item" type="button" data-view="all">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h8"/></svg>
+        全部动态
+        <span class="n" id="n-all"></span>
+      </button>
+      <button class="nav-item" type="button" data-view="hot">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.8s3.4 3 3.4 6a3.4 3.4 0 0 1-6.8 0c0-1.2.5-2.2 1.1-3 0 1.4.7 2.2 1.5 2.2.9 0 1.4-.8 1.4-2 0-1.2-.6-2.4-.6-3.2Z"/><path d="M4.6 11.4a7 7 0 1 0 10.8 0"/></svg>
+        热点榜
+        <span class="n" id="n-hot"></span>
+      </button>
+      <button class="nav-item" type="button" data-view="daily">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.4" width="14" height="12.2" rx="2.2"/><path d="M3 8.2h14M6.8 2.9v2.9M13.2 2.9v2.9"/></svg>
+        日报
+        <span class="n" id="n-daily"></span>
+      </button>
+      <button class="nav-item" type="button" data-view="topics">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2.8" y="2.8" width="6" height="6" rx="1.4"/><rect x="11.2" y="2.8" width="6" height="6" rx="1.4"/><rect x="2.8" y="11.2" width="6" height="6" rx="1.4"/><rect x="11.2" y="11.2" width="6" height="6" rx="1.4"/></svg>
+        主题
+        <span class="n" id="n-topics"></span>
+      </button>
     </div>
-  </div>
-</section>
 
-<div class="toolbar">
-  <div class="wrap">
-    <div class="searchbox">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-        <circle cx="8.6" cy="8.6" r="5.4"/><path d="M12.7 12.7 16.5 16.5" stroke-linecap="round"/>
-      </svg>
-      <input id="search" type="search" placeholder="搜索标题、摘要或来源" autocomplete="off" spellcheck="false" aria-label="搜索资讯">
-      <span id="count" class="search-count"></span>
+    <div class="rail-sep"></div>
+
+    <div class="rail-group">
+      <div class="rail-label">分类</div>
+      <div class="cat-list" id="cats"></div>
     </div>
-    <nav id="tags" class="tags" aria-label="按分类筛选"></nav>
-  </div>
+
+    <div class="rail-foot">
+      <div class="rail-stat" id="rail-stat"></div>
+      <button class="icon-btn" id="theme-btn" type="button" aria-label="切换深浅色" title="切换深浅色">☾</button>
+    </div>
+  </aside>
+
+  <!-- ==================== 内容区 ==================== -->
+  <main class="main">
+    <div class="inner">
+
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" id="page-title">精选</h1>
+          <p class="page-sub" id="page-sub">跨境奶粉的每一次变动，都在这里</p>
+        </div>
+        <div class="head-actions">
+          <label class="searchbox">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <circle cx="8.6" cy="8.6" r="5.4"/><path d="M12.7 12.7 16.5 16.5" stroke-linecap="round"/>
+            </svg>
+            <input id="search" type="search" placeholder="搜索标题、摘要或来源" autocomplete="off" spellcheck="false" aria-label="搜索资讯">
+          </label>
+        </div>
+      </div>
+
+      <!-- 当前热点（精选页顶部） -->
+      <section class="hotbox" id="hotbox" hidden>
+        <div class="hotbox-head">
+          <span class="dot-live" aria-hidden="true"></span>
+          <h2>当前热点</h2>
+          <a href="?view=hot">完整榜单 →</a>
+        </div>
+        <div id="hotbox-list"></div>
+      </section>
+
+      <div id="view" aria-live="polite"></div>
+
+      <p id="status" class="status">正在读取数据…</p>
+      <button id="more-btn" class="more-btn" type="button" hidden>加载更多</button>
+
+      <footer class="site-footer">
+        <p>奶链雷达是个人自用的行业信息聚合，仅呈现标题、摘要、要点与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
+        <p id="foot-meta" class="foot-meta"></p>
+      </footer>
+
+    </div>
+  </main>
 </div>
-
-<main class="wrap">
-  <div id="feed" class="feed" aria-live="polite"></div>
-  <p id="status" class="status"></p>
-  <button id="more-btn" class="more-btn" type="button" hidden>加载更多</button>
-</main>
-
-<footer class="wrap site-footer">
-  <p>奶链雷达是个人自用的行业信息聚合，仅呈现标题、摘要与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
-  <p id="foot-meta" class="foot-meta"></p>
-</footer>
 
 <script src="assets/feed-data.js"></script>
 <script src="assets/app.js"></script>
