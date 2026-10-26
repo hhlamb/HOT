@@ -36,3 +36,6 @@ _dist/
 # 一键推送脚本（本地用，不入库）
 一键推送.bat
 *.bat
+
+# 逐条配图（构建时由 scripts/gen_item_art.py 现生成，不进仓库）
+assets/items/

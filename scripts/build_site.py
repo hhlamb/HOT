@@ -55,6 +55,17 @@ def main() -> int:
             continue
         shutil.copytree(src, out / name, ignore=shutil.ignore_patterns("__pycache__", "*.tmp"))
 
+    # 每条新闻的专属示意图：不存仓库（会被 .gitignore 掉），构建时现生成，
+    # 这样历史数据攒得再多也不会把仓库撑大，而占位只有 3KB/张。
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from gen_item_art import generate_all  # noqa: PLC0415 - 只在构建时需要
+
+        ok, bad = generate_all(out / "assets" / "items")
+        print(f"  逐条配图 {ok} 张" + (f"，失败 {bad} 张" if bad else ""))
+    except Exception as exc:  # noqa: BLE001 - 配图失败不该拖垮整站发布
+        print(f"! 逐条配图生成失败：{exc}", file=sys.stderr)
+
     (out / ".nojekyll").write_text("", encoding="utf-8")
 
     total = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())

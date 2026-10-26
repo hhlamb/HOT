@@ -968,7 +968,7 @@ button[hidden], [hidden] { display: none !important; }
 
   .card-summary { -webkit-line-clamp: 3; }
   .thumb { width: 78px; height: 58px; }
-  .card--lead .thumb { height: 168px; }
+  .card--lead .thumb { height: 200px; }
   .card h2 { font-size: 15px; }
   .card--lead h2 { font-size: 18.5px; }
 
@@ -1171,8 +1171,10 @@ button[hidden], [hidden] { display: none !important; }
   opacity: .7;
 }
 
-/* 头条卡片的大图压缩一点，主题插画留白多，太高会显得空 */
-.card--lead .thumb { height: 172px; }
+/* 头条卡片的大图。示意图是 1.569:1，塞进 3.8:1 的横幅里用 cover 会只剩中间一条，
+   所以改 contain：整张图缩进纸色底，两侧留白与图底色同色，看不出接缝。 */
+.card--lead .thumb { height: 250px; }
+.card--lead .thumb--topic img { object-fit: contain; }
 
 /* ------------------------------------------------------------
    手机端收尾

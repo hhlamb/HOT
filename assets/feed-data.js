@@ -156,6 +156,13 @@
     return "assets/topic/industry.svg";
   };
 
+  /* 每条新闻一张专属示意图，由 scripts/gen_item_art.py 按标题/摘要关键词生成，
+     落在 assets/items/<id>.svg。文件缺失时前端回退到上面的分类图。 */
+  FEED.itemCover = function (item) {
+    if (!item || !item.id) return "";
+    return "assets/items/" + encodeURIComponent(item.id) + ".svg";
+  };
+
   FEED.hasOwnImage = function (item) {
     return /^https?:/i.test(String(item.image || "").trim());
   };
