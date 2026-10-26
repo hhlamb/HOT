@@ -23,8 +23,8 @@
   --accent-soft: #eaf3f0;
   --flag: #b4472f;
   --flag-soft: #fbeeea;
-  /* 主题插画的纸底色（取自插画本身），contain 留白靠它衔接，看不出边界 */
-  --paper-figure: #f0e7da;
+  /* 主题插画的纸底色（与 assets/topic/*.svg 的底色一致），contain 留白靠它衔接 */
+  --paper-figure: #f1e8db;
 
   /* 分类色板：同一明度、同一饱和度区间，逐个看有区分，铺开看是一套。
      用法是「圆点 + 极淡底」，不拿来做大面积填充，否则页面就花了。 */
@@ -1077,10 +1077,10 @@ button[hidden], [hidden] { display: none !important; }
   .tl-src { grid-column: 1; }
 }
 
-/* 分类主题插画（AI 生成，非原文配图）
-   原图统一 960×612（1.569:1），构图靠留白 + 细线支撑。
-   这类图一旦被 cover 硬裁，圆弧和线条会断在画面边缘，看起来像"只画了半张"。
-   所以详情页大图按原始比例整体铺，永不裁切；容器底色取插画纸色，留白无缝。 */
+/* 分类主题插画（矢量示意图，非原文配图）
+   统一 960×612（1.569:1），线宽用 non-scaling-stroke 锁在 1.5 CSS 像素，
+   所以缩到 108×76 的列表缩略图里线依然是一条实线，不会被压没。
+   详情页大图按原始比例整体铺，不做任何裁切。 */
 .thumb--topic img { opacity: .97; }
 .thumb--topic { background: var(--paper-figure); }
 .hero-img--topic { background: var(--paper-figure); }
@@ -1095,7 +1095,7 @@ button[hidden], [hidden] { display: none !important; }
   opacity: .98;
 }
 
-/* 暗色：米白插画会变成一块亮斑。不用遮罩压黑（会糊成一片灰），
+/* 暗色：米白底会变成一块亮斑。不用遮罩压黑（会糊成一片灰），
    而是反相 + 转回色相，把"纸白 + 墨线"直接换成"夜纸 + 浅线"，金线还能留住 */
 [data-theme="dark"] .hero-img--topic,
 [data-theme="dark"] .thumb--topic { background: #221f1a; }
@@ -1105,20 +1105,6 @@ button[hidden], [hidden] { display: none !important; }
   opacity: .92;
 }
 
-/* 列表缩略图只有 108×76，原图 1.5px 的细线缩到 0.2px 就消失了，
-   只能放大取中间一小块 + 提对比度，线才有存在感。
-   小尺寸下看不出构图残缺，所以这里可以放心裁。 */
-.thumb--topic img {
-  transform: scale(1.45);
-  transform-origin: 50% 46%;
-  filter: contrast(1.12);
-}
-/* 头条大图够大，不放大，保持完整构图（暗色滤镜由上面的属性选择器接管，
-   这里不要写 filter: none，否则会把反相暗化一起关掉，露出米白底） */
-.card--lead .thumb--topic img { transform: none; }
-[data-theme="dark"] .card--lead .thumb--topic img {
-  filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95);
-}
 
 /* ------------------------------------------------------------
    细节：克制的"高级感"

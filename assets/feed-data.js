@@ -131,7 +131,10 @@
 
   /* ---------------- 分类主题封面 ----------------
      行业媒体给 RSS 配图的比例大概只有一半，剩下全是纯文字卡片，列表看着很闷。
-     这里按主分类配一张统一的主题插画（assets/topic/*.webp，8 张，共约 110KB）。
+     这里按主分类配一张统一的主题插画（assets/topic/*.svg，8 张，各约 1~4KB）。
+     用矢量而不是位图：同一张图既要上 660px 的详情页大图，又要缩进 108×76 的列表
+     缩略图，位图的细线缩到缩略图会被压成 0.2px，看起来像"图没加载完"；
+     SVG 配 non-scaling-stroke，线宽在两种尺寸下都是 1.5 CSS 像素。
      它只是版式填充，不是原文配图，所以前端一律标注"主题配图"，不能冒充新闻图片。 */
   const TOPIC_SLUG = {
     "品牌动态": "brand",
@@ -148,9 +151,9 @@
     const tags = item.tags || [];
     for (const t of tags) {
       const slug = TOPIC_SLUG[t];
-      if (slug) return "assets/topic/" + slug + ".webp";
+      if (slug) return "assets/topic/" + slug + ".svg";
     }
-    return "assets/topic/industry.webp";
+    return "assets/topic/industry.svg";
   };
 
   FEED.hasOwnImage = function (item) {

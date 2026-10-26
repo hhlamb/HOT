@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 612" width="960" height="612" role="img">
+<style>
+  .k  { fill: none; stroke: #3b4a42; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .kd { fill: none; stroke: #3b4a42; stroke-width: 1.3; stroke-dasharray: 7 7;
+         vector-effect: non-scaling-stroke; opacity: .55; }
+  .ks { fill: none; stroke: #78857c; stroke-width: 1.1;
+         vector-effect: non-scaling-stroke; opacity: .45; }
+  .g  { fill: none; stroke: #b8873b; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+  .gd { fill: none; stroke: #b8873b; stroke-width: 1.4; stroke-dasharray: 5 7;
+         vector-effect: non-scaling-stroke; opacity: .85; }
+  .kb { fill: #3b4a42; opacity: .055; }
+  .gb { fill: #b8873b; }
+</style>
+<rect width="960" height="612" fill="#f1e8db"/>
+  <circle class="gb" cx="470.0" cy="312.0" r="17.0"/>
+  <circle class="k" cx="470.0" cy="312.0" r="82.0"/>
+  <circle class="kd" cx="470.0" cy="312.0" r="152.0"/>
+  <circle class="kd" cx="470.0" cy="312.0" r="216.0"/>
+  <circle class="gb" cx="622.7" cy="159.3" r="6.0"/>
+  <circle class="gb" cx="686.0" cy="312.0" r="6.0"/>
+  <circle class="gb" cx="622.7" cy="464.7" r="6.0"/>
+  <circle class="gb" cx="470.0" cy="528.0" r="6.0"/>
+  <path class="g" d="M470 312 C 560 268 616 214 706 176"/>
+  <path class="g" d="M706 176 L 686 178 M706 176 L 700 196"/>
+  <circle class="ks" cx="470.0" cy="312.0" r="124.0"/>
+</svg>
