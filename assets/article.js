@@ -16,8 +16,11 @@ const el = {
   heroImg: document.getElementById("a-hero-img"),
   heroCap: document.getElementById("a-hero-cap"),
   ai: document.getElementById("a-ai"),
+  aiTag: document.getElementById("a-ai-tag"),
   summary: document.getElementById("a-summary"),
   points: document.getElementById("a-points"),
+  timeline: document.getElementById("a-timeline"),
+  timelineList: document.getElementById("a-timeline-list"),
   bodyWrap: document.getElementById("a-body-wrap"),
   body: document.getElementById("a-body"),
   bodyNote: document.getElementById("a-body-note"),
@@ -99,7 +102,9 @@ function renderRail(items, current) {
     const a = document.createElement("a");
     a.className = "cat-item";
     a.href = "?view=all&tag=" + encodeURIComponent(tag);
-    a.setAttribute("aria-current", String((current.tags || []).includes(tag)));
+    a.dataset.tag = tag;
+    // 只标主分类：一篇文章常挂三个标签，全高亮会让人以为同时选中了三个栏目
+    a.setAttribute("aria-current", String((current.tags || [])[0] === tag));
     a.appendChild(document.createTextNode(tag));
     const num = document.createElement("span");
     num.className = "n";
@@ -110,6 +115,8 @@ function renderRail(items, current) {
 }
 
 function render(item, all) {
+  shownIds.clear();
+  shownIds.add(item.id);
   const title = item.title_zh || item.title || "（无标题）";
   document.title = title + " · " + SITE;
 
@@ -118,7 +125,8 @@ function render(item, all) {
   const tag = (item.tags || [])[0];
   if (tag) {
     const span = document.createElement("span");
-    span.className = "card-tag" + (tag === "质量安全" ? " card-tag--warn" : "");
+    span.className = "card-tag";
+    span.dataset.tag = tag;
     span.textContent = tag;
     el.meta.appendChild(span);
   }
@@ -138,14 +146,34 @@ function render(item, all) {
     el.titleEn.hidden = false;
   }
 
-  /* 大图 */
-  if (item.image && /^https?:/.test(item.image)) {
-    el.heroImg.src = item.image;
+  /* 大图：原文有配图就用原文的；没有就用分类主题插画，但要标明不是原图。
+     同一张图在多条里复用 = 站点通用封面（栏目图、分享卡片），不能当配图。 */
+  let ownImg = FD.hasOwnImage(item);
+  if (ownImg) {
+    const reuse = all.filter((i) => i.image === item.image).length;
+    if (reuse >= 2) ownImg = false;
+    else {
+      // 图 URL 里带的上传日期比发布日早一年以上 → 站点固定封面
+      const m = /(20\d{2})(\d{2})\d{2}|\/(20\d{2})[\/\-](\d{2})\//.exec(item.image);
+      const t = Date.parse(item.published_at || item.fetched_at || "");
+      if (m && !Number.isNaN(t)) {
+        const d = new Date(t);
+        const gap = d.getFullYear() * 12 + d.getMonth() + 1 - (Number(m[1] || m[3]) * 12 + Number(m[2] || m[4]));
+        if (gap >= 12) ownImg = false;
+      }
+    }
+  }
+  if (ownImg || (item.tags || []).length) {
+    const src = ownImg ? item.image : FD.topicCover(item);
+    el.heroImg.src = src;
     el.heroImg.alt = title;
+    el.hero.classList.toggle("hero-img--topic", !ownImg);
     el.heroImg.addEventListener("error", () => {
       el.hero.hidden = true;
     });
-    el.heroCap.textContent = `配图来自 ${item.source_name || "原媒体"}`;
+    el.heroCap.textContent = ownImg
+      ? `配图来自 ${item.source_name || "原媒体"}`
+      : "主题配图 · 按分类生成的示意图，非原文配图";
     el.hero.hidden = false;
   }
 
@@ -157,6 +185,16 @@ function render(item, all) {
   if (summaryText && !redundant) {
     el.summary.textContent = summaryText;
     el.ai.hidden = false;
+  }
+
+  /* 原文抓不到时，摘要就是唯一信息源，必须说清楚它是 AI 归纳 */
+  const bodyLen = (item.body || "").trim().length;
+  const noBody = bodyLen < 200;
+  if (noBody && summaryText) {
+    el.aiTag.textContent = "AI 归纳";
+    el.aiTag.hidden = false;
+  } else {
+    el.aiTag.hidden = true;
   }
 
   /* 关键要点 */
@@ -183,11 +221,12 @@ function render(item, all) {
     const n = (item.body || "").length;
     el.bodyNote.textContent = `以上为原文关键段落摘录，约 ${n} 字，用于判断是否值得深读；完整内容请点下方原文按钮。`;
   } else {
-    // 检索类来源（Google News 跳转、openFDA 接口）拿不到网页正文，说明白免得读者以为页面坏了
+    // 检索类来源（Google News 跳转、数据接口）和需要登录/纯图片的站拿不到网页正文。
+    // 与其空着，不如把这一条在"事件脉络"里的位置摆出来，让人顺着看前后进展。
     const hint = document.createElement("p");
-    hint.className = "body-note";
+    hint.className = "body-note body-note--muted";
     hint.textContent = summaryText
-      ? "这条来源给的是检索跳转或数据接口，抓不到网页正文。上面的速览 + 下方原文链接足够判断内容。"
+      ? "原文站点没有可直接抓取的正文（可能是图片长图、需登录或触发了反爬），上方速览是根据标题与可获得的信息做的 AI 归纳，下方可查看事件脉络与原文。"
       : "这篇还没抓到正文，可以直接查看原文。";
     el.originBox.parentNode.insertBefore(hint, el.originBox);
   }
@@ -225,7 +264,103 @@ function render(item, all) {
 
   renderRelated(item, all);
   renderExtend(item, all);
+  renderTimeline(item, all);
   window.scrollTo(0, 0);
+}
+
+/* 同一篇稿不该在"相关阅读""延伸阅读""事件脉络"里重复出现三次 */
+const shownIds = new Set();
+
+/* ------------------------------------------------------------ 事件脉络 */
+
+/* 标题里出现、但完全没有区分度的词：只靠分类凑数会让"脉络"变成"随机推荐"。 */
+const TL_STOP = new Set(
+  (
+    "奶粉 婴配粉 婴幼儿 婴儿 配方 市场 行业 企业 公司 品牌 增长 发展 中国 母婴 营养 产品 " +
+    "消费 全球 今年 去年 季度 数据 报告 显示 表示 已经 正在 可以 如何 什么 为什么 我们 他们 " +
+    "一个 一家 这些 那些 以及 但是 因为 所以 目前 未来 继续 开始 进行 通过 相关 主要 重要"
+  ).split(" ")
+);
+
+/* 两字滑窗取实体词。中文标题没有空格，靠停用词表过滤掉通用词之后，
+   "蒙牛""特医""雀巢""羊奶"这类才是能串起一条脉络的词。 */
+function tlEntities(text) {
+  const set = new Set();
+  const s = String(text || "").replace(/[^\u4e00-\u9fffA-Za-z0-9]+/g, " ");
+  for (const seg of s.split(" ")) {
+    if (/^[A-Za-z0-9]+$/.test(seg)) {
+      if (seg.length >= 2) set.add(seg.toLowerCase());
+      continue;
+    }
+    for (let i = 0; i + 2 <= seg.length; i++) {
+      const w = seg.slice(i, i + 2);
+      if (!TL_STOP.has(w)) set.add(w);
+    }
+  }
+  return set;
+}
+
+function tlShare(a, b) {
+  let n = 0;
+  for (const w of a) if (b.has(w)) n++;
+  return n;
+}
+
+/* 同一分类 + 标题有共同实体词，才算"同一件事的进展"。
+   原文抓不到时，这是读者唯一能获得上下文的途径；能抓到正文时也有用——
+   一件事从发酵到落地往往跨好几天、好几家媒体。 */
+function renderTimeline(item, all) {
+  const tags = item.tags || [];
+  if (!tags.length || !all || all.length < 4) {
+    el.timeline.hidden = true;
+    return;
+  }
+
+  const cur = Date.parse(item.published_at || item.fetched_at || "") || 0;
+  const mine = tlEntities(item.title_zh || item.title);
+
+  const pool = all
+    .filter((i) => i.id !== item.id && !shownIds.has(i.id))
+    .filter((i) => (i.tags || []).some((t) => tags.includes(t)))
+    .map((i) => ({
+      item: i,
+      t: Date.parse(i.published_at || i.fetched_at || "") || 0,
+      share: tlShare(mine, tlEntities(i.title_zh || i.title)),
+    }))
+    .filter((x) => x.t && x.share >= 1) // 没有共同实体词的一律不算脉络
+    .sort((a, b) => b.share - a.share || Math.abs(a.t - cur) - Math.abs(b.t - cur))
+    .slice(0, 6)
+    .sort((a, b) => a.t - b.t); // 头部按时间正序摆，读起来才像脉络
+
+  if (pool.length < 2) {
+    el.timeline.hidden = true;
+    return;
+  }
+
+  el.timelineList.innerHTML = "";
+  for (const { item: other, t } of pool) {
+    const li = document.createElement("li");
+    li.className = "tl-item";
+
+    const when = document.createElement("span");
+    when.className = "tl-date";
+    when.textContent = FD.mdDate(new Date(t).toISOString());
+    li.appendChild(when);
+
+    const a = document.createElement("a");
+    a.className = "tl-title";
+    a.href = FD.articleHref(other.id);
+    a.textContent = other.title_zh || other.title || "（无标题）";
+    li.appendChild(a);
+
+    const src = document.createElement("span");
+    src.className = "tl-src";
+    src.textContent = other.source_name || "";
+    li.appendChild(src);
+
+    el.timelineList.appendChild(li);
+  }
+  el.timeline.hidden = false;
 }
 
 /* ------------------------------------------------------------ 相关阅读（卡片） */
@@ -242,6 +377,7 @@ function renderRelated(item, all) {
   if (!picked.length) return;
 
   for (const rel of picked) {
+    shownIds.add(rel.id);
     const card = document.createElement("a");
     card.className = "card";
     card.href = FD.articleHref(rel.id);

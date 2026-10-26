@@ -71,7 +71,7 @@
         <div class="rule"></div>
 
         <section id="a-ai" hidden>
-          <div class="section-label">AI 速览</div>
+          <div class="section-label">AI 速览<span class="label-tag" id="a-ai-tag" hidden></span></div>
           <div class="ai-box" id="a-summary"></div>
           <ul class="ai-points" id="a-points" hidden></ul>
         </section>
@@ -80,6 +80,11 @@
           <div class="section-label" style="margin-top:26px">原文摘录</div>
           <div class="body-text" id="a-body"></div>
           <p class="body-note" id="a-body-note">以上为原文关键段落摘录，用于快速判断是否值得深读；完整内容请点下方原文按钮。</p>
+        </section>
+
+        <section id="a-timeline" hidden>
+          <div class="section-label" style="margin-top:26px">事件脉络<span class="label-hint">同一分类的近期进展</span></div>
+          <ol class="timeline-list" id="a-timeline-list"></ol>
         </section>
 
         <section id="a-facts-wrap" hidden>

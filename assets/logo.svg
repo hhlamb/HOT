@@ -1,6 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="奶链雷达">
-  <path d="M16 3.2C16 3.2 6.6 13.6 6.6 20a9.4 9.4 0 0 0 18.8 0C25.4 13.6 16 3.2 16 3.2Z" fill="#0E5B4F"/>
-  <circle cx="16" cy="19.9" r="1.55" fill="#fff"/>
-  <path d="M13.6 19.9a2.4 2.4 0 0 1 4.8 0" fill="none" stroke="#fff" stroke-width="1.55" stroke-linecap="round" opacity=".9"/>
-  <path d="M11.2 19.9a4.8 4.8 0 0 1 9.6 0" fill="none" stroke="#fff" stroke-width="1.55" stroke-linecap="round" opacity=".55"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="奶链雷达">
+  <defs>
+    <linearGradient id="drop" x1="0.15" y1="1" x2="0.85" y2="0">
+      <stop offset="0" stop-color="#0A463D"/>
+      <stop offset="1" stop-color="#12806E"/>
+    </linearGradient>
+  </defs>
+  <!-- 扫描范围：断续圆环，暗示雷达覆盖 -->
+  <circle cx="20" cy="20" r="18.2" fill="none" stroke="#0E5B4F" stroke-width="1"
+          stroke-dasharray="1.8 5.2" stroke-linecap="round" opacity=".5"/>
+  <!-- 奶滴本体 -->
+  <path d="M20 8.6c0 0-6.6 7.9-6.6 12.4a6.6 6.6 0 0 0 13.2 0C26.6 16.5 20 8.6 20 8.6Z"
+        fill="url(#drop)"/>
+  <!-- 滴内雷达波：中心是奶，向外两档递减 -->
+  <circle cx="20" cy="21.4" r="1.55" fill="#fff"/>
+  <path d="M17.5 21.4a2.5 2.5 0 0 1 5 0" fill="none" stroke="#fff"
+        stroke-width="1.35" stroke-linecap="round" opacity=".95"/>
+  <path d="M15 21.4a5 5 0 0 1 10 0" fill="none" stroke="#fff"
+        stroke-width="1.35" stroke-linecap="round" opacity=".55"/>
+  <!-- 扫掠光线：打破对称，也是"雷达在转"的那一笔 -->
+  <path d="M20 21.4 31.6 10.4" fill="none" stroke="#B8873B"
+        stroke-width="1.35" stroke-linecap="round" opacity=".95"/>
 </svg>

@@ -129,6 +129,34 @@
     return "article.html?id=" + encodeURIComponent(id);
   };
 
+  /* ---------------- 分类主题封面 ----------------
+     行业媒体给 RSS 配图的比例大概只有一半，剩下全是纯文字卡片，列表看着很闷。
+     这里按主分类配一张统一的主题插画（assets/topic/*.webp，8 张，共约 110KB）。
+     它只是版式填充，不是原文配图，所以前端一律标注"主题配图"，不能冒充新闻图片。 */
+  const TOPIC_SLUG = {
+    "品牌动态": "brand",
+    "市场数据": "market",
+    "质量安全": "safety",
+    "供应链": "supply",
+    "跨境电商": "cross",
+    "政策法规": "policy",
+    "海外动态": "global",
+    "行业动态": "industry",
+  };
+
+  FEED.topicCover = function (item) {
+    const tags = item.tags || [];
+    for (const t of tags) {
+      const slug = TOPIC_SLUG[t];
+      if (slug) return "assets/topic/" + slug + ".webp";
+    }
+    return "assets/topic/industry.webp";
+  };
+
+  FEED.hasOwnImage = function (item) {
+    return /^https?:/i.test(String(item.image || "").trim());
+  };
+
   /* ---------------- 热度 ---------------- */
 
   const HEAT_TAGS = {

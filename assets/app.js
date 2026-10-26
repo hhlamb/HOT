@@ -65,6 +65,14 @@ async function load() {
   state.items = data.items;
   state.meta = data.meta;
 
+  /* 站点通用图统计：同一张图被 3 条以上复用，基本可以断定不是文章配图
+     （栏目封面、分享卡片、站标）。后端的过滤只对新入库的条目生效，
+     老数据得在这里兜一层，否则大图区永远是那张蓝色横幅。 */
+  for (const it of state.items) {
+    if (!FD.hasOwnImage(it)) continue;
+    imageFreq.set(it.image, (imageFreq.get(it.image) || 0) + 1);
+  }
+
   if (!state.items.length) {
     el.view.innerHTML = "";
     el.status.textContent = "还没有任何数据。先跑一次 python scripts/run.py 生成 data/ 目录。";
@@ -330,9 +338,36 @@ function dedupeByTitle(rows) {
   });
 }
 
+/* 图片复用统计：同一个 URL 出现太多次 = 站点通用图 */
+const imageFreq = new Map();
+
 /* 某些站点的 RSS 给所有稿子同一张分享图（雨果跨境那张 2021 年的蓝色横幅），
-   连着几条一模一样比没有图更难看。已经用过的图不再重复显示。 */
-const usedImages = new Set();
+   连着几条一模一样比没有图更难看。已经用过的图不再重复显示。
+   分类主题图是共用的，允许用两次，再多就整列雷同了。 */
+const usedImages = new Map();
+
+/* 图 URL 里常带上传日期（…/upload/202107/19/202107191800522486.png）。
+   配图比文章早一年以上，只可能是站点固定封面，不会是这篇稿的图。 */
+function staleImage(url, item) {
+  const m = /(20\d{2})(\d{2})\d{2}|\/(20\d{2})[\/\-](\d{2})\//.exec(String(url || ""));
+  if (!m) return false;
+  const y = Number(m[1] || m[3]);
+  const mo = Number(m[2] || m[4]);
+  if (!y || !mo || mo > 12) return false;
+  const t = Date.parse(item.published_at || item.fetched_at || "");
+  if (Number.isNaN(t)) return false;
+  const d = new Date(t);
+  return d.getFullYear() * 12 + d.getMonth() + 1 - (y * 12 + mo) >= 12;
+}
+
+/* 这张图能不能当配图：不是站点通用图、也不是一年前的固定封面 */
+function usableImage(item) {
+  const url = FD.hasOwnImage(item) ? item.image : "";
+  if (!url) return "";
+  if ((imageFreq.get(url) || 0) >= 2) return ""; // 同图复用两次以上 = 通用图
+  if (staleImage(url, item)) return "";
+  return url;
+}
 
 function makeCard(item, opts = {}) {
   const card = document.createElement("a");
@@ -342,17 +377,20 @@ function makeCard(item, opts = {}) {
   const body = document.createElement("div");
   body.className = "card-body";
 
-  /* 缩略图 */
-  const imgKey = item.image ? String(item.image) : "";
-  if (imgKey && !usedImages.has(imgKey)) {
-    usedImages.add(imgKey);
+  /* 缩略图：有原文配图用原文的，没有就用分类主题图（列表不至于一条线全是白板） */
+  const realImg = usableImage(item);
+  const imgKey = realImg || "topic:" + FD.topicCover(item);
+  const quota = realImg ? 1 : 2;
+  if ((usedImages.get(imgKey) || 0) < quota) {
+    usedImages.set(imgKey, (usedImages.get(imgKey) || 0) + 1);
     const thumb = document.createElement("div");
     thumb.className = "thumb";
     const img = document.createElement("img");
-    img.src = item.image;
+    img.src = realImg || FD.topicCover(item);
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.alt = "";
+    if (!realImg) thumb.classList.add("thumb--topic");
     img.addEventListener("error", () => thumb.classList.add("is-broken"));
     thumb.appendChild(img);
     body.appendChild(thumb);
@@ -367,7 +405,8 @@ function makeCard(item, opts = {}) {
   const tag = (item.tags || [])[0];
   if (tag) {
     const span = document.createElement("span");
-    span.className = "card-tag" + (tag === "质量安全" ? " card-tag--warn" : "");
+    span.className = "card-tag";
+    span.dataset.tag = tag;
     span.textContent = tag;
     top.appendChild(span);
   }

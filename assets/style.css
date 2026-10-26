@@ -24,6 +24,18 @@
   --flag: #b4472f;
   --flag-soft: #fbeeea;
 
+  /* 分类色板：同一明度、同一饱和度区间，逐个看有区分，铺开看是一套。
+     用法是「圆点 + 极淡底」，不拿来做大面积填充，否则页面就花了。 */
+  --c-brand: #b8873b;      /* 品牌动态 · 琥珀 */
+  --c-market: #45597b;     /* 市场数据 · 靛蓝 */
+  --c-safety: #b4472f;     /* 质量安全 · 砖红 */
+  --c-supply: #6b7c3f;     /* 供应链 · 橄榄 */
+  --c-cross: #2f7d7a;      /* 跨境电商 · 青瓷 */
+  --c-policy: #6b5b7b;     /* 政策法规 · 紫灰 */
+  --c-global: #4a6b8a;     /* 海外动态 · 蓝灰 */
+  --c-industry: #7a7f78;   /* 行业动态 · 麻灰 */
+  --gold: #b8873b;
+
   --radius: 12px;
   --radius-sm: 8px;
   --rail-w: 226px;
@@ -53,6 +65,16 @@
   --accent-soft: #16302c;
   --flag: #e0705a;
   --flag-soft: #2e1e1a;
+  /* 暗色下统一提亮一档，保持同样的色相识别度 */
+  --c-brand: #d9a75f;
+  --c-market: #8fa3c2;
+  --c-safety: #e0705a;
+  --c-supply: #a3b46b;
+  --c-cross: #5fb8b2;
+  --c-policy: #a294b5;
+  --c-global: #7f9cbb;
+  --c-industry: #9aa098;
+  --gold: #d9a75f;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
   --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 12px 32px -22px rgba(0, 0, 0, .9);
 }
@@ -110,17 +132,26 @@ button[hidden], [hidden] { display: none !important; }
   gap: 9px;
   padding: 2px 4px 16px;
 }
-.brand .mark { width: 27px; height: 27px; flex: none; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
-.brand-cn { font-size: 17px; font-weight: 700; letter-spacing: .01em; }
+.brand .mark { width: 28px; height: 28px; flex: none; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+/* 中文名用字距 + 字重做区分度，英文名压到极小、字距拉到很大，
+   两行一粗一细、一密一疏，比单纯放大字号更像一个标识 */
+.brand-cn {
+  font-size: 17.5px;
+  font-weight: 800;
+  letter-spacing: .055em;
+  color: var(--ink);
+}
 .brand-en {
-  font-size: 9.5px;
-  letter-spacing: .19em;
+  margin-top: 3px;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: .34em;
   text-transform: uppercase;
   color: var(--faint);
   font-family: var(--font-num);
-  margin-top: 2px;
 }
+.brand-en::before { content: ""; }
 
 .rail-group { display: flex; flex-direction: column; gap: 2px; }
 .rail-label {
@@ -195,6 +226,19 @@ button[hidden], [hidden] { display: none !important; }
 .cat-item[aria-current="true"] { color: var(--ink); font-weight: 600; background: var(--surface); border-color: var(--line); box-shadow: var(--shadow-sm); }
 .cat-item[aria-current="true"]::before { background: var(--accent); }
 .cat-item .n { margin-left: auto; font-size: 11px; color: var(--faint); font-family: var(--font-num); }
+
+/* 每个分类一个色点：八条规则比在 JS 里写内联样式更好维护，
+   也保证"同一个分类在主列表、侧栏、标签处永远是同一个颜色" */
+.cat-item[data-tag="品牌动态"] { --dot: var(--c-brand); }
+.cat-item[data-tag="市场数据"] { --dot: var(--c-market); }
+.cat-item[data-tag="质量安全"] { --dot: var(--c-safety); }
+.cat-item[data-tag="供应链"]   { --dot: var(--c-supply); }
+.cat-item[data-tag="跨境电商"] { --dot: var(--c-cross); }
+.cat-item[data-tag="政策法规"] { --dot: var(--c-policy); }
+.cat-item[data-tag="海外动态"] { --dot: var(--c-global); }
+.cat-item[data-tag="行业动态"] { --dot: var(--c-industry); }
+.cat-item[data-tag]::before { background: var(--dot, var(--line-strong)); opacity: .85; }
+.cat-item[data-tag][aria-current="true"]::before { background: var(--dot, var(--accent)); opacity: 1; }
 
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
 .rail-stat {
@@ -445,6 +489,15 @@ button[hidden], [hidden] { display: none !important; }
   font-weight: 600;
   flex: none;
 }
+/* 标签底色 = 分类色兑进纸色里，所以既看得出区分，又不会变成彩色糖果 */
+.card-tag[data-tag="品牌动态"] { background: color-mix(in srgb, var(--c-brand) 12%, var(--surface)); color: var(--c-brand); }
+.card-tag[data-tag="市场数据"] { background: color-mix(in srgb, var(--c-market) 12%, var(--surface)); color: var(--c-market); }
+.card-tag[data-tag="质量安全"] { background: color-mix(in srgb, var(--c-safety) 12%, var(--surface)); color: var(--c-safety); }
+.card-tag[data-tag="供应链"]   { background: color-mix(in srgb, var(--c-supply) 14%, var(--surface)); color: var(--c-supply); }
+.card-tag[data-tag="跨境电商"] { background: color-mix(in srgb, var(--c-cross) 12%, var(--surface)); color: var(--c-cross); }
+.card-tag[data-tag="政策法规"] { background: color-mix(in srgb, var(--c-policy) 12%, var(--surface)); color: var(--c-policy); }
+.card-tag[data-tag="海外动态"] { background: color-mix(in srgb, var(--c-global) 12%, var(--surface)); color: var(--c-global); }
+.card-tag[data-tag="行业动态"] { background: color-mix(in srgb, var(--c-industry) 12%, var(--surface)); color: var(--c-industry); }
 .card-tag--warn { background: var(--flag-soft); color: var(--flag); }
 .card-source { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-sep { opacity: .45; }
@@ -931,3 +984,185 @@ button[hidden], [hidden] { display: none !important; }
   .shell { display: block; }
   body { font-size: 12pt; }
 }
+
+/* ------------------------------------------------------------
+   详情页：AI 归纳标注 / 事件脉络
+   ------------------------------------------------------------ */
+
+.label-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  vertical-align: 1px;
+}
+
+.label-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--faint);
+}
+
+/* 原文抓不到时的说明：不是报错，是"这条只能给你这些"，语气要平 */
+.body-note--muted {
+  margin-top: 12px;
+  padding: 12px 15px;
+  border-left: 2px solid var(--line-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-2);
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  border-left: 1px solid var(--line);
+}
+
+.tl-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 1px 12px;
+  padding: 9px 0 9px 16px;
+}
+
+.tl-item::before {
+  content: "";
+  position: absolute;
+  left: -3.5px;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.tl-date {
+  padding-top: 2px;
+  font-size: 11.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-title {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.tl-title:hover { color: var(--accent); }
+
+.tl-src {
+  grid-column: 2;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+@media (max-width: 640px) {
+  .tl-item { grid-template-columns: 1fr; gap: 3px; }
+  .tl-date { padding-top: 0; }
+  .tl-src { grid-column: 1; }
+}
+
+/* 分类主题插画（AI 生成，非原文配图）：统一按 3:2 铺，略降对比，
+   让它看起来像版式的一部分，而不是一张抢戏的照片 */
+.thumb--topic img { opacity: .96; }
+.thumb--topic { background: var(--surface-2); }
+.hero-img--topic img { opacity: .96; }
+.hero-img--topic figcaption::before { content: ""; }
+
+/* 暗色下米白底的插画会变成一块亮斑，压暗并叠一层纸色，转成"暗纹"质感 */
+[data-theme="dark"] .thumb--topic::after,
+[data-theme="dark"] .hero-img--topic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 16, 15, .72), rgba(14, 16, 15, .84));
+  pointer-events: none;
+}
+[data-theme="dark"] .thumb--topic,
+[data-theme="dark"] .hero-img--topic { position: relative; }
+
+/* 主题插画本身留白很多，缩到 108×76 就只剩几根细线看不清。
+   放大 1.45 倍取中间，线条才有存在感（thumb 已 overflow:hidden） */
+.thumb--topic img { transform: scale(1.45); }
+.thumb--topic img { transform: scale(1.55); transform-origin: 48% 52%; }
+
+/* ------------------------------------------------------------
+   细节：克制的"高级感"
+   ------------------------------------------------------------ */
+
+/* 分隔线向右渐隐，比一根等号似的实线更像排版线 */
+.rule { background: linear-gradient(90deg, var(--line-strong), var(--line) 42%, transparent); }
+
+/* 卡片 hover 时左侧浮起一条分类色细线。
+   :has 选中卡片自带的第一个标签，颜色自然跟着分类走 */
+.card { position: relative; }
+.card::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+.card:hover::before { opacity: .55; }
+.card:has(.card-tag[data-tag="品牌动态"])::before { background: var(--c-brand); }
+.card:has(.card-tag[data-tag="市场数据"])::before { background: var(--c-market); }
+.card:has(.card-tag[data-tag="质量安全"])::before { background: var(--c-safety); }
+.card:has(.card-tag[data-tag="供应链"])::before   { background: var(--c-supply); }
+.card:has(.card-tag[data-tag="跨境电商"])::before { background: var(--c-cross); }
+.card:has(.card-tag[data-tag="政策法规"])::before { background: var(--c-policy); }
+.card:has(.card-tag[data-tag="海外动态"])::before { background: var(--c-global); }
+.card:has(.card-tag[data-tag="行业动态"])::before { background: var(--c-industry); }
+
+/* 页头右下角一条极短的品牌渐变，收住标题区 */
+.page-head { position: relative; }
+.page-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -10px;
+  width: 46px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  opacity: .55;
+}
+
+/* "当前热点"左侧用金色竖条，与热榜呼应 */
+.hotbox { position: relative; }
+
+/* 侧栏底色做一道极淡的纵向渐变，跟右侧白纸区分开层次又不出现色块 */
+.rail { background: linear-gradient(180deg, var(--rail) 0%, var(--rail) 62%, var(--bg) 100%); }
+
+/* 热点盒左侧一条金色渐隐竖条，和热榜的琥珀呼应 */
+.hotbox::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 13px;
+  bottom: 13px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--gold), transparent);
+  opacity: .7;
+}
+
+/* 头条卡片的大图压缩一点，主题插画留白多，太高会显得空 */
+.card--lead .thumb { height: 172px; }
