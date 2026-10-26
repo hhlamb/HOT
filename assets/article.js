@@ -164,25 +164,26 @@ function render(item, all) {
     }
   }
   if (ownImg || (item.tags || []).length) {
-    /* 没有原文配图时用这条新闻自己的示意图（按标题/摘要关键词生成），
-       文件缺失再退回分类图——历史条目可能还没跑到生成脚本 */
+    /* 详情页大图用分类卡通插画（8 张一套，构图完整、撑得住 660px）；
+       图缺失再退回这条新闻自己的矢量示意图 */
     const local = FD.itemCover(item);
-    const src = ownImg ? item.image : local || FD.topicCover(item);
+    const src = ownImg ? item.image : FD.topicCover(item);
     el.heroImg.src = src;
     el.heroImg.alt = title;
     el.hero.classList.toggle("hero-img--topic", !ownImg);
-    let triedClass = false;
+    el.hero.classList.toggle("hero-img--art", !ownImg);
+    let tried = false;
     el.heroImg.addEventListener("error", () => {
-      if (!ownImg && !triedClass && local) {
-        triedClass = true;
-        el.heroImg.src = FD.topicCover(item);
+      if (!ownImg && !tried && local) {
+        tried = true;
+        el.heroImg.src = local;
         return;
       }
       el.hero.hidden = true;
     });
     el.heroCap.textContent = ownImg
       ? `配图来自 ${item.source_name || "原媒体"}`
-      : "主题配图 · 按这条新闻的内容生成的示意图，非原文配图";
+      : "主题配图 · 按分类绘制的示意图，非原文配图";
     el.hero.hidden = false;
   }
 

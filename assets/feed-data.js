@@ -151,9 +151,9 @@
     const tags = item.tags || [];
     for (const t of tags) {
       const slug = TOPIC_SLUG[t];
-      if (slug) return "assets/topic/" + slug + ".svg";
+      if (slug) return "assets/topic/cartoon/" + slug + ".webp";
     }
-    return "assets/topic/industry.svg";
+    return "assets/topic/cartoon/industry.webp";
   };
 
   /* 每条新闻一张专属示意图，由 scripts/gen_item_art.py 按标题/摘要关键词生成，

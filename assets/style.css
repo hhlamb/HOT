@@ -1105,6 +1105,16 @@ button[hidden], [hidden] { display: none !important; }
   opacity: .92;
 }
 
+/* 卡通位图不能反相——整张会变成负片。暗色下压暗压饱和，保留原配色，
+   但要压够，否则米白底在深色页里就是一块亮斑 */
+[data-theme="dark"] .thumb--topic img.is-art,
+[data-theme="dark"] .hero-img--art img {
+  filter: brightness(.55) saturate(.82);
+  opacity: .95;
+}
+/* 头条卡是 contain，图片两侧露出的容器底色要跟压暗后的纸色对齐，否则是一道深边 */
+[data-theme="dark"] .card--lead .thumb--topic { background: #7b766f; }
+
 
 /* ------------------------------------------------------------
    细节：克制的"高级感"

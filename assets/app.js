@@ -377,25 +377,29 @@ function makeCard(item, opts = {}) {
   const body = document.createElement("div");
   body.className = "card-body";
 
-  /* 缩略图：有原文配图用原文的，没有就用这条新闻自己生成的示意图；
-     图没生成出来（历史条目还没跑脚本）就退回分类图，不让卡片开天窗 */
+  /* 缩略图：有原文配图用原文的，没有就用分类卡通插画。
+     同一张图最多出现两次（quota），第三条起不再配图，
+     这样一屏里不会连着几张一模一样的画。 */
   const realImg = usableImage(item);
-  const imgKey = realImg || FD.itemCover(item) || "topic:" + FD.topicCover(item);
+  const imgKey = realImg || "topic:" + FD.topicCover(item);
   const quota = realImg ? 1 : 2;
   if ((usedImages.get(imgKey) || 0) < quota) {
     usedImages.set(imgKey, (usedImages.get(imgKey) || 0) + 1);
     const thumb = document.createElement("div");
     thumb.className = "thumb";
     const img = document.createElement("img");
-    img.src = realImg || FD.itemCover(item);
+    img.src = imgKey.startsWith("topic:") ? FD.topicCover(item) : realImg;
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.alt = "";
-    if (!realImg) thumb.classList.add("thumb--topic");
+    if (!realImg) {
+      thumb.classList.add("thumb--topic");
+      img.classList.add("is-art");     // 卡通位图，暗色下不能走反相
+    }
     const fallback = () => {
       if (!img.dataset.fb) {
         img.dataset.fb = "1";
-        img.src = FD.topicCover(item);
+        img.src = FD.itemCover(item) || FD.topicCover(item);
       } else {
         thumb.classList.add("is-broken");
       }
