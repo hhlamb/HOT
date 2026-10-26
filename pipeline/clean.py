@@ -71,6 +71,9 @@ def normalize_title(title: str) -> str:
     title = title.replace("\u200b", "").replace("\ufeff", "")
     title = NOISE_PREFIX.sub("", title)
     # 去掉尾部常见的站点后缀 " - 食品伙伴网" / "_新浪新闻"
+    # Google News 偶尔把媒体名写成 " - https://www.xxx.com/"，长度超阈值会漏掉，
+    # 这种必须单独剥，否则同一篇稿在不同转载站会被当成两条。
+    title = re.sub(r"\s*[-_|｜]\s*https?://\S+$", "", title)
     title = re.sub(r"\s*[-_|｜]\s*[^-_|｜]{2,12}$", "", title)
     title = title.lower()
     title = re.sub(r"\s+", " ", title).strip()

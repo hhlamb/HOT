@@ -28,7 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline import llm, report, store  # noqa: E402
-from pipeline.clean import clip  # noqa: E402
+from pipeline.clean import clip, title_key  # noqa: E402
 from pipeline.dedupe import dedupe  # noqa: E402
 from pipeline.extract import fill_summaries  # noqa: E402
 from pipeline.fetchers import fetch_source  # noqa: E402
@@ -372,8 +372,26 @@ def main() -> int:
         recent_for_sim,
         threshold=dedupe_cfg["title_similarity"],
         max_per_event=dedupe_cfg["max_per_event"],
+        known_title_keys={title_key(i.get("title_zh") or i.get("title") or "") for i in all_recent},
     )
     kept = [i for i in kept_all if not i.get("_drop")]
+
+    # ---------------- 通用封面图过滤 ----------------
+    # 一些站点的 RSS 给所有稿子同一张分享图/栏目图（雨果跨境就是 2021 年那张），
+    # 列表里连着两条一模一样，比没有图还难看。同一 URL 在本批里被 3 条以上复用，
+    # 基本可以断定不是文章配图，整批清掉。
+    img_count: dict[str, int] = {}
+    for item in kept + recent_for_sim:
+        u = (item.get("image") or "").strip()
+        if u:
+            img_count[u] = img_count.get(u, 0) + 1
+    dull = {u for u, n in img_count.items() if n >= 3}
+    if dull:
+        for item in kept:
+            if (item.get("image") or "").strip() in dull:
+                item.pop("image", None)
+        print(f"  通用封面图清掉 {len(dull)} 张（同图复用）")
+
     for item in kept:
         per_source[item["source_id"]]["new"] += 1
 

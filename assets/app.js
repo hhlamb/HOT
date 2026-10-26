@@ -209,7 +209,8 @@ function filtered() {
       return hay.includes(q);
     });
   }
-  return rows;
+  // 转载稿标题完全相同，任何视图里都只留一条
+  return dedupeByTitle(rows);
 }
 
 /* ------------------------------------------------------------ 精选：当前热点 + 时间轴 */
@@ -258,6 +259,7 @@ function renderHotbox(rows) {
 }
 
 function renderTimeline(rows, isPick) {
+  usedImages.clear();
   if (!rows.length) {
     el.status.textContent = state.query
       ? `没有匹配「${state.query}」的内容，换个关键词试试。`
@@ -308,6 +310,30 @@ function dayBar(iso, rows, key) {
 
 /* ------------------------------------------------------------ 卡片 */
 
+/* 同一篇稿被几家媒体转载时标题一字不差（Google News 抓到的尤其常见），
+   榜单里出现两次很刺眼。这里按"剥掉站点后缀 + 去标点"的标题做一次过滤。 */
+function titleKeyOf(text) {
+  return String(text || "")
+    .replace(/\s*[-_|｜]\s*(https?:\/\/\S+|[^-_|｜]{2,12})$/, "")
+    .replace(/[^0-9a-zA-Z\u4e00-\u9fff]+/g, "")
+    .slice(0, 40);
+}
+
+function dedupeByTitle(rows) {
+  const seen = new Set();
+  return rows.filter((it) => {
+    const key = titleKeyOf(it.title_zh || it.title);
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/* 某些站点的 RSS 给所有稿子同一张分享图（雨果跨境那张 2021 年的蓝色横幅），
+   连着几条一模一样比没有图更难看。已经用过的图不再重复显示。 */
+const usedImages = new Set();
+
 function makeCard(item, opts = {}) {
   const card = document.createElement("a");
   card.className = "card" + (opts.lead ? " card--lead" : "");
@@ -317,7 +343,9 @@ function makeCard(item, opts = {}) {
   body.className = "card-body";
 
   /* 缩略图 */
-  if (item.image) {
+  const imgKey = item.image ? String(item.image) : "";
+  if (imgKey && !usedImages.has(imgKey)) {
+    usedImages.add(imgKey);
     const thumb = document.createElement("div");
     thumb.className = "thumb";
     const img = document.createElement("img");

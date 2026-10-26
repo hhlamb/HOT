@@ -30,17 +30,28 @@ def dedupe(
     *,
     threshold: float = 0.82,
     max_per_event: int = 2,
+    known_title_keys: set[str] | None = None,
 ) -> tuple[list[dict], list[dict]]:
     """返回 (入库条目, 被合并掉的条目)。
 
-    known_ids: 库中已有的 id（URL 级去重）
-    recent:    最近 N 天的库内条目（事件级去重的比对基准）
+    known_ids:         库中已有的 id（URL 级去重）
+    recent:            最近 N 天的库内条目（事件级去重的比对基准）
+    known_title_keys:  全库标题归一化集合。recent 只覆盖 N 天，但同一篇稿被
+                       不同站转载可能隔十几天才被抓到，光靠 recent 抓不住，
+                       所以这里用全库标题做一次 O(1) 精确拦截。
     """
     stats: list[dict] = []
     fresh = []
+    known_keys = set(known_title_keys or ())
     for item in candidates:
         if item["id"] in known_ids:
             stats.append({**item, "_drop": "已收录"})
+            continue
+        # 标题归一化后完全相同 = 同一篇稿（通常是各家转载），直接拦掉。
+        # 不用相似度阈值：阈值放到 1.0 才是"完全一样"，这里就是想抓这种情况。
+        key = title_key(item.get("title_zh") or item.get("title") or "")
+        if key and key in known_keys:
+            stats.append({**item, "_drop": "同标题已收录"})
             continue
         fresh.append(item)
 
@@ -49,13 +60,13 @@ def dedupe(
 
     clusters: list[dict] = []
     for rep in recent:
-        key = title_key(rep.get("title", ""))
+        key = title_key(rep.get("title_zh") or rep.get("title") or "")
         if key:
             clusters.append({"key": key, "items": [rep], "count": 1, "external": True})
 
     kept: list[dict] = []
     for item in fresh:
-        key = title_key(item["title"])
+        key = title_key(item.get("title_zh") or item.get("title") or "")
         matched = None
         matched_sim = 0.0
         for cluster in clusters:
@@ -65,6 +76,8 @@ def dedupe(
                 break
         if matched is None:
             clusters.append({"key": key, "items": [item], "count": 1, "external": False})
+            if key:
+                known_keys.add(key)
             kept.append(item)
             continue
 
