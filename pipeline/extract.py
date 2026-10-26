@@ -55,6 +55,12 @@ NAV_SMELL = re.compile(r"(»|›|>>|\|\s*\S+\s*\|)")
 
 DATE_ONLY = re.compile(r"^[\d\s\-/:年月日\.]+$")
 
+# "标题 + 媒体名 + 2026-10-26 09:08" 这种导语条：很多站把标题栏一起塞进正文容器，
+# 抽出来就是重复标题加一串时间戳，放在摘录第一段很难看。
+META_LINE = re.compile(
+    r"(\d{4}-\d{2}-\d{2}\s*\d{1,2}:\d{2}|来源[:：]|作者[:：]|编辑[:：]|发布于\s*\d{4}|阅读量|点击量)"
+)
+
 # 正文摘录的最低长度：低于这个值说明详情页没抽到正文（或只有一段导语），
 # 既不值得存，也说明下一轮可以再试一次。存与重试用同一个阈值，避免反复抓同一条。
 MIN_BODY = 100
@@ -71,6 +77,9 @@ def _acceptable(text: str, title: str, min_chars: int) -> bool:
     if DATE_ONLY.match(text) or BOILERPLATE.search(text):
         return False
     if len(NAV_SMELL.findall(text)) >= 2:
+        return False
+    # 短段落里带时间戳/来源署名 = 标题栏被塞进了正文容器，跳过
+    if len(text) < 130 and META_LINE.search(text):
         return False
     # 摘要不该是标题的复述
     if title and (text == title or text.startswith(title) and len(text) < len(title) + 10):
