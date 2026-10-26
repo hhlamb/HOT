@@ -26,6 +26,20 @@ from .sources import ROOT
 
 CACHE_FILE = ROOT / "data" / "zh_cache.json"
 
+# 这几个错误码说明"这个模型本身用不了"，换模型比等下去有效：
+#   1305 该模型当前访问量过大（免费池拥塞，实测高峰期连 1 条小请求都进不去）
+#   1220 无权访问该模型    1211 模型不存在（下线/改名）
+SWITCH_CODES = {"1305", "1220", "1211"}
+
+
+def _error_code(resp) -> str:
+    """从智谱的 {"error":{"code":"1305",...}} 里取错误码，取不到就返回空串。"""
+    try:
+        err = (resp.json() or {}).get("error") or {}
+        return str(err.get("code") or "")
+    except Exception:
+        return ""
+
 SYSTEM_PROMPT = """你是跨境母婴与婴幼儿奶粉行业的资讯编辑，服务对象是跨境电商与母婴行业的从业者。
 用户会给你一个 JSON 数组，每个元素是一篇待处理的文章。请逐条处理并只输出 JSON。
 
@@ -187,6 +201,11 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
     base = (cfg.get("base_url") or "").rstrip("/")
     url = f"{base}/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    # 模型降级链：主模型在免费池高峰会整池返回 1305（该模型访问量过大），
+    # 这时换一个模型立刻就能过，比在同一模型上退避有效得多。
+    models = [cfg.get("model") or ""] + [m for m in (cfg.get("model_fallbacks") or []) if m]
+    models = [m for m in models if m]
+    mi = 0
     batch_size = max(1, int(cfg.get("batch_size", 8)))
     retries = int(cfg.get("retries", 3))
     budget = float(cfg.get("max_wall_seconds", 720))
@@ -212,7 +231,7 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
         batch = items[i : i + batch_size]
         user_content = json.dumps({"articles": _batch_payload(batch, cfg)}, ensure_ascii=False)
         payload = {
-            "model": cfg.get("model"),
+            "model": models[mi],
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_content},
@@ -221,7 +240,7 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
             "response_format": {"type": "json_object"},
             "stream": False,
         }
-        if cfg.get("disable_thinking") and "glm" in (cfg.get("model") or ""):
+        if cfg.get("disable_thinking") and re.search(r"glm-(4\.[5-9]|z)", payload["model"] or ""):
             payload["thinking"] = {"type": "disabled"}
 
         data = None
@@ -242,6 +261,14 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                         payload.pop("response_format", None)
                         relaxed = True
                         log(f"  · 接口拒绝可选参数（{resp.text[:60]}），去掉后重试")
+                        continue
+                    # 这个模型本身不可用（免费池拥塞 1305 / 无权限 1220 / 名字不对 1211）：
+                    # 换降级链里的下一个模型，比在同一模型上退避有效得多。
+                    code = _error_code(resp)
+                    if code in SWITCH_CODES and mi + 1 < len(models):
+                        log(f"  · {models[mi]} 不可用（{code}），切到 {models[mi + 1]}")
+                        mi += 1
+                        payload["model"] = models[mi]
                         continue
                     fatal = resp.status_code in (401, 403, 404)
                     rate_limited = resp.status_code == 429
