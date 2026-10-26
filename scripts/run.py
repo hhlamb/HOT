@@ -325,9 +325,10 @@ def main() -> int:
     # ---------------- 未来时间夹取 ----------------
     # 部分站点（如雨果跨境的排期稿）会给未来日期，直接顶到时间轴最前面，观感很差。
     # 超过 2 小时的一律按当前时间算，并打标 published_guessed 供前端提示。
+    # 新抓的候选和库里已有的旧记录都要过一遍：老数据是这条规则上线前写进去的。
     now_utc = datetime.now(timezone.utc)
     clamped = 0
-    for item in candidates:
+    for item in list(candidates) + list(all_recent):
         raw = (item.get("published_at") or "").strip()
         if not raw:
             continue
@@ -340,6 +341,8 @@ def main() -> int:
         if (d - now_utc).total_seconds() > 7200:
             item["published_at"] = now_utc.astimezone(d.tzinfo).isoformat(timespec="seconds")
             item["published_guessed"] = True
+            if item.get("_month"):
+                item["_patched"] = True  # 旧记录要落盘，否则下一轮又冒出来
             clamped += 1
     if clamped:
         print(f"  未来时间夹取 {clamped} 条")

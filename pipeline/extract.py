@@ -125,8 +125,38 @@ def _paragraphs(soup: BeautifulSoup, min_chars: int, title: str, limit: int = 14
     return " ".join(picked)
 
 
+BAD_IMG = re.compile(
+    r"(logo|icon|avatar|sprite|qrcode|erweima|placeholder|noimage|no_image|default_img|"
+    r"defaultimg|share_img|shareimg|watermark|advert|/ads?/|banner|blank\.|spacer|pixel|"
+    r"weixin|wechat|wx_|foot|header_|/static/logo|ad\d{6,}|\.gif$|\.svg$)",
+    re.I,
+)
+
+
+def _bad_image(url: str) -> bool:
+    """明显不是内容配图的 URL：站标、二维码、分享卡片、广告条、追踪像素。"""
+    return bool(BAD_IMG.search(url or ""))
+
+
 def _meta_image(soup: BeautifulSoup, page_url: str) -> str:
-    """详情页主图。og:image 命中率最高，其次 twitter:image、首图 <img>。"""
+    """详情页主图。og:image 命中率最高，其次正文容器里的首图、再退到全页首图。
+
+    站点会拿「分享卡片」「栏目横幅」「站标」当 og:image，做成大图就是一块大色块，
+    所以这里除了按 URL 关键词过滤，还看 og:image:width/height 的宽高比——
+    横幅（太宽）和竖图（太窄）都不适合当缩略图。
+    """
+    og_w = soup.find("meta", attrs={"property": "og:image:width"})
+    og_h = soup.find("meta", attrs={"property": "og:image:height"})
+
+    def ratio_ok(tag_w, tag_h) -> bool:
+        try:
+            w, h = float(tag_w), float(tag_h)
+        except (TypeError, ValueError):
+            return True
+        if w <= 0 or h <= 0:
+            return True
+        return 0.45 <= w / h <= 2.4
+
     for attr, key in (
         ("property", "og:image"),
         ("name", "og:image"),
@@ -138,17 +168,37 @@ def _meta_image(soup: BeautifulSoup, page_url: str) -> str:
         content = (tag.get("content") or "").strip() if tag else ""
         if content.startswith("//"):
             content = "https:" + content
-        if content.startswith("http"):
-            return content
-    for img in soup.find_all("img", limit=8):
-        src = (img.get("src") or img.get("data-src") or img.get("data-original") or "").strip()
+        if content.startswith("http") and not _bad_image(content):
+            if ratio_ok(
+                og_w.get("content") if og_w else None,
+                og_h.get("content") if og_h else None,
+            ):
+                return content
+
+    # 正文容器里的图最贴近内容，优先于全页扫
+    candidates = []
+    for selector in CONTENT_SELECTORS:
+        node = soup.select_one(selector)
+        if node is not None:
+            candidates.extend(node.find_all("img", limit=6))
+            break
+    candidates.extend(soup.find_all("img", limit=10))
+
+    for img in candidates:
+        src = (
+            img.get("src")
+            or img.get("data-src")
+            or img.get("data-original")
+            or img.get("data-lazy-src")
+            or ""
+        ).strip()
         if src.startswith("//"):
             src = "https:" + src
-        # 站点常把广告条、二维码、角标做成 <img>，这些进详情页当主图很难看
-        if src.startswith("http") and not re.search(
-            r"(logo|icon|avatar|sprite|qrcode|placeholder|advert|/ads?/|banner|ad\d{6,})", src, re.I
-        ):
-            return src
+        if not src.startswith("http") or _bad_image(src):
+            continue
+        if not ratio_ok(img.get("width"), img.get("height")):
+            continue
+        return src
     return ""
 
 

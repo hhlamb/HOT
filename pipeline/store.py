@@ -156,6 +156,16 @@ def apply_updates(items: list[dict]) -> int:
                     row["title_zh"] = patch["title_zh"]
                     row["translated"] = True
                     changed = True
+                # 未来时间夹取后的落盘：排期稿给的未来日期要改成当前时间，
+                # 否则它永远排在时间轴最前面
+                if (
+                    patch.get("published_guessed")
+                    and patch.get("published_at")
+                    and patch["published_at"] != row.get("published_at")
+                ):
+                    row["published_at"] = patch["published_at"]
+                    row["published_guessed"] = True
+                    changed = True
                 # 跳转链后补：Google News 中转链解出原文地址后必须落盘，
                 # 不然每轮都要重新解码一遍（每条一次 600KB 壳页 + 一次接口调用）
                 if (
