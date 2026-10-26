@@ -617,3 +617,73 @@ sources:
     priority: P0
     enabled: true
     note: 海外监管动作是国内政策的先行指标
+
+  # ---------- F. 新西兰奶源（2026-10-26 新增）----------
+  # 背景：站里原本只有 FSANZ（澳新标准局，改版后抓不到）和一个 Google News 泛查询，
+  # 新西兰作为全球最大的乳制品出口国、也是国内婴配粉的主要奶源，等于没有本地源。
+  # 这一组按"行业媒体 → 协会 → 官方一手"三层来配，最后再加一条 Google News 兜底。
+
+  - id: farmersweekly_nz
+    name: Farmers Weekly NZ·乳业
+    url: https://www.farmersweekly.co.nz/tag/dairy/feed/
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 服务端实测有效（RSS 2.0，10 条/次，每小时更新）。新西兰乳业第一线：奶价、Fonterra/Synlait/Tatua 财报、MPI 的 DIRA 审查。本机直连 403 是 Cloudflare 挡无头 UA，CI 用同一 UA 但出口 IP 不同，待 probe 复核
+
+  - id: fonterra_media
+    name: Fonterra 恒天然·媒体发布
+    url: https://www.fonterra.com/nz/en/our-stories/media.html
+    type: api
+    api: aem_articlelist
+    endpoint: https://www.fonterra.com/bin/fonterradotcom/articleFilter
+    resource_path: >-
+      /content/fonterra/nz/en/our-stories/media/jcr:content/responsivegrid/gridlayout_copy_copy/innergrid/articlelist
+    order_by: desc
+    lang: en
+    priority: P0
+    enabled: true
+    note: 奶价（Farmgate Milk Price）、收奶量、产能与财报的唯一一手口径，转载都从这里来。无 RSS，列表页是 AEM 空壳（selector 抓不到链接），改走官方 /bin/fonterradotcom/articleFilter 接口，520 条全量带标题/日期/摘要；组件路径改版时会自动从 data-resourcePath 重新发现
+
+  - id: dairynz_news
+    name: DairyNZ 新西兰乳业协会
+    url: https://www.dairynz.co.nz/news
+    type: html
+    lang: en
+    priority: P1
+    enabled: true
+    selector: 'a[href*="/news/"]'
+    url_must_include: 'dairynz\.co\.nz/news/.+'
+    note: 协会视角的牧场端与科研（配种、产犊、环保合规、牧场系统）。2026-10-26 服务端核实：列表 SSR 可解析，链接形如 /news/<slug>/，日期为 "21 Oct 2026"（已加英文月名解析）。本机 403 是 Cloudflare，CI 待复核
+
+  - id: mpi_nz
+    name: MPI 新西兰初级产业部
+    url: https://www.mpi.govt.nz/news/media-releases
+    type: html
+    lang: en
+    priority: P1
+    enabled: true
+    selector: 'a[href*="/news/media-releases/"]'
+    url_must_include: '/news/media-releases/.+'
+    date_regex: '(?P<d>\d{1,2})\.(?P<m>\d{1,2})\.(?P<y>\d{2})(?!\d)'
+    note: 乳业政策与 DIRA 审查、食品安全召回通报。列表页 2026-10-26 核实为 /news/media-releases（旧路径 news-and-resources 已 404）；日期写成分隔点格式 "24.10.26"，靠 date_regex 解析。站点前置 Incapsula 挑战，CI 若被挡只记该源失败
+
+  - id: ruralnews_nz
+    name: Rural News 新西兰农村新闻
+    url: https://ruralnews.co.nz/
+    type: html
+    lang: en
+    priority: P2
+    enabled: true
+    note: 乳业评论与牧场经济。本地 Cloudflare 403，CI 待 probe 复核；抓不到时照常记失败
+
+  - id: gnews_en_nz_dairy
+    name: Google News·新西兰奶源（英文）
+    url: >-
+      https://news.google.com/rss/search?q=%28Fonterra%20OR%20DairyNZ%20OR%20Synlait%20OR%20%22farmgate%20milk%20price%22%20OR%20%22milk%20supply%22%29%20%28%22New%20Zealand%22%20OR%20NZ%20OR%20dairy%29&hl=en-NZ&gl=NZ&ceid=NZ:en
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 兜底。官网被 Cloudflare/Incapsula 挡时，NZ Herald、Stuff、RNZ 的转载仍能从这里进；与上面几家会有重复，靠标题归一化去重

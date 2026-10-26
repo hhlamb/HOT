@@ -13,7 +13,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from urllib.parse import quote, urljoin, urlparse
+from urllib.parse import quote, urlencode, urljoin, urlparse
 
 import feedparser
 from bs4 import BeautifulSoup
@@ -24,6 +24,18 @@ CST = timezone(timedelta(hours=8))  # 中文站点默认按北京时间解释"�
 
 DATE_FULL = re.compile(r"(20\d{2})\s*[年./-]\s*(\d{1,2})\s*[月./-]\s*(\d{1,2})")
 DATE_MD = re.compile(r"(?<!\d)(\d{1,2})\s*月\s*(\d{1,2})\s*日")
+# 英文站（DairyNZ、Rural News）的列表页写的是 "21 Oct 2026" / "Oct 21, 2026"
+DATE_EN_DMY = re.compile(
+    r"(?<!\d)(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+(20\d{2})",
+    re.I,
+)
+DATE_EN_MDY = re.compile(
+    r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2}),?\s+(20\d{2})",
+    re.I,
+)
+MONTHS = {m: i + 1 for i, m in enumerate(
+    ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+)}
 DATE_URL_DIR = re.compile(r"/(20\d{2})/(\d{1,2})/(\d{1,2})(?:/|$)")
 DATE_URL_YM = re.compile(r"/(20\d{2})/(\d{1,2})(?:/|$)")
 DATE_URL_HYPHEN = re.compile(r"/(20\d{2})-(\d{2})-(\d{2})(?:/|_|-|\.|$)")
@@ -124,6 +136,18 @@ def parse_date_text(text: str, now: datetime) -> tuple[str, bool]:
             return _to_iso(dt), True
         except ValueError:
             pass
+    for pattern, order in ((DATE_EN_DMY, "dmy"), (DATE_EN_MDY, "mdy")):
+        m = pattern.search(text)
+        if not m:
+            continue
+        try:
+            if order == "dmy":
+                day, mon, year = int(m.group(1)), m.group(2).lower()[:3], int(m.group(3))
+            else:
+                mon, day, year = m.group(1).lower()[:3], int(m.group(2)), int(m.group(3))
+            return _to_iso(datetime(year, MONTHS[mon], day)), False
+        except (KeyError, ValueError):
+            pass
     return "", True
 
 
@@ -154,7 +178,10 @@ def _date_by_regex(pattern: str, text: str) -> tuple[str, bool]:
         return "", True
     groups = m.groupdict()
     try:
-        dt = datetime(int(groups["y"]), int(groups["m"]), int(groups["d"]))
+        year = int(groups["y"])
+        if year < 100:  # MPI 的列表页写 "24.10.26"，两位年份补成 2026
+            year += 2000
+        dt = datetime(year, int(groups["m"]), int(groups["d"]))
     except (KeyError, TypeError, ValueError):
         return "", True
     return _to_iso(dt), False
@@ -557,12 +584,130 @@ def fetch_gdelt(client, source: dict, fetch_cfg: dict, now: datetime) -> FetchRe
     return result
 
 
+# ---------------------------------------------------------------- AEM 文章列表
+
+# Adobe AEM 站点的列表页是个空壳：真正的条目由 JS 调 /bin/.../articleFilter
+# 拿 JSON 再套模板渲染，所以 selector 永远抓不到链接（恒天然就是这种站）。
+# 页面里唯一标记数据源的是容器上的 data-resourcePath，它指向组件在 JCR 里的路径。
+AEM_RESOURCE_RE = re.compile(r'data-resourcePath="([^"]+)"')
+
+
+def _scheme_host(url: str) -> str:
+    parts = urlparse(url)
+    return f"{parts.scheme}://{parts.netloc}"
+
+
+def _aem_api_url(endpoint: str, resource_path: str, order_by: str = "desc") -> str:
+    """拼查询串。PoliteClient.get 不接受 params，只能自己 urlencode。"""
+    qs = urlencode(
+        {
+            # 空筛选等价于"全部分类"，少了这个参数服务端会当成缺参
+            "filter": json.dumps({"tagGroups": []}, separators=(",", ":")),
+            "resourcePath": resource_path,
+            "orderBy": order_by,
+        }
+    )
+    return f"{endpoint}{'&' if '?' in endpoint else '?'}{qs}"
+
+
+def _aem_discover_resource_path(client, page_url: str) -> str:
+    """配置里的组件路径一旦被站方改版就会失效，从列表页现捞一次。"""
+    try:
+        resp = client.get(page_url)
+        if resp.status_code < 400:
+            m = AEM_RESOURCE_RE.search(resp.text or "")
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+
+def _aem_parse_date(raw: str, url: str, now: datetime) -> tuple[str, bool]:
+    raw = (raw or "").strip()
+    if raw:
+        try:
+            return _to_iso(datetime.fromisoformat(raw.replace("Z", "+00:00"))), False
+        except ValueError:
+            iso, guessed = parse_date_text(raw, now)
+            if iso:
+                return iso, guessed
+    return _date_from_url(url, now)
+
+
+def _aem_image(raw: str, host: str) -> str:
+    url = (raw or "").strip()
+    if not url:
+        return ""
+    if url.startswith("/"):
+        url = host + url
+    if not url.startswith("http"):
+        return ""
+    # AEM 的 /content/dam/ 下堆着大量"某栏目占位图"，
+    # 拿来当新闻配图会让列表里十几条长得一模一样，宁可不给图走主题图兜底
+    if re.search(r"(placeholder|default|fallback|coming-soon)", url, re.I):
+        return ""
+    return url
+
+
+def fetch_aem_articlelist(client, source: dict, fetch_cfg: dict, now: datetime) -> FetchResult:
+    result = FetchResult(source["id"], tried="api:aem")
+    started = time.monotonic()
+    host = _scheme_host(source["url"])
+    endpoint = source.get("endpoint") or urljoin(host, "/bin/fonterradotcom/articleFilter")
+    order_by = source.get("order_by", "desc")
+
+    data: dict = {}
+    resource_path = (source.get("resource_path") or "").strip()
+    for attempt in range(2):
+        if not resource_path:
+            resource_path = _aem_discover_resource_path(client, source["url"])
+            if not resource_path:
+                raise FetchError("页面里找不到 data-resourcePath，无法定位列表组件")
+        resp = client.get(_aem_api_url(endpoint, resource_path, order_by))
+        result.http_status = resp.status_code
+        if resp.status_code >= 400:
+            raise FetchError(f"HTTP {resp.status_code}")
+        try:
+            data = json.loads(resp.text)
+        except Exception as exc:
+            raise FetchError(f"JSON 解析失败: {exc}") from exc
+        if data.get("pages"):
+            break
+        # 接口通了却是 0 条：多半是组件路径过期，重新发现再试一次
+        resource_path = ""
+
+    records = data.get("pages") or []
+    if not records:
+        raise FetchError("接口返回 0 条（组件路径可能已失效）")
+
+    for rec in records[: fetch_cfg.get("max_items_per_source", 40)]:
+        link = (rec.get("path") or "").strip()
+        published, guessed = _aem_parse_date(rec.get("displayDate", ""), link, now)
+        item = make_item(
+            source=source,
+            title=rec.get("title", ""),
+            url=link,
+            summary=rec.get("description", ""),
+            published_at=published,
+            date_guessed=guessed,
+            extra_tags=[t for t in (rec.get("tagTitles") or []) if isinstance(t, str)],
+            image=_aem_image(rec.get("imageUrl", ""), host),
+        )
+        if item:
+            result.items.append(item)
+
+    result.elapsed_ms = int((time.monotonic() - started) * 1000)
+    return result
+
+
 # ---------------------------------------------------------------- 调度入口
 
 
 API_FETCHERS = {
     "openfda": fetch_openfda,
     "gdelt": fetch_gdelt,
+    "aem_articlelist": fetch_aem_articlelist,
 }
 
 

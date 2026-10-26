@@ -39,6 +39,13 @@ KEYWORDS: dict[str, int] = {
     "hmo": 3, "母乳低聚糖": 4, "dha": 2, "ara": 2, "益生菌": 2, "羊奶粉": 4,
     "dairy": 3, "whey": 3, "casein": 2, "lactoferrin": 4, "milk powder": 4,
     "skim milk": 3, "whole milk powder": 4, "raw milk": 3, "herd": 1,
+    # —— 新西兰奶源（2026-10-26 接入 Farmers Weekly / Fonterra / DairyNZ 后补）
+    # 这几家的标题几乎都很短，只写 "milk price"、"payout"、"collections"，
+    # 不补这些词的话，一条讲奶价的稿子只有 "dairy" 的 3 分，过不了 4.0 阈值。
+    "farmgate": 4, "milk price": 4, "milk supply": 4, "milk collection": 4,
+    "milk production": 3, "payout": 3, "new zealand dairy": 4,
+    "dairy farmer": 3, "dairy sector": 3, "dairy export": 3, "dairy cow": 2,
+    "fonterra": 3, "synlait": 3, "open country": 3, "westland milk": 3,
     # —— 政策与监管
     # 注意：这里**故意不收录机构名**（市场监管总局、海关总署、卫健委、FDA、EFSA…）。
     # 因为机构官网的每条新闻标题里都有自家名字，把它当关键词会让该站所有内容
@@ -84,11 +91,14 @@ TAG_RULES: list[tuple[str, list[str]]] = [
     ("市场数据", ["营收", "财报", "业绩", "市占率", "市场份额", "销售额", "增长", "下滑",
                   "销量", "价格", "涨价", "降价", "数据", "报告", "调研",
                   "earnings", "sales", "revenue", "market share", "forecast", "price",
-                  "outlook", "quarter"]),
+                  "outlook", "quarter",
+                  "milk price", "farmgate", "payout", "auction", "gdt"]),
     ("供应链", ["奶源", "原奶", "生鲜乳", "乳清", "乳铁蛋白", "大包粉", "基粉", "牧场",
                 "奶牛", "产能", "工厂", "原料", "供应", "库存", "物流",
                 "dairy", "whey", "lactoferrin", "milk powder", "raw milk", "supply",
-                "ingredient", "plant", "capacity"]),
+                "ingredient", "plant", "capacity",
+                "milk collection", "milk supply", "milk production", "dairy farmer",
+                "dairy cow", "herd", "farm system"]),
     ("跨境电商", ["跨境电商", "保税", "海淘", "代购", "进口", "出口", "跨境",
                   "cross-border", "e-commerce", "import", "export", "bonded"]),
     ("品牌动态", ["达能", "雀巢", "飞鹤", "伊利", "蒙牛", "君乐宝", "爱他美", "美素佳儿",
