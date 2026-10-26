@@ -23,6 +23,8 @@
   --accent-soft: #eaf3f0;
   --flag: #b4472f;
   --flag-soft: #fbeeea;
+  /* 主题插画的纸底色（取自插画本身），contain 留白靠它衔接，看不出边界 */
+  --paper-figure: #f0e7da;
 
   /* 分类色板：同一明度、同一饱和度区间，逐个看有区分，铺开看是一套。
      用法是「圆点 + 极淡底」，不拿来做大面积填充，否则页面就花了。 */
@@ -1075,29 +1077,48 @@ button[hidden], [hidden] { display: none !important; }
   .tl-src { grid-column: 1; }
 }
 
-/* 分类主题插画（AI 生成，非原文配图）：统一按 3:2 铺，略降对比，
-   让它看起来像版式的一部分，而不是一张抢戏的照片 */
-.thumb--topic img { opacity: .96; }
-.thumb--topic { background: var(--surface-2); }
-.hero-img--topic img { opacity: .96; }
+/* 分类主题插画（AI 生成，非原文配图）
+   原图统一 960×612（1.569:1），构图靠留白 + 细线支撑。
+   这类图一旦被 cover 硬裁，圆弧和线条会断在画面边缘，看起来像"只画了半张"。
+   所以详情页大图按原始比例整体铺，永不裁切；容器底色取插画纸色，留白无缝。 */
+.thumb--topic img { opacity: .97; }
+.thumb--topic { background: var(--paper-figure); }
+.hero-img--topic { background: var(--paper-figure); }
 .hero-img--topic figcaption::before { content: ""; }
 
-/* 暗色下米白底的插画会变成一块亮斑，压暗并叠一层纸色，转成"暗纹"质感 */
-[data-theme="dark"] .thumb--topic::after,
-[data-theme="dark"] .hero-img--topic::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(14, 16, 15, .72), rgba(14, 16, 15, .84));
-  pointer-events: none;
+.hero-img--topic img {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  aspect-ratio: 960 / 612;
+  object-fit: contain;
+  opacity: .98;
 }
-[data-theme="dark"] .thumb--topic,
-[data-theme="dark"] .hero-img--topic { position: relative; }
 
-/* 主题插画本身留白很多，缩到 108×76 就只剩几根细线看不清。
-   放大 1.45 倍取中间，线条才有存在感（thumb 已 overflow:hidden） */
-.thumb--topic img { transform: scale(1.45); }
-.thumb--topic img { transform: scale(1.55); transform-origin: 48% 52%; }
+/* 暗色：米白插画会变成一块亮斑。不用遮罩压黑（会糊成一片灰），
+   而是反相 + 转回色相，把"纸白 + 墨线"直接换成"夜纸 + 浅线"，金线还能留住 */
+[data-theme="dark"] .hero-img--topic,
+[data-theme="dark"] .thumb--topic { background: #221f1a; }
+[data-theme="dark"] .hero-img--topic img,
+[data-theme="dark"] .thumb--topic img {
+  filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95);
+  opacity: .92;
+}
+
+/* 列表缩略图只有 108×76，原图 1.5px 的细线缩到 0.2px 就消失了，
+   只能放大取中间一小块 + 提对比度，线才有存在感。
+   小尺寸下看不出构图残缺，所以这里可以放心裁。 */
+.thumb--topic img {
+  transform: scale(1.45);
+  transform-origin: 50% 46%;
+  filter: contrast(1.12);
+}
+/* 头条大图够大，不放大，保持完整构图（暗色滤镜由上面的属性选择器接管，
+   这里不要写 filter: none，否则会把反相暗化一起关掉，露出米白底） */
+.card--lead .thumb--topic img { transform: none; }
+[data-theme="dark"] .card--lead .thumb--topic img {
+  filter: invert(.92) hue-rotate(180deg) saturate(.7) brightness(.95);
+}
 
 /* ------------------------------------------------------------
    细节：克制的"高级感"
