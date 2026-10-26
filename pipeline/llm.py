@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 from .clean import clip, is_cjk_text
+from .extract import extend_summary
 from .sources import ROOT
 
 CACHE_FILE = ROOT / "data" / "zh_cache.json"
@@ -351,6 +352,18 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
                 item["title_zh"] = clip(title_zh, 120)
             if summary:
                 item["summary"] = clip(re.sub(r"\s+", " ", summary), int(cfg.get("max_summary_chars", 220)))
+                # glm-4-flash 这类小模型经常只写六七十字，把正文里没提到的信息句补到目标长度
+                src_text = item.get("_body") or item.get("body") or ""
+                if src_text:
+                    item["summary"] = clip(
+                        extend_summary(
+                            item["summary"],
+                            src_text,
+                            item.get("title", ""),
+                            target=int(cfg.get("target_summary_chars", 180)),
+                        ),
+                        int(cfg.get("max_summary_chars", 220)),
+                    )
                 item["summary_source"] = "llm"
             points = [clip(re.sub(r"\s+", " ", str(x)).strip(), 60) for x in (row.get("points") or []) if str(x).strip()]
             if points:

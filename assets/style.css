@@ -464,7 +464,7 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--ink-2);
   line-height: 1.62;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

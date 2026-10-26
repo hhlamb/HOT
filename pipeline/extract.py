@@ -152,6 +152,35 @@ def _meta_image(soup: BeautifulSoup, page_url: str) -> str:
     return ""
 
 
+def extend_summary(summary: str, body: str, title: str, target: int = 180) -> str:
+    """小模型经常只写六七十字就收尾，这里把正文里还没提到的信息句补进去。
+
+    只在明显偏短时动手，且只补「摘要里没出现过」的句子（按前 10 字比对），
+    所以读起来是"摘要 + 补充细节"，不是同一句话说两遍。
+    """
+    s = (summary or "").strip()
+    if not body or len(s) >= target:
+        return s
+    need = target - len(s)
+    extra: list[str] = []
+    for sent in _sentences(body):
+        if len(extra) >= 3 or need <= 0:
+            break
+        if len(sent) < 16 or len(sent) > 110:
+            continue
+        if BOILERPLATE.search(sent) or NAV_SMELL.search(sent):
+            continue
+        if sent[:10] in s or sent.strip("。") == (title or "").strip():
+            continue
+        if len(INFO_HINT.findall(sent)) == 0:
+            continue
+        if any(sent[:10] == x[:10] for x in extra):
+            continue
+        extra.append(sent)
+        need -= len(sent)
+    return (s + "".join(extra)) if extra else s
+
+
 SENT_SPLIT = re.compile(r"(?<=[。！？!?；;])")
 
 # 有信息量的句子：带数字、比例、金额、时间点，或出现动作性动词

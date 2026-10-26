@@ -246,7 +246,9 @@ def main() -> int:
                 )
                 resolved = sum(1 for i in pool if i.get("link_resolved"))
                 for old in pool:
-                    if (old.get("body") or "").strip() or (old.get("image") or "").strip():
+                    # 解开跳转链也算"有进展"，必须打标才会被 apply_updates 落盘，
+                    # 否则下一轮还要重新解一次（每条一次 600KB 壳页 + 一次接口调用）
+                    if (old.get("body") or "").strip() or (old.get("image") or "").strip() or old.get("link_resolved"):
                         old["_patched"] = True
                 tail = f" · 解开跳转链 {resolved} 条" if resolved else ""
                 print(f"  正文回填 {got}/{len(pool)} 条 · 新增配图 {with_img} 条{tail}")

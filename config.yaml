@@ -51,6 +51,7 @@ llm:
   max_wall_seconds: 1020       # 模型阶段最多花 17 分钟（对应 workflow 的 28 分钟上限）
   batch_gap_seconds: 1.5       # 批次之间歇一下，免费池更容易过
   max_summary_chars: 220       # 摘要硬上限（列表只显示前两行，详情页读全段）
+  target_summary_chars: 180    # 模型写完若不足这个长度，用正文里的信息句补足
   min_summary_chars: 30
   disable_thinking: true       # GLM Flash 默认带思考，摘要任务关掉更省 token
   backfill_per_run: 60         # 每轮把多少条「正文截断」的旧摘要重写成中文概括（0=关闭）
