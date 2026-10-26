@@ -133,14 +133,16 @@ def apply_updates(items: list[dict]) -> int:
                 # 摘要升级：旧条目是"正文截断"（extract），模型重写后（llm）要能覆盖它。
                 # 另外老库里还有一批 90 字上限时代的短摘要（平均 43 字），
                 # 重抓正文后能给出完整段落，这类也允许覆盖——前提是模型没加工过。
+                new_sum = patch.get("summary") or ""
+                old_sum = (row.get("summary") or "").strip()
+                # 老库里有大批「90 字上限时代」的短摘要（模型也只写六七十字），
+                # 现在目标 180 字，所以「明显更长」的版本要能盖掉它——包括模型覆盖模型。
+                short_old = len(old_sum) < 120
+                longer = len(new_sum) > len(old_sum) + 40
                 upgrade = (
                     (patch.get("summary_source") == "llm" and row.get("summary_source") != "llm")
-                    or (
-                        patch.get("summary_source") == "extract"
-                        and row.get("summary_source") != "llm"
-                        and len((row.get("summary") or "").strip()) < 90
-                        and len(new_sum) > len((row.get("summary") or "").strip()) + 40
-                    )
+                    or (patch.get("summary_source") == "extract" and row.get("summary_source") != "llm" and short_old and longer)
+                    or (patch.get("summary_source") == "llm" and row.get("summary_source") == "llm" and short_old and longer)
                 )
                 if new_sum and (not row.get("summary") or upgrade):
                     row["summary"] = new_sum

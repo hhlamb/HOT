@@ -278,12 +278,26 @@ def main() -> int:
         print("  免费模型正在限流，旧摘要升级留给下一轮")
     elif not args.no_llm and llm.available(llm_cfg):
         cap = int(llm_cfg.get("backfill_per_run", 0) or 0)
-        # 两档优先级：外文却没有中文标题的排最前（对中文读者等于废条），
-        # 其次是摘要还停在正文截断处的。两类都走同一次模型调用。
+        # 三档优先级（都走同一次模型调用）：
+        #   1) 外文却没有中文标题（对中文读者等于废条）
+        #   2) 摘要还停在正文截断处（summary_source=extract）
+        #   3) 早期版本留下的短摘要——那会儿上限只有 90 字，模型也只写六七十字，
+        #      现在目标 180 字，这类必须重跑一遍，否则均长永远上不去
         need_zh = [i for i in all_recent if i.get("language") != "zh" and not (i.get("title_zh") or "").strip()]
         trunc = [i for i in all_recent if i.get("summary_source") == "extract" and (i.get("summary") or "").strip()]
+        short = [
+            i
+            for i in all_recent
+            if i.get("summary_source") == "llm" and 0 < len((i.get("summary") or "").strip()) < 120
+        ]
         seen = {i.get("id") for i in need_zh}
-        redo = (need_zh + [i for i in trunc if i.get("id") not in seen])[:cap] if cap > 0 else []
+        redo = need_zh + [i for i in trunc if i.get("id") not in seen]
+        seen |= {i.get("id") for i in redo}
+        redo += [i for i in short if i.get("id") not in seen]
+        if cap > 0:
+            redo = redo[:cap]
+        else:
+            redo = []
         if redo:
             up = llm.enrich(redo, llm_cfg)
             fixed = zh_fixed = 0
