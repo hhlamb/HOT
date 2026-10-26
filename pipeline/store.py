@@ -131,8 +131,17 @@ def apply_updates(items: list[dict]) -> int:
                 changed = False
                 new_sum = patch.get("summary") or ""
                 # 摘要升级：旧条目是"正文截断"（extract），模型重写后（llm）要能覆盖它。
-                # 这是 apply_updates 唯一允许覆盖已有值的地方——不然后填的永远改不动。
-                upgrade = patch.get("summary_source") == "llm" and row.get("summary_source") != "llm"
+                # 另外老库里还有一批 90 字上限时代的短摘要（平均 43 字），
+                # 重抓正文后能给出完整段落，这类也允许覆盖——前提是模型没加工过。
+                upgrade = (
+                    (patch.get("summary_source") == "llm" and row.get("summary_source") != "llm")
+                    or (
+                        patch.get("summary_source") == "extract"
+                        and row.get("summary_source") != "llm"
+                        and len((row.get("summary") or "").strip()) < 90
+                        and len(new_sum) > len((row.get("summary") or "").strip()) + 40
+                    )
+                )
                 if new_sum and (not row.get("summary") or upgrade):
                     row["summary"] = new_sum
                     changed = True

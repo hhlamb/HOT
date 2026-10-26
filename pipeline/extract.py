@@ -291,6 +291,18 @@ def fill_summaries(
             if GNEWS_HOST in url and decode_budget[0] < GNEWS_DECODE_MAX:
                 decode_budget[0] += 1
                 real = resolve_google_news(client, url)
+                if decode_budget[0] == 1 and GNEWS_HOST in real:
+                    # 首次失败留个现场：中转页是否给到签名、有多长，决定下一步怎么改
+                    try:
+                        probe = client.get(url)
+                        h = getattr(probe, "text", "") or ""
+                        log(
+                            f"  · 跳转链解码失败（html {len(h)} 字节 / "
+                            f"sg={bool(re.search(chr(34) + 'data-n-a-sg' + chr(34), h))} / "
+                            f"n-au={bool(re.search('data-n-au', h))})"
+                        )
+                    except Exception:
+                        pass
                 if real and GNEWS_HOST not in real:
                     item["original_url"] = real
                     item["link_resolved"] = True
@@ -310,10 +322,13 @@ def fill_summaries(
                 item["body"] = clip(body, body_chars)
                 item["_body"] = body  # 更长的正文，只给模型用，落盘时会被 _clean 过滤
             if summary:
-                # 已有摘要（尤其是模型精加工过的）不覆盖，只补缺失的
-                if not (item.get("summary") or "").strip():
+                cur = (item.get("summary") or "").strip()
+                # 模型精加工过的摘要（summary_source=llm）永远不动；
+                # 其余情况：没摘要，或者旧摘要明显偏短（截断版），就用刚抓到的完整段落替换
+                if not cur or (len(cur) < 90 and item.get("summary_source") != "llm"):
                     item["summary"] = summary
-                    item["summary_source"] = "extract"
+                    if item.get("summary_source") != "llm":
+                        item["summary_source"] = "extract"
                 lock_free_counter.append(1)
             elif body:
                 lock_free_counter.append(1)

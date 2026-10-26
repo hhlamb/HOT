@@ -210,7 +210,12 @@ def main() -> int:
         # 这里每轮补一批（只补 body，不碰已有摘要），额度用尽下一轮继续。
         body_cap = int(extract_cfg.get("body_backfill_per_run", 40))
         if body_cap > 0:
-            no_body = [i for i in all_recent if len((i.get("body") or "").strip()) < 200]
+            # 缺正文、或者正文有但没配图的，都进这一轮的回填池。
+            # 配图是列表卡片观感的关键，不能只等着新稿。
+            no_body = [
+                i for i in all_recent
+                if len((i.get("body") or "").strip()) < 200 or not (i.get("image") or "").strip()
+            ]
             if no_body:
                 fill_summaries(
                     no_body[:body_cap],
@@ -224,10 +229,11 @@ def main() -> int:
                     need_body=True,
                 )
                 got = sum(1 for i in no_body if (i.get("body") or "").strip())
-                for old in no_body:
-                    if (old.get("body") or "").strip():
+                with_img = sum(1 for i in no_body[:body_cap] if (i.get("image") or "").strip())
+                for old in no_body[:body_cap]:
+                    if (old.get("body") or "").strip() or (old.get("image") or "").strip():
                         old["_patched"] = True
-                print(f"  正文回填 {got}/{len(no_body[:body_cap])} 条（供详情页展示）")
+                print(f"  正文回填 {got}/{len(no_body[:body_cap])} 条 · 其中带配图 {with_img} 条")
     client.close()
 
     llm_cfg = cfg.get("llm", {})
