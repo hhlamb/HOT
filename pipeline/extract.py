@@ -152,6 +152,100 @@ def _meta_image(soup: BeautifulSoup, page_url: str) -> str:
     return ""
 
 
+SENT_SPLIT = re.compile(r"(?<=[。！？!?；;])")
+
+# 有信息量的句子：带数字、比例、金额、时间点，或出现动作性动词
+INFO_HINT = re.compile(
+    r"(\d+(\.\d+)?\s*(%|％|亿|万|吨|家|款|元|人|倍|个百分点)|同比|环比|增长|下降|提升|"
+    r"召回|下架|处罚|抽检|不合格|注册|获批|批件|发布|宣布|签署|收购|投资|投产|停产|"
+    r"涨价|降价|提价|调价|份额|排名|预计|计划|目标)"
+)
+
+
+def _sentences(text: str) -> list[str]:
+    parts = []
+    for piece in SENT_SPLIT.split(text or ""):
+        s = piece.strip()
+        if 8 <= len(s) <= 220:
+            parts.append(s)
+    return parts
+
+
+def make_digest(text: str, title: str, max_chars: int = 220) -> str:
+    """把正文句子按信息量排序，拼成一段 200 字上下的概括。
+
+    模型不可用时的兜底：与其把正文硬截断成半句话，不如挑出带数据、
+    带动作的那几句按原文顺序重排——读起来像摘要，也确实是原文，不编造。
+    """
+    sents = _sentences(text)
+    if not sents:
+        return clip(text or "", max_chars)
+    if len(sents) <= 2:
+        return clip(" ".join(sents), max_chars)
+
+    scored = []
+    for idx, s in enumerate(sents):
+        score = 0.0
+        # 靠前的句子通常是导语，含新闻要素
+        score += max(0, 12 - idx * 2)
+        score += 8 * min(3, len(INFO_HINT.findall(s)))
+        if 25 <= len(s) <= 110:
+            score += 6
+        if BOILERPLATE.search(s) or NAV_SMELL.search(s):
+            score -= 20
+        if title and (s == title or s.strip("。") == title.strip()):
+            score -= 12
+        if s.endswith(("？", "?")):
+            score -= 4
+        scored.append((score, idx, s))
+
+    picked: list[tuple[int, str]] = []
+    total = 0
+    for score, idx, s in sorted(scored, key=lambda x: -x[0]):
+        if total >= max_chars:
+            break
+        picked.append((idx, s))
+        total += len(s)
+    if not picked:
+        return clip(text, max_chars)
+    picked.sort(key=lambda x: x[0])  # 还原原文顺序，读着才顺
+    return clip("".join(s for _, s in picked), max_chars)
+
+
+def make_points(text: str, title: str, n: int = 3, max_chars: int = 46) -> list[str]:
+    """从正文里挑 n 条带硬信息（数字/动作）的短句当要点。
+
+    要点是给"摘要之外还想知道的细节"用的，所以导语句（第 0 句）基本都在摘要里了，
+    有别的候选时跳过它，免得要点变成摘要的截断复读。
+    """
+    cands = []
+    for idx, s in enumerate(_sentences(text)):
+        s = s.strip("。；;，, ")
+        if not (14 <= len(s) <= max_chars + 20):
+            continue
+        if BOILERPLATE.search(s) or NAV_SMELL.search(s):
+            continue
+        if title and s == title.strip():
+            continue
+        hits = len(INFO_HINT.findall(s))
+        if hits == 0:
+            continue
+        cands.append((hits * 10 + (5 if re.search(r"\d", s) else 0) - (6 if idx == 0 else 0), idx, s))
+    if not cands:
+        return []
+    cands.sort(key=lambda x: -x[0])
+    out: list[str] = []
+    for _, idx, s in cands:
+        if idx == 0 and len(cands) > n:
+            continue
+        if any(s[:12] == o[:12] for o in out):
+            continue
+        out.append(clip(s, max_chars))
+        if len(out) >= n:
+            break
+    return out
+
+
 def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> tuple[str, str, str]:
     """返回 (摘要, 正文片段, 配图)。摘要用于直接展示，正文片段留给模型精加工。"""
     soup = BeautifulSoup(html, "lxml")
@@ -162,7 +256,7 @@ def extract_from_html(html: str, url: str, title: str, min_chars: int = 40) -> t
     body = _paragraphs(soup, min_chars, title)
     desc = _meta_desc(soup)
     if body:
-        summary = body[:400]
+        summary = make_digest(body, title, 260)
     else:
         summary = desc
     return summary, body[:4000], image
@@ -344,6 +438,12 @@ def fill_summaries(
             if body and len(body) >= MIN_BODY:
                 item["body"] = clip(body, body_chars)
                 item["_body"] = body  # 更长的正文，只给模型用，落盘时会被 _clean 过滤
+                # 模型不可用时也要有要点，先从正文里挑几句带硬信息的顶上
+                if not item.get("points"):
+                    pts = make_points(body, item.get("title", ""))
+                    if pts:
+                        item["points"] = pts
+                        item["points_source"] = "extract"
             if summary:
                 cur = (item.get("summary") or "").strip()
                 # 模型精加工过的摘要（summary_source=llm）永远不动；

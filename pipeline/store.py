@@ -181,9 +181,15 @@ def apply_updates(items: list[dict]) -> int:
                 if patch.get("image") and not (row.get("image") or "").strip():
                     row["image"] = patch["image"]
                     changed = True
-                # 要点后补（模型新版输出）
-                if patch.get("points") and not row.get("points"):
-                    row["points"] = patch["points"]
+                # 要点后补（模型新版输出）。模型的要点优先于抽取式要点，
+                # 所以抽取式只是占位，模型产出后要能盖掉。
+                new_pts = patch.get("points") or []
+                if new_pts and (
+                    not row.get("points")
+                    or (patch.get("points_source") == "llm" and row.get("points_source") != "llm")
+                ):
+                    row["points"] = new_pts
+                    row["points_source"] = patch.get("points_source", "")
                     changed = True
                 if changed:
                     updated += 1

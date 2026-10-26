@@ -328,6 +328,8 @@ def enrich(items: list[dict], cfg: dict, log=print, caller=None) -> dict:
             points = [clip(re.sub(r"\s+", " ", str(x)).strip(), 60) for x in (row.get("points") or []) if str(x).strip()]
             if points:
                 item["points"] = points[:4]
+                # 模型的要点比抽取式的好，标记来源让落盘时能覆盖前者
+                item["points_source"] = "llm"
             tags = [t for t in (row.get("tags") or []) if t in TAG_LIST][:3]
             if tags:
                 item["tags"] = tags

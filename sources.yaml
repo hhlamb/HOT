@@ -538,3 +538,82 @@ sources:
     enabled: true
     note: 上市公司口径的销量与市占率，比公关稿可靠
 
+  - id: gnews_cn_brand_news
+    name: Google News·奶粉品牌动向（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%E5%A5%B6%E7%B2%89%20%28%E9%A3%9E%E9%B9%A4%20OR%20%E4%BC%8A%E5%88%A9%20OR%20%E5%90%9B%E4%B9%90%E5%AE%9D%20OR%20%E8%BE%BE%E8%83%BD%20OR%20%E9%9B%80%E5%B7%A2%20OR%20%E7%BE%8E%E8%B5%9E%E8%87%A3%20OR%20%E6%83%A0%E6%B0%8F%20OR%20%E9%9B%85%E5%9F%B9%20OR%20%E6%BE%B3%E4%BC%98%20OR%20%E8%B4%9D%E5%9B%A0%E7%BE%8E%29&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 品牌侧高密度更新，国产与外资同框，补 P0 品牌动态
+
+  - id: gnews_cn_special_med
+    name: Google News·特医食品（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%28%E7%89%B9%E5%8C%BB%E9%A3%9F%E5%93%81%20OR%20%E7%89%B9%E6%AE%8A%E5%8C%BB%E5%AD%A6%E7%94%A8%E9%80%94%E9%85%8D%E6%96%B9%E9%A3%9F%E5%93%81%20OR%20%E6%B0%A8%E5%9F%BA%E9%85%B8%E9%85%8D%E6%96%B9%20OR%20%E6%B7%B1%E5%BA%A6%E6%B0%B4%E8%A7%A3%29%20%E5%A9%B4%E5%B9%BC%E5%84%BF&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 特医是婴配粉的高毛利延伸赛道，企业动作多
+
+  - id: gnews_cn_goat
+    name: Google News·羊奶粉（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%28%E7%BE%8A%E5%A5%B6%E7%B2%89%20OR%20%E7%BE%8A%E4%B9%B3%20OR%20%E5%B1%B1%E7%BE%8A%E5%A5%B6%29%20%28%E5%A9%B4%E5%B9%BC%E5%84%BF%20OR%20%E9%85%8D%E6%96%B9%20OR%20%E5%B8%82%E5%9C%BA%29&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 羊奶粉是细分扩容最快的品类，值得单开一路
+
+  - id: gnews_cn_ingredient
+    name: Google News·原料与营养成分（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%28%E4%B9%B3%E9%93%81%E8%9B%8B%E7%99%BD%20OR%20%E6%AF%8D%E4%B9%B3%E4%BD%8E%E8%81%9A%E7%B3%96%20OR%20HMO%20OR%20%E4%B9%B3%E6%B8%85%E8%9B%8B%E7%99%BD%20OR%20DHA%29%20%28%E4%BE%9B%E5%BA%94%20OR%20%E4%BB%B7%E6%A0%BC%20OR%20%E6%B7%BB%E5%8A%A0%29&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 原料端涨价/获批会直接传导到成本
+
+  - id: gnews_cn_retail
+    name: Google News·母婴零售（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%28%E6%AF%8D%E5%A9%B4%E5%BA%97%20OR%20%E6%AF%8D%E5%A9%B4%E8%BF%9E%E9%94%81%20OR%20%E5%AD%A9%E5%AD%90%E7%8E%8B%20OR%20%E7%88%B1%E5%A9%B4%E5%AE%A4%20OR%20%E6%AF%8D%E5%A9%B4%E6%B8%A0%E9%81%93%29%20%28%E5%A5%B6%E7%B2%89%20OR%20%E8%90%A5%E6%94%B6%20OR%20%E5%85%B3%E5%BA%97%29&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 渠道侧新闻量稳定，且是销量前置指标
+
+  - id: gnews_cn_ecom
+    name: Google News·线上渠道与大促（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%E5%A5%B6%E7%B2%89%20%28%E7%9B%B4%E6%92%AD%20OR%20%E6%8A%96%E9%9F%B3%20OR%20%E5%A4%A9%E7%8C%AB%20OR%20%E4%BA%AC%E4%B8%9C%20OR%20%E5%8F%8C11%20OR%20%E6%8B%BC%E5%A4%9A%E5%A4%9A%29%20%28%E9%94%80%E9%87%8F%20OR%20%E5%A2%9E%E9%95%BF%20OR%20%E4%BB%B7%E6%A0%BC%29&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P0
+    enabled: true
+    note: 线上占比逐年提升，大促节奏决定季度数据
+
+  - id: gnews_en_market
+    name: Google News·infant nutrition market（英文）
+    url: >-
+      https://news.google.com/rss/search?q=%28%22infant%20nutrition%22%20OR%20%22baby%20food%22%29%20%28market%20OR%20growth%20OR%20sales%20OR%20outlook%29&hl=en-US&gl=US&ceid=US:en
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 海外市场数据与研究机构口径，做对比用
+
+  - id: gnews_en_reg
+    name: Google News·formula regulation（英文）
+    url: >-
+      https://news.google.com/rss/search?q=%22infant%20formula%22%20%28FDA%20OR%20EFSA%20OR%20FSANZ%20OR%20regulation%20OR%20standard%20OR%20ban%29&hl=en-US&gl=US&ceid=US:en
+    type: rss
+    lang: en
+    priority: P0
+    enabled: true
+    note: 海外监管动作是国内政策的先行指标
