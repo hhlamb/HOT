@@ -141,8 +141,15 @@ function render(item, all) {
       el.body.appendChild(node);
     }
     el.bodyWrap.hidden = false;
-  } else if (!item.summary) {
-    el.status.textContent = "这篇还没抓到正文，只有标题。可以直接查看原文。";
+  } else {
+    // 检索类来源（Google News 跳转、openFDA 接口）拿不到 HTML 正文，
+    // 这里说明白，免得读者以为是页面坏了
+    const hint = document.createElement("p");
+    hint.className = "body-note";
+    hint.textContent = item.summary
+      ? "这条来源给的是检索跳转或数据接口，抓不到网页正文，上面的速览 + 下方原文链接足够判断内容。"
+      : "这篇还没抓到正文，可以直接查看原文。";
+    el.origin.parentNode.insertBefore(hint, el.origin);
   }
 
   // 原文出口
