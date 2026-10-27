@@ -22,16 +22,20 @@ const VIEWS = {
    姆巴佩合作 2 篇、雀巢 Q3 财报 2 篇。它们排在时间流里就是三条独立新闻，
    读者会以为发生了三件事。精选先把这些归组，一个事件只占一格。
    全部动态仍然一篇不合并——那里要的是完整流水。 */
-const SECTIONS = [
-  { head: "监管与合规", tags: ["政策法规"] },
-  { head: "质量与召回", tags: ["质量安全"] },
-  { head: "原料与供应", tags: ["供应链"] },
-  { head: "市场与资本", tags: ["市场数据", "行业动态"] },
-  { head: "品牌与产品", tags: ["品牌动态"] },
-  { head: "出海与跨境", tags: ["跨境电商", "海外动态"] },
-];
-const SECTION_PER = 2; // 每个板块最多几条事件
-const PICK_MAX = 12; // 精选一共几条事件（含头条）
+/* 精选不再按栏目分块。
+   栏目（政策法规、品牌动态……）是抓取侧给稿件打的标签，粗且会漂：
+   "蒙牛终止与姆巴佩合作"常被标成政策法规，"荷兰奶牛场用科技提产"会落进
+   品牌动态。按标签摆，摆错的位置比漏掉的内容更伤——读者会直接不信任这一页。
+   所以精选改成一个分数，只认数据里查得到的信号，新源、新标签接进来照样能算：
+     ① 事件分 g.score = 热度 + "几家媒体写了同一件事"
+     ② 硬新闻（监管、质量）+26：跟读者的钱和风险直接相关
+     ③ 时效 +16 / +8 / -14：24 小时内、72 小时内、一周以上
+     ④ 摘要够长 +8、有要点 +6：撑不起推荐位的稿子不加分
+     ⑤ 泛稿 -10：标题里说不出"谁"和"多少"，也不是硬新闻
+   取分数最高的一批，低于榜首 45% 的不凑数。精选宁可少几条。 */
+const HARD_TAGS = ["质量安全", "政策法规"];
+const PICK_MAX = 8; // 含头条
+const PICK_PASS = 0.45; // 清单里最低要够榜首分数的几成
 
 /* 标题里能识别出品方/机构名的词。用于判断"两条标题像不像同一件事"——
    纯字符相似度抓不住"恒天然"与"Fonterra"这类写法差异，得靠实体词兜一层。 */
@@ -564,20 +568,56 @@ function eventNote(group) {
   return group.items.length > 1 ? `${group.items.length} 篇报道` : "";
 }
 
-/* 板块归属。标签是抓取侧打的，第一个标签经常是粗的
-   （"蒙牛终止与姆巴佩合作"被标成政策法规），照标签摆会把它放进"监管与合规"。
-   这里补一条：标题里有机构名、又没有政策类词，就当品牌新闻。 */
+/* 标题里有没有"文件味"。只用来判断一条稿子是不是泛泛的通稿，
+   不再用它给稿件分栏目。 */
 const POLICY_HINT = /新规|标准|监管|办法|通知|征求意见|条例|公告|法规|政策|备案|注册|许可|抽检|通报|执法/;
 
-function sectionOf(group) {
+/* 事件分。算一次存住，排序时会被反复问。 */
+function pickScore(group) {
+  if (group._pick != null) return group._pick;
+
   const item = group.main;
   const title = eventTitle(item);
-  const tags = item.tags || [];
-  if (eventEntities(title).length && !POLICY_HINT.test(title) && tags.includes("品牌动态")) {
-    return "品牌与产品";
+  let s = group.score || 0;
+
+  if (HARD_TAGS.includes(group.tag)) s += 26;
+
+  const stamp = eventStamp(item);
+  const hrs = stamp ? (Date.now() - stamp) / 36e5 : Infinity;
+  if (hrs <= 24) s += 16;
+  else if (hrs <= 72) s += 8;
+  else if (hrs > 168) s -= 14;
+
+  const len = (item.summary || "").length;
+  if (len >= 60) s += 8;
+  else if (len >= 30) s += 4;
+  if ((item.points || []).length >= 2) s += 6;
+
+  /* 泛稿：说不出"谁"、说不出"多少"，也不是监管或质量类。
+     多是"某机构发布一份报告""行业进入新阶段"这种没有落点的稿子。 */
+  if (
+    !HARD_TAGS.includes(group.tag) &&
+    !eventEntities(title).length &&
+    !eventNumbers(title).size &&
+    !POLICY_HINT.test(title)
+  ) {
+    s -= 10;
   }
-  const sec = SECTIONS.find((s) => s.tags.includes(FD.primaryTag(item)));
-  return sec ? sec.head : SECTIONS[SECTIONS.length - 1].head;
+
+  group._pick = s;
+  return s;
+}
+
+const byPick = (a, b) => pickScore(b) - pickScore(a);
+
+/* 清单里那句话截到一句，不做全文搬运。 */
+function pickBrief(item, max) {
+  const s = String(item.summary || "").replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const stop = Math.max(cut.lastIndexOf("。"), cut.lastIndexOf("；"), cut.lastIndexOf("，"));
+  return (stop > max * 0.55 ? cut.slice(0, stop) : cut) + "…";
 }
 
 /* 头条：一件事的摘要加要点。
@@ -642,12 +682,12 @@ function renderLead(group) {
   el.board.hidden = false;
 }
 
-/* 精选：今天值得知道的十几件事。
+/* 精选：今天值得知道的几件事。
    和"全部动态"的分工不是"挑几条"和"全部"——那是同一个列表切两刀。
-   这里根本换了一层：全部动态是 331 篇报道，精选是归组之后的 N 件事，
-   按监管、质量、原料、市场、品牌、出海分块摆好。
-   所以两边点开看到的东西不可能一样：一边是"媒体都在说什么"，
-   一边是"今天在哪几个方面有事"。 */
+   这里换了一层：全部动态是 300 多篇报道的标题流水，精选是先归组、
+   再按 pickScore 打分留下的几件事，每条带一句摘要，能直接读。
+   所以两边点开看到的东西不一样：一边是"媒体都在说什么"，
+   一边是"今天最要紧的是哪几件"。 */
 function renderPick(rows) {
   const events = clusterEvents(rows);
   if (!events.length) {
@@ -669,12 +709,8 @@ function renderPick(rows) {
       (g.main.summary || "").length >= 60 &&
       (g.main.points || []).length >= 2,
   );
-  /* 头条先看"硬不硬"：监管、质量这类事跟读者的钱包和风险直接相关，
-     顺序上压过"荷兰某奶牛场用科技提产"。同类里再按热度排。 */
-  const HARD_TAGS = ["质量安全", "政策法规"];
-  const hard = strong.filter((g) => HARD_TAGS.includes(g.tag));
   const withSum = events.filter((g) => (g.main.summary || "").length >= 40);
-  const leadGroup = hard[0] || strong[0] || withSum[0] || events[0];
+  const leadGroup = strong.slice().sort(byPick)[0] || withSum.slice().sort(byPick)[0] || events[0];
 
   /* 概览：一行说清"多少篇报道归成几件事"。这是全页唯一一个能把
      "重复"讲明白的地方——读者看到 21 篇变成 13 件，就知道下面是梳理过的。 */
@@ -695,40 +731,15 @@ function renderPick(rows) {
     el.board.insertBefore(sum, el.board.firstChild);
   }
 
-  /* 其余事件按板块摆。板块顺序固定，不按热度跳——读者要的是
-     "今天监管有什么、质量有什么"，跳来跳去就成了一份没有结构的热榜。 */
-  const rest = events.filter((g) => g !== leadGroup);
+  /* 头条之外，同一个分数继续往下取，不再分组。
+     每组都要凑两条的日子，会把"某地一家乳企拿到许可"这种稿子也摆上来；
+     按分数取，够格的进，不够的就空着。 */
+  const rest = events.filter((g) => g !== leadGroup).sort(byPick);
+  const floor = pickScore(leadGroup) * PICK_PASS;
+  const list = rest.filter((g) => pickScore(g) >= floor).slice(0, PICK_MAX - 1);
+  const used = new Set([leadGroup, ...list]);
 
-  /* 先分桶再切：一个板块里挑哪几条，应该由这个板块自己的热度决定，
-     而不是被前面板块挑剩下的顺序带着走。 */
-  const buckets = new Map(SECTIONS.map((s) => [s.head, []]));
-  for (const g of rest) {
-    const box = buckets.get(sectionOf(g));
-    if (box) box.push(g);
-  }
-
-  const used = new Set([leadGroup]);
-  let shown = 1;
-
-  for (const sec of SECTIONS) {
-    if (shown >= PICK_MAX) break;
-    const list = [];
-    for (const g of buckets.get(sec.head) || []) {
-      if (shown >= PICK_MAX || list.length >= SECTION_PER) break;
-      list.push(g);
-      used.add(g);
-      shown++;
-    }
-    if (!list.length) continue;
-
-    const box = document.createElement("section");
-    box.className = "picks";
-
-    const head = document.createElement("div");
-    head.className = "picks-h";
-    head.textContent = sec.head;
-    box.appendChild(head);
-
+  if (list.length) {
     const ul = document.createElement("ul");
     ul.className = "pick-list";
     for (const g of list) {
@@ -743,9 +754,18 @@ function renderPick(rows) {
       h3.appendChild(a);
       li.appendChild(h3);
 
+      /* 一句摘要：精选要能直接读，全部动态那边是标题流水。
+         两边点开看到的东西因此不是同一份。 */
+      const brief = pickBrief(item, 76);
+      if (brief) {
+        const p = document.createElement("p");
+        p.className = "pk-sum";
+        p.textContent = brief;
+        li.appendChild(p);
+      }
+
       const meta = document.createElement("div");
       meta.className = "pm";
-      // 板块名已经说明了分类，这里不再重复，只留来源、时刻、几篇报道
       [item.source_name, stampShort(item.published_at || item.fetched_at), eventNote(g)]
         .filter(Boolean)
         .forEach((text, i) => {
@@ -756,6 +776,9 @@ function renderPick(rows) {
 
       ul.appendChild(li);
     }
+
+    const box = document.createElement("section");
+    box.className = "picks picks--flat";
     box.appendChild(ul);
     el.view.appendChild(box);
   }
@@ -770,9 +793,9 @@ function renderPick(rows) {
 
   el.more.hidden = true;
   /* 事件是组，稿件是条：这里要减掉的是"已经展示过的稿件数"，
-     不是事件数，否则 12 件事可能只覆盖 15 篇，减出来就成了 316。 */
+     不是事件数，否则 8 件事可能只覆盖 11 篇，减出来就成了 316。 */
   const covered = [...used].reduce((n, g) => n + g.items.length, 0);
-  el.status.textContent = `以上 ${shown} 件事，由 ${covered} 篇报道归并；全部 ${state.items.length} 篇在「全部动态」。`;
+  el.status.textContent = `以上 ${used.size} 件事，由 ${covered} 篇报道归并；全部 ${state.items.length} 篇在「全部动态」。`;
 }
 
 function tagChip(item) {

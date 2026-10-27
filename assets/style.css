@@ -516,31 +516,28 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--muted);
 }
 
-/* 精选的板块：一行一条，不编号也不给热度——它比要闻"轻"，
+/* 精选的清单：一行一条，不编号也不给热度——它比要闻"轻"，
    要闻是要读的，这里是可以略过的。标题比记录层大一点，
    因为精选里每一条都是挑出来的，不该跟流水账一个字号。 */
 .picks { margin-top: 26px; }
-/* 板块名不能跟条目一个调子：它是这一页"梳理"的证据。
-   原来 10.5px、最淡的灰，手机上几乎看不见，六个板块读下来像一条长列表。 */
-.picks-h {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-num);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .06em;
-  color: var(--ink-2);
-  padding-bottom: 8px;
-}
-.picks-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+/* 不分板块之后，清单直接接在头条下面，靠这条细线断开两段：
+   上面是要读的一条，下面是"今天还有这几件"。 */
+.picks--flat { border-top: 1px solid var(--line); padding-top: 4px; }
 .pick-list { margin: 0; padding: 0; list-style: none; }
-.pk { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.pk { padding: 14px 0; border-bottom: 1px solid var(--line); }
 .pk:last-child { border-bottom: 0; }
 .pk h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.55; }
 .pk h3 a:hover { color: var(--accent-ink); }
+/* 一句话摘要：精选能直接读，全部动态那边是标题流水。
+   这是两页"点开不一样"的关键，别撤掉。 */
+.pk-sum {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
 .pk .pm {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 11.5px;
   color: var(--faint);
   display: flex;
