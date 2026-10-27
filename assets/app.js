@@ -17,16 +17,31 @@ const VIEWS = {
   topics: { title: "主题" },
 };
 
-/* 判断层的体量：一个头条 + 四条要闻。
-   再多的"热点"就不再是判断，而是把记录层复制一遍。 */
-const BRIEF_COUNT = 4;
+/* 精选按"事件"读，不按"稿件"读。
+   同一件事常有两三家媒体各写一遍：今天恒天然能源中断被写成 3 篇、蒙牛终止
+   姆巴佩合作 2 篇、雀巢 Q3 财报 2 篇。它们排在时间流里就是三条独立新闻，
+   读者会以为发生了三件事。精选先把这些归组，一个事件只占一格。
+   全部动态仍然一篇不合并——那里要的是完整流水。 */
+const SECTIONS = [
+  { head: "监管与合规", tags: ["政策法规"] },
+  { head: "质量与召回", tags: ["质量安全"] },
+  { head: "原料与供应", tags: ["供应链"] },
+  { head: "市场与资本", tags: ["市场数据", "行业动态"] },
+  { head: "品牌与产品", tags: ["品牌动态"] },
+  { head: "出海与跨境", tags: ["跨境电商", "海外动态"] },
+];
+const SECTION_PER = 2; // 每个板块最多几条事件
+const PICK_MAX = 12; // 精选一共几条事件（含头条）
 
-/* 精选页在头条与要闻之后再加的条数。
-   精选是"今天该看什么"，不是"今天有多少"——所以它必须有尽头：
-   一屏头条、四条要闻、六条补充，看完就该去全部动态了。
-   原来精选底下直接铺完整时间脊，跟全部动态长得一模一样，
-   等于把同一个列表做了两个入口。 */
-const PICK_EXTRA = 6;
+/* 标题里能识别出品方/机构名的词。用于判断"两条标题像不像同一件事"——
+   纯字符相似度抓不住"恒天然"与"Fonterra"这类写法差异，得靠实体词兜一层。 */
+const EVENT_ENTITIES = [
+  "蒙牛", "伊利", "飞鹤", "君乐宝", "雀巢", "达能", "恒天然", "fonterra",
+  "a2", "雅培", "美赞臣", "圣元", "贝因美", "光明", "新希望", "澳优", "健合",
+  "菲仕兰", "雅士利", "完达山", "妙可蓝多", "山姆", "盒马", "拼多多", "京东",
+  "淘宝", "天猫", "抖音", "快手", "认养一头牛", "westland", "威士兰", "萨普托",
+  "兰特黎斯", "菲士兰", "明治", "森永", "卡夫", "星巴克", "三只松鼠",
+];
 
 const state = {
   items: [],
@@ -74,6 +89,9 @@ async function load() {
   }
 
   state.items = data.items;
+  /* 换了数据，噪声字组表就得重算，否则聚类还按上一批稿子的词频走 */
+  _stopGrams = null;
+  _eventCache = null;
   state.meta = data.meta;
 
   /* 站点通用图统计：同一张图被 3 条以上复用，基本可以断定不是文章配图
@@ -349,28 +367,226 @@ function stampShort(iso) {
 const DIGEST_RE = /今日导读|早报|晚报|周报|日报|汇总|盘点|速览|一周要闻|要闻回顾/;
 const isDigestTitle = (i) => DIGEST_RE.test(i.title_zh || i.title || "");
 
-function renderBoard(rows) {
+/* ------------------------------------------------------------ 事件归组 */
+
+/* 标题切成二元字组算相似度。中文短标题用整词表切不准，两字一组足够
+   分辨"同一件事换个说法"和"同一家公司两件事"。 */
+function eventGrams(text) {
+  /* 注意不能写 \W：JS 的 \W 在没有 u 标志时等价于 [^A-Za-z0-9_]，
+     中文会被整段剥掉，集合永远是空的（这个坑踩过一次）。
+     这里显式列出"CJK + 拉丁字母 + 数字"，其余当分隔符。 */
+  const t = String(text || "").toLowerCase().replace(/[^0-9a-z\u4e00-\u9fff]+/g, "");
+  const set = new Set();
+  for (let i = 0; i < t.length - 1; i++) set.add(t.slice(i, i + 2));
+  return set;
+}
+
+function eventTitle(item) {
+  return item.title_zh || item.title || "";
+}
+
+function eventEntities(text) {
+  const t = String(text || "").toLowerCase();
+  return EVENT_ENTITIES.filter((e) => t.includes(e));
+}
+
+function eventStamp(item) {
+  const t = Date.parse(item.published_at || item.fetched_at || "");
+  return Number.isNaN(t) ? 0 : t;
+}
+
+/* 领域内的高频字组（"婴儿配方奶粉""召回""支付"）几乎每条标题都有，
+   拿它们算相似度，任意两篇奶粉新闻都能凑到 0.4。
+   先统计一遍文档频率，出现超过一成半的字组直接当噪声剔掉，
+   剩下的才是"雅培""3.85 亿""飞鹤""印度"这类有分辨力的词。 */
+let _stopGrams = null;
+
+function stopGrams(rows) {
+  if (_stopGrams) return _stopGrams;
+  const df = new Map();
+  for (const item of rows) {
+    for (const g of eventGrams(eventTitle(item))) df.set(g, (df.get(g) || 0) + 1);
+  }
+  const limit = Math.max(3, rows.length * 0.15);
+  const stop = new Set();
+  for (const [g, n] of df) if (n > limit) stop.add(g);
+  _stopGrams = stop;
+  return stop;
+}
+
+/* 剔掉噪声字组后的标题指纹。剔完剩不到三个字组就退回完整集合——
+   太短的标题（"FDA 将增加检测"）素得太狠反而认不出自己。 */
+function eventPrint(item, stop) {
+  const all = item._gram || eventGrams(eventTitle(item));
+  if (!stop) return all;
+  const keep = new Set();
+  for (const g of all) if (!stop.has(g)) keep.add(g);
+  return keep.size >= 3 ? keep : all;
+}
+
+/* 纯拉丁字母标题（英文稿）。用来分辨"同一篇稿的中英文两版"。 */
+function isLatinTitle(text) {
+  const t = String(text || "");
+  return !/[\u4e00-\u9fff]/.test(t) && /[a-z]/i.test(t);
+}
+
+/* 标题里的金额和数量。同事件的两篇稿几乎一定会写同一个数字——
+   雅培那件"3.85 亿美元和解"被 15 家媒体写过，标题措辞各异，
+   但"3.85 亿"这个词没变过。数字比字组稳，比实体具体。 */
+function eventNumbers(item) {
+  const t = String(eventTitle(item) || "").replace(/,/g, "");
+  const out = new Set();
+  const re = /(\d+(?:\.\d+)?)\s*(亿|万|%|美元|元|单|吨|家)/g;
+  let m;
+  while ((m = re.exec(t))) {
+    // 2022、2034 这类年份不是数量
+    if (/^(19|20)\d{2}$/.test(m[1])) continue;
+    out.add(m[1] + m[2]);
+  }
+  return out;
+}
+
+/* 两条稿子是不是同一件事。三个条件都不苛刻，但要同时看：
+   ① 时间在三天内——半年前那份财报和今天的财报不是一回事；
+   ② 标题字面重合 ≥0.45——转载、加副标题、改动词都落在这里；
+   ③ 或者共享同一个机构名，且字面重合 ≥0.22。
+      只共享机构名远远不够："伊利收购 Westland"和"伊利与奇安信合作"
+      都提到伊利，说的却是两件事，所以字面还得兜住。 */
+function sameEvent(a, b, stop) {
+  const ta = eventStamp(a);
+  const tb = eventStamp(b);
+  if (ta && tb && Math.abs(ta - tb) > 3 * 864e5) return false;
+
+  /* 同一篇稿的中英文两版：同源、同一分钟、一条纯拉丁一条中文。
+     "Technology drives Dutch dairy farm productivity" 与
+     "荷兰奶牛场通过科技提升生产力" 字面重合为零、实体也对不上，
+     只有这个组合能认出来。
+     注意不能只判"同源同时刻"——Google News 这种聚合源同一分钟会吐多条
+     互不相干的新闻，那会把整批稿子粘成一坨（踩过）。
+     也必须两边都有真实时刻：只给日期的源统一落在 00:00。 */
+  if (
+    a.source_id &&
+    a.source_id === b.source_id &&
+    FD.hasTime(a.published_at) &&
+    FD.hasTime(b.published_at) &&
+    a.published_at === b.published_at &&
+    !/google news/i.test(a.source_name || "") &&
+    isLatinTitle(eventTitle(a)) !== isLatinTitle(eventTitle(b)) &&
+    isLatinTitle(eventTitle(a)) + isLatinTitle(eventTitle(b)) === 1
+  ) {
+    return true;
+  }
+
+  if (!a._gram) a._gram = eventGrams(eventTitle(a));
+  if (!b._gram) b._gram = eventGrams(eventTitle(b));
+  const ga = eventPrint(a, stop);
+  const gb = eventPrint(b, stop);
+  if (!ga.size || !gb.size) return false;
+
+  let inter = 0;
+  for (const g of ga) if (gb.has(g)) inter++;
+  const jac = inter / (ga.size + gb.size - inter);
+  /* 字面重合够高就直接算同一件事。阈值偏严是有意的：合并错了的代价是
+     "读者根本没看到那条新闻"，比多出一条重复严重得多——
+     "进口海胆镉超标"和"进口红皮刀汞超标"字面 0.39，绝不能并成一条。 */
+  if (jac >= 0.45) return true;
+
+  /* 其余情形要求共享机构名，再看两层：
+     ① 字面还有 0.25 以上重合——只是换个动词、加了副标题；
+     ② 或者写着同一个金额数量——"雅培 3.85 亿美元和解"被 15 家媒体写过，
+        措辞完全不同，但那个数字没变。 */
+  const ea = eventEntities(eventTitle(a));
+  const eb = eventEntities(eventTitle(b));
+  const shared = ea.filter((e) => eb.includes(e));
+  if (!shared.length) return false;
+  if (jac >= 0.25) return true;
+
+  const na = eventNumbers(a);
+  if (!na.size) return false;
+  for (const n of eventNumbers(b)) if (na.has(n)) return true;
+  return false;
+}
+
+/* 稿件归组成事件，返回 [{ items, main, heat, tag }]，按热度降序。
+   主稿取事件内热度最高的一篇；热度相同取摘要更长的那篇，
+   头条位和列表都要有摘要才立得住。 */
+let _eventCache = null;
+
+function clusterEvents(rows) {
+  /* 切视图会重新渲染，每次都做一遍两两比较太浪费——全量那条结果缓存住。
+     数据换了 loadAll 会清空。 */
+  if (rows === state.items && _eventCache) return _eventCache;
+
+  const stop = stopGrams(state.items); // 用全量语料算噪声词，口径不受当前筛选影响
+  const groups = [];
+  for (const item of rows) {
+    /* 导读、早报、一周回顾这类稿子自己就是目录，不参与归组——
+       它们会把好几天的事装进一条，跟谁合并都是错的 */
+    if (isDigestTitle(item)) continue;
+    if (!eventTitle(item)) continue;
+
+    let hit = null;
+    for (const g of groups) {
+      if (sameEvent(g.main, item, stop)) {
+        hit = g;
+        break;
+      }
+    }
+    if (hit) {
+      hit.items.push(item);
+      hit.heat = Math.max(hit.heat, item._heat || 0);
+    } else {
+      groups.push({ items: [item], main: item, heat: item._heat || 0 });
+    }
+  }
+
+  for (const g of groups) {
+    g.items.sort(
+      (x, y) =>
+        (y._heat || 0) - (x._heat || 0) ||
+        (y.summary || "").length - (x.summary || "").length,
+    );
+    g.main = g.items[0];
+    g.tag = FD.primaryTag(g.main);
+    /* 一家媒体写是新闻，十五家媒体同时写就是大事。归组之后这个信号才看得见，
+       所以按篇数给一点加权——上限 +24，免得三天前那组 15 篇的转载
+       压过两小时前的独家。 */
+    g.score = (g.heat || 0) + Math.min(24, 6 * (g.items.length - 1));
+  }
+  groups.sort((a, b) => b.score - a.score);
+  if (rows === state.items) _eventCache = groups;
+  return groups;
+}
+
+/* 同一件事被几家媒体写过，就在 meta 里标一句"3 篇报道"。
+   不把另外几篇的标题也铺出来——那是全部动态该干的事。 */
+function eventNote(group) {
+  return group.items.length > 1 ? `${group.items.length} 篇报道` : "";
+}
+
+/* 板块归属。标签是抓取侧打的，第一个标签经常是粗的
+   （"蒙牛终止与姆巴佩合作"被标成政策法规），照标签摆会把它放进"监管与合规"。
+   这里补一条：标题里有机构名、又没有政策类词，就当品牌新闻。 */
+const POLICY_HINT = /新规|标准|监管|办法|通知|征求意见|条例|公告|法规|政策|备案|注册|许可|抽检|通报|执法/;
+
+function sectionOf(group) {
+  const item = group.main;
+  const title = eventTitle(item);
+  const tags = item.tags || [];
+  if (eventEntities(title).length && !POLICY_HINT.test(title) && tags.includes("品牌动态")) {
+    return "品牌与产品";
+  }
+  const sec = SECTIONS.find((s) => s.tags.includes(FD.primaryTag(item)));
+  return sec ? sec.head : SECTIONS[SECTIONS.length - 1].head;
+}
+
+/* 头条：一件事的摘要加要点。
+   不放配图——抓来的 image 里活动海报、栏目封面、分享卡片占比很高，
+   挑错一次最显眼的位置就成了一块和全站纸色打架的彩色牌子。 */
+function renderLead(group) {
+  const lead = group.main;
   el.board.innerHTML = "";
-  if (state.query.trim() || state.tag !== "all" || !rows.length) {
-    el.board.hidden = true;
-    return;
-  }
 
-  const byHeat = rows.slice().sort((a, b) => (b._heat || 0) - (a._heat || 0));
-
-  const solid = byHeat.filter((i) => !isDigestTitle(i));
-  const pool = solid.length >= 3 ? solid : byHeat;
-  // 有摘要才撑得起头条位：只有标题的一条放在这里，下面是空的
-  const withSum = pool.filter((i) => (i.summary || "").length >= 40);
-  const lead = withSum[0] || pool[0] || null;
-  if (!lead) {
-    el.board.hidden = true;
-    return;
-  }
-
-  /* 头条不放配图。抓来的 image 里活动海报、栏目封面、分享卡片占比很高，
-     靠宽高比分辨不出来；一旦挑错，最显眼的位置就成了一块和全站灰绿纸色
-     打架的彩色牌子。宁可纯排版，也不赌图源质量。 */
   const card = document.createElement("article");
   card.className = "lead";
 
@@ -385,7 +601,7 @@ function renderBoard(rows) {
   const h2 = document.createElement("h2");
   const link = document.createElement("a");
   link.href = FD.articleHref(lead.id);
-  link.textContent = lead.title_zh || lead.title || "（无标题）";
+  link.textContent = eventTitle(lead) || "（无标题）";
   h2.appendChild(link);
   txt.appendChild(h2);
 
@@ -408,141 +624,127 @@ function renderBoard(rows) {
   const foot = document.createElement("div");
   foot.className = "lead-f";
   const leadStamp = lead.published_at || lead.fetched_at;
-  const bits = [FD.primaryTag(lead), lead.source_name, stampShort(leadStamp)];
-  if (lead._heat) bits.push("热度 " + lead._heat);
-  bits.filter(Boolean).forEach((text, i) => {
-    if (i) foot.appendChild(dotSpan());
-    foot.appendChild(document.createTextNode(text));
-  });
+  [
+    FD.primaryTag(lead),
+    lead.source_name,
+    stampShort(leadStamp),
+    eventNote(group),
+  ]
+    .filter(Boolean)
+    .forEach((text, i) => {
+      if (i) foot.appendChild(dotSpan());
+      foot.appendChild(document.createTextNode(text));
+    });
   txt.appendChild(foot);
   card.appendChild(txt);
 
   el.board.appendChild(card);
-
-  const briefs = pool.filter((i) => i !== lead).slice(0, BRIEF_COUNT);
-  if (briefs.length) {
-    const ol = document.createElement("ol");
-    ol.className = "briefs";
-    briefs.forEach((item, i) => {
-      const li = document.createElement("li");
-      li.className = "br";
-
-      const no = document.createElement("span");
-      no.className = "no";
-      no.textContent = String(i + 1).padStart(2, "0");
-      li.appendChild(no);
-
-      const box = document.createElement("div");
-      box.className = "br-x";
-      const h3 = document.createElement("h3");
-      const a = document.createElement("a");
-      a.href = FD.articleHref(item.id);
-      a.textContent = item.title_zh || item.title || "（无标题）";
-      h3.appendChild(a);
-      box.appendChild(h3);
-
-      const bm = document.createElement("div");
-      bm.className = "bm";
-      const when = item.published_at || item.fetched_at;
-      [item.source_name, FD.primaryTag(item), stampShort(when)]
-        .filter(Boolean)
-        .forEach((text, k) => {
-          if (k) bm.appendChild(dotSpan());
-          bm.appendChild(document.createTextNode(text));
-        });
-      box.appendChild(bm);
-      li.appendChild(box);
-
-      const ht = document.createElement("span");
-      ht.className = "ht";
-      ht.textContent = item._heat || 0;
-      li.appendChild(ht);
-
-      ol.appendChild(li);
-    });
-    el.board.appendChild(ol);
-  }
-
   el.board.hidden = false;
-  /* 已经占掉版面的条目，交给下面"还有这些"去避开 */
-  return new Set([lead, ...briefs].map((i) => i.id));
 }
 
-/* 精选的"还有这些"：从剩下的稿子里按热度补。
-   两条约束：
-   ① 同一个分类最多两条——否则一个类目包场，读者还是只看得到一个话题；
-   ② 同一个来源最多一条，且要闻里已经用过的来源不再出现——同一家媒体
-      用两条不同标题写同一件事（"终止与姆巴佩合作"），只看标题去重挡不住，
-      但同源会露馅。 */
-function pickExtras(rows, used, n) {
-  const pool = dedupeByTitle(rows)
-    .filter((i) => !used.has(i.id) && !isDigestTitle(i))
-    .slice()
-    .sort((a, b) => (b._heat || 0) - (a._heat || 0));
-
-  const perTag = new Map();
-  const perSrc = new Map();
-  const out = [];
-  // 要闻和头条已经占掉的来源，这里不再用
-  for (const i of rows) {
-    if (used.has(i.id)) perSrc.set(i.source_id || "?", 1);
-  }
-  const take = (it) => {
-    out.push(it);
-    used.add(it.id);
-    perSrc.set(it.source_id || "?", 1);
-  };
-
-  for (const it of pool) {
-    if (out.length >= n) break;
-    const t = FD.primaryTag(it);
-    const c = perTag.get(t) || 0;
-    if (c >= 2) continue;
-    if ((perSrc.get(it.source_id || "?") || 0) >= 1) continue;
-    perTag.set(t, c + 1);
-    take(it);
-  }
-  // 分类或来源太单一时逐个放宽，宁可有两条同类，也别让这一块空着
-  for (const it of pool) {
-    if (out.length >= n) break;
-    if (!used.has(it.id)) take(it);
-  }
-  return out;
-}
-
-/* 精选：节选，不是全部。
-   与"全部动态"的分工是"该看什么"和"有什么"：这里最多一个头条、四条要闻、
-   六条补充，看完就该走；完整时间流留给全部动态。
-   原来精选把整条时间脊也铺了一遍，两个入口点开内容几乎一样。 */
+/* 精选：今天值得知道的十几件事。
+   和"全部动态"的分工不是"挑几条"和"全部"——那是同一个列表切两刀。
+   这里根本换了一层：全部动态是 331 篇报道，精选是归组之后的 N 件事，
+   按监管、质量、原料、市场、品牌、出海分块摆好。
+   所以两边点开看到的东西不可能一样：一边是"媒体都在说什么"，
+   一边是"今天在哪几个方面有事"。 */
 function renderPick(rows) {
-  const used = renderBoard(rows) || new Set();
-  const extras = pickExtras(rows, used, PICK_EXTRA);
+  const events = clusterEvents(rows);
+  if (!events.length) {
+    el.board.hidden = true;
+    return;
+  }
 
-  if (extras.length) {
+  /* 头条要撑得住最贵的位置：有真实时刻、摘要够长、有要点。
+     只满足"有摘要"还不够——"XX 局公布不合格名单"这类稿件也有摘要，
+     但那是一份目录，放在头条位等于用整屏推荐一个索引页。 */
+  const freshEnough = (g) => {
+    const t = eventStamp(g.main);
+    return t > 0 && Date.now() - t <= 72 * 36e5;
+  };
+  const strong = events.filter(
+    (g) =>
+      freshEnough(g) &&
+      FD.hasTime(g.main.published_at) &&
+      (g.main.summary || "").length >= 60 &&
+      (g.main.points || []).length >= 2,
+  );
+  /* 头条先看"硬不硬"：监管、质量这类事跟读者的钱包和风险直接相关，
+     顺序上压过"荷兰某奶牛场用科技提产"。同类里再按热度排。 */
+  const HARD_TAGS = ["质量安全", "政策法规"];
+  const hard = strong.filter((g) => HARD_TAGS.includes(g.tag));
+  const withSum = events.filter((g) => (g.main.summary || "").length >= 40);
+  const leadGroup = hard[0] || strong[0] || withSum[0] || events[0];
+
+  /* 概览：一行说清"多少篇报道归成几件事"。这是全页唯一一个能把
+     "重复"讲明白的地方——读者看到 21 篇变成 13 件，就知道下面是梳理过的。 */
+  const recentRows = recentItems();
+  const recentEvents = recentRows.length ? clusterEvents(recentRows).length : 0;
+
+  renderLead(leadGroup);
+
+  /* 概览要放在头条之上：先告诉读者"这些是归并过的"，再读具体那条。
+     放到头条下面就成了卡片的一条注脚，读者会以为那句话只解释头条。 */
+  if (recentEvents) {
+    const sum = document.createElement("p");
+    sum.className = "pick-sum";
+    sum.textContent =
+      `近 24 小时 ${recentRows.length} 篇报道，去掉同一件事的重复报道后是 ${recentEvents} 件。`;
+    el.board.insertBefore(sum, el.board.firstChild);
+  }
+
+  /* 其余事件按板块摆。板块顺序固定，不按热度跳——读者要的是
+     "今天监管有什么、质量有什么"，跳来跳去就成了一份没有结构的热榜。 */
+  const rest = events.filter((g) => g !== leadGroup);
+
+  /* 先分桶再切：一个板块里挑哪几条，应该由这个板块自己的热度决定，
+     而不是被前面板块挑剩下的顺序带着走。 */
+  const buckets = new Map(SECTIONS.map((s) => [s.head, []]));
+  for (const g of rest) {
+    const box = buckets.get(sectionOf(g));
+    if (box) box.push(g);
+  }
+
+  const used = new Set([leadGroup]);
+  let shown = 1;
+
+  for (const sec of SECTIONS) {
+    if (shown >= PICK_MAX) break;
+    const list = [];
+    for (const g of buckets.get(sec.head) || []) {
+      if (shown >= PICK_MAX || list.length >= SECTION_PER) break;
+      list.push(g);
+      used.add(g);
+      shown++;
+    }
+    if (!list.length) continue;
+
     const box = document.createElement("section");
     box.className = "picks";
 
     const head = document.createElement("div");
     head.className = "picks-h";
-    head.textContent = "还有这些";
+    head.textContent = sec.head;
     box.appendChild(head);
 
     const ul = document.createElement("ul");
     ul.className = "pick-list";
-    for (const item of extras) {
+    for (const g of list) {
+      const item = g.main;
       const li = document.createElement("li");
       li.className = "pk";
 
       const h3 = document.createElement("h3");
       const a = document.createElement("a");
       a.href = FD.articleHref(item.id);
-      a.textContent = item.title_zh || item.title || "（无标题）";
+      a.textContent = eventTitle(item) || "（无标题）";
       h3.appendChild(a);
       li.appendChild(h3);
 
       const meta = document.createElement("div");
       meta.className = "pm";
-      [FD.primaryTag(item), item.source_name, stampShort(item.published_at || item.fetched_at)]
+      // 板块名已经说明了分类，这里不再重复，只留来源、时刻、几篇报道
+      [item.source_name, stampShort(item.published_at || item.fetched_at), eventNote(g)]
         .filter(Boolean)
         .forEach((text, i) => {
           if (i) meta.appendChild(dotSpan());
@@ -565,8 +767,10 @@ function renderPick(rows) {
   el.view.appendChild(toAll);
 
   el.more.hidden = true;
-  /* used 里已经含头条、要闻和上面补的六条，别再相加 */
-  el.status.textContent = `看完这 ${used.size} 条就够，其余 ${state.items.length} 条都在「全部动态」。`;
+  /* 事件是组，稿件是条：这里要减掉的是"已经展示过的稿件数"，
+     不是事件数，否则 12 件事可能只覆盖 15 篇，减出来就成了 316。 */
+  const covered = [...used].reduce((n, g) => n + g.items.length, 0);
+  el.status.textContent = `以上 ${shown} 件事，由 ${covered} 篇报道归并；全部 ${state.items.length} 篇在「全部动态」。`;
 }
 
 function tagChip(item) {

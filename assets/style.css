@@ -504,19 +504,34 @@ button[hidden], [hidden] { display: none !important; }
   padding-top: 3px;
 }
 
-/* 精选的补充区：一行一条，不编号也不给热度——它比要闻"轻"，
+/* 精选页开头那句话：21 篇报道归成 13 件事。
+   全站唯一会提"重复"的地方，所以给它一点存在感——左侧一道竖线，
+   读起来像编者按，不像又一行统计数字。 */
+.pick-sum {
+  margin: 0 0 4px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--line-strong);
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+/* 精选的板块：一行一条，不编号也不给热度——它比要闻"轻"，
    要闻是要读的，这里是可以略过的。标题比记录层大一点，
    因为精选里每一条都是挑出来的，不该跟流水账一个字号。 */
-.picks { margin-top: 30px; }
+.picks { margin-top: 26px; }
+/* 板块名不能跟条目一个调子：它是这一页"梳理"的证据。
+   原来 10.5px、最淡的灰，手机上几乎看不见，六个板块读下来像一条长列表。 */
 .picks-h {
   display: flex;
   align-items: center;
   gap: 10px;
   font-family: var(--font-num);
-  font-size: 10.5px;
-  letter-spacing: .16em;
-  color: var(--faint);
-  padding-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--ink-2);
+  padding-bottom: 8px;
 }
 .picks-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .pick-list { margin: 0; padding: 0; list-style: none; }
