@@ -150,8 +150,12 @@ function render(item, all) {
     }
   }
   el.meta.appendChild(text(item.source_name || "未知来源"));
-  el.meta.appendChild(sepDot());
-  el.meta.appendChild(text(timeOf(item) ? pubLabel(timeOf(item)) : "时间未知"));
+  /* 时间完全缺失时干脆不写这格，别在标题下面印"时间未知"——
+     那是一句系统提示，读者只想知道这篇是什么时候的。 */
+  if (timeOf(item)) {
+    el.meta.appendChild(sepDot());
+    el.meta.appendChild(text(pubLabel(timeOf(item))));
+  }
   if (item.language === "en") {
     el.meta.appendChild(sepDot());
     el.meta.appendChild(text("原文为英文"));
@@ -251,9 +255,9 @@ function render(item, all) {
      "收录于""时间说明"是抓取侧的口径，读者看了只会以为是站点出错。 */
   const facts = [
     ["来源", item.source_name || "未知"],
-    ["发布于", timeOf(item) ? pubLabel(timeOf(item)) : "时间未知"],
     ["分类", (item.tags || []).join(" / ") || "未分类"],
   ];
+  if (timeOf(item)) facts.splice(1, 0, ["发布于", pubLabel(timeOf(item))]);
   if (item.author) facts.push(["作者", item.author]);
   for (const [k, v] of facts) {
     const wrap = document.createElement("div");

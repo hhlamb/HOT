@@ -558,26 +558,12 @@ function renderFeed(rows) {
             ? FD.timeAgo(item.published_at)
             : "收录";
         time.appendChild(small);
-      } else {
-        /* 有的源只给日期不给时刻。原来这里印 "--:--"，读者的第一反应是
-           数据坏了，不会读成"这家源只有日期"。索性把话说清楚：
-           时间位写"仅日期"，字号按小字处理，不占时间的位置。 */
-        time.className = "it-t it-t--od";
-        const only = document.createElement("span");
-        only.className = "it-t-od";
-        only.textContent = "仅日期";
-        time.appendChild(only);
-        if (isBatch) {
-          const small = document.createElement("small");
-          small.textContent = `${same} 条`;
-          time.appendChild(small);
-        }
       }
-      if (stamp) {
-        time.title = known
-          ? FD.fmtFull(stamp)
-          : FD.mdDate(stamp) + " · 原文未标时刻";
-      }
+      /* 这条源只给日期、没给时刻：时间位留空。
+         日期本身已经在上面那行日头里（"10 月 27 日"），这里再印一遍是重复；
+         印"--:--"像数据坏了，印"仅日期"更像一句系统提示——读者要的是内容，
+         不是抓取说明。留白最干净。 */
+      if (known && stamp) time.title = FD.fmtFull(stamp);
     }
     row.appendChild(time);
 
