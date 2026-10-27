@@ -62,6 +62,7 @@ const el = {
   status: document.getElementById("status"),
   more: document.getElementById("more-btn"),
   cats: document.getElementById("cats"),
+  catRail: document.getElementById("rail-cats"),
   search: document.getElementById("search"),
   title: document.getElementById("page-title"),
   live: document.getElementById("live"),
@@ -277,6 +278,11 @@ function go(view, keepScroll) {
 function applyRoute(firstLoad, keepScroll) {
   const meta = VIEWS[state.view];
   el.title.textContent = state.tag !== "all" ? `${meta.title} · ${state.tag}` : meta.title;
+
+  /* 精选是按分数挑出来的几件事，不按栏目分，所以侧栏的分类整块收起来——
+     摆在那却点不动最糟。全部动态、热点榜、日报这些要筛的时候再出现。
+     已经选了分类（精选退成时间流）时也留着，否则没法切回去。 */
+  el.catRail.hidden = state.view === "pick" && state.tag === "all";
 
   for (const btn of el.navItems) {
     btn.setAttribute("aria-current", String(btn.dataset.view === state.view));

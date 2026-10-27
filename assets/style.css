@@ -169,6 +169,8 @@ button[hidden], [hidden] { display: none !important; }
 .brand-sub { display: none; }
 
 .rail-group { display: flex; flex-direction: column; gap: 2px; }
+/* flex 会盖住 hidden 属性，得显式收一次：精选视图要把"分类"整块藏掉 */
+.rail-group[hidden] { display: none; }
 .rail-label {
   font-size: 10.5px;
   letter-spacing: .14em;
