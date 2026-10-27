@@ -182,29 +182,15 @@ function render(item, all) {
       }
     }
   }
-  if (ownImg || (item.tags || []).length) {
-    /* 详情页大图用分类卡通插画（8 张一套，构图完整、撑得住 660px）。
-       原文配图存在就先用原文的，加载失败再退回同一套卡通——
-       不退回"逐条线稿"，否则列表是插画、点进来变线稿，两套风格打架。 */
-    const art = FD.topicCover(item);
-    el.heroImg.src = ownImg ? item.image : art;
+  /* 大图：只放原文真配图。没有就不出现这一块——
+     分类插画跟这篇稿子没有关系，占掉六百多像素换一张示意图，
+     不如让标题直接顶上。图挂了也整块撤掉，不留空框。 */
+  if (ownImg) {
+    el.heroImg.src = item.image;
     el.heroImg.alt = title;
-    el.hero.classList.toggle("hero-img--topic", !ownImg);
-    el.hero.classList.toggle("hero-img--art", !ownImg);
-    let tried = false;
-    el.heroImg.addEventListener("error", () => {
-      if (!tried && el.heroImg.src !== art) {
-        tried = true;
-        el.heroImg.src = art;
-        el.hero.classList.add("hero-img--topic", "hero-img--art");
-        el.heroCap.textContent = "主题配图 · 按分类绘制的示意图，非原文配图";
-        return;
-      }
-      el.hero.hidden = true;
-    });
-    el.heroCap.textContent = ownImg
-      ? `配图来自 ${item.source_name || "原媒体"}`
-      : "主题配图 · 按分类绘制的示意图，非原文配图";
+    el.hero.classList.remove("hero-img--topic", "hero-img--art");
+    el.heroImg.addEventListener("error", () => { el.hero.hidden = true; });
+    el.heroCap.textContent = `配图来自 ${item.source_name || "原媒体"}`;
     el.hero.hidden = false;
   }
 
