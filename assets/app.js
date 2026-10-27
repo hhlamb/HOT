@@ -752,7 +752,8 @@ function renderHot(rows) {
     t.textContent = item.title_zh || item.title || "";
     const meta = document.createElement("div");
     meta.className = "rank-meta";
-    const when = item.published_at ? FD.timeAgo(item.published_at) : "收录于 " + FD.hm(item.fetched_at);
+    /* 没有发布时间就写抓到的时刻，不加"收录于"——读者要看的是时间本身 */
+    const when = item.published_at ? FD.timeAgo(item.published_at) : FD.hm(item.fetched_at);
     meta.textContent = [item.source_name, (item.tags || [])[0], when].filter(Boolean).join(" · ");
     main.appendChild(t);
     main.appendChild(meta);
