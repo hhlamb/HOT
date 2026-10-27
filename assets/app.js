@@ -304,6 +304,10 @@ function writeRoute() {
 function go(view, keepScroll) {
   state.view = view;
   state.limit = PAGE_SIZE;
+  /* 分类筛选只在"翻找型"视图（全部动态、热点榜）里活着；切到精选/日报/主题
+     就一并放下。否则筛选态下侧栏分类还挂着，而那几个视图既没有筛选条、
+     标题里的分类名也不能点，读者找不到取消筛选的入口。 */
+  if (view !== "all" && view !== "hot" && state.tag !== "all") state.tag = "all";
   writeRoute();
   applyRoute(false, keepScroll);
 }
@@ -315,8 +319,8 @@ function applyRoute(firstLoad, keepScroll) {
   /* 分类是给"翻找"用的，只在该翻找的视图里出现：全部动态、热点榜。
      精选是按事件挑出来的几件事，栏目在那一屏帮不上忙——一条稿经常同时
      属于两三个栏目，摆出来只让人分心。日报是按天回看的流水，同理。
-     已经选了某个分类（精选因此退成时间流）时保留，否则没法切回去。 */
-  el.catRail.hidden = state.tag === "all" && state.view !== "all" && state.view !== "hot";
+     （筛选状态由 go() 在切走时统一放下，这里不用再照顾它。） */
+  el.catRail.hidden = state.view !== "all" && state.view !== "hot";
 
   /* 筛选条只服务「全部动态」。其余视图的分类要么在侧栏、要么由自身版式
      承担（热点榜每条都带栏目、日报按天分卡片），再顶一条只会重复。 */
