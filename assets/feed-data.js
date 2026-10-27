@@ -303,6 +303,13 @@
     return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
   };
 
+  /** 紧凑日期：10-27。给时间脊里"只知道哪一天"的条目用 */
+  FEED.dayShort = function (iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getMonth() + 1}-${d.getDate()}`;
+  };
+
   FEED.weekday = function (iso) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";

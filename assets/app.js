@@ -510,12 +510,14 @@ function renderFeed(rows) {
   const shown = uniq.slice(0, state.limit);
   const stampOf = (it) => it.published_at || it.fetched_at || "";
   /* 有些源只给日期不给时刻，解析后统一落在 00:00。这类条目既不该在
-     脊上印一个假的 00:00，也不该跟"真的零点那一批"并成一个节点。 */
+     脊上印一个假的 00:00，也不该跟"真的零点那一批"并成一个节点。
+     同一天里"只有日期"的条目归到同一个节点上：既不必每条重复印日期，
+     也不至于把时间位空成一片。 */
   const hasTimeOf = (it) => FD.hasTime(stampOf(it));
   const minuteOf = (it) =>
     hasTimeOf(it)
       ? FD.dayKey(stampOf(it)) + "|" + FD.hm(stampOf(it))
-      : "notime|" + (it.id || it.url || "");
+      : "dayonly|" + FD.dayKey(stampOf(it));
 
   // 先数一遍每分钟几条，才知道哪些行要合并成一批
   const perMinute = new Map();
@@ -550,19 +552,21 @@ function renderFeed(rows) {
       const known = hasTimeOf(item);
       if (known) {
         time.appendChild(document.createTextNode(FD.hm(stamp)));
+        /* 时刻下面那行小字：这一批几条 > 多久以前。
+           超过 8 天，timeAgo 会退回"10-19 12:05"，跟上面那个时刻重复，
+           这时干脆不印——日期已在日头上写着。 */
+        const rel = item.published_at ? FD.timeAgo(item.published_at) : "";
         const small = document.createElement("small");
-        // 批次头把"这一批几条"放在时刻下面，比"3 小时前"更有用
-        small.textContent = isBatch
-          ? `${same} 条`
-          : item.published_at
-            ? FD.timeAgo(item.published_at)
-            : "收录";
-        time.appendChild(small);
+        small.textContent = isBatch ? `${same} 条` : /\d-\d/.test(rel) ? "" : rel;
+        if (small.textContent) time.appendChild(small);
+      } else {
+        /* 这条源只给日期、没给时刻。时间位写这一天的日期（"10-27"），
+           同一天后面的同类条目共用这个节点，不再重复印。
+           不写"仅日期"这种解释，也不留一格空白——日期本身就是答案。 */
+        time.className = "it-t it-t--day";
+        time.appendChild(document.createTextNode(FD.dayShort(stamp)));
+        if (stamp) time.title = FD.mdDate(stamp);
       }
-      /* 这条源只给日期、没给时刻：时间位留空。
-         日期本身已经在上面那行日头里（"10 月 27 日"），这里再印一遍是重复；
-         印"--:--"像数据坏了，印"仅日期"更像一句系统提示——读者要的是内容，
-         不是抓取说明。留白最干净。 */
       if (known && stamp) time.title = FD.fmtFull(stamp);
     }
     row.appendChild(time);

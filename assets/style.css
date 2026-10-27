@@ -576,6 +576,14 @@ button[hidden], [hidden] { display: none !important; }
   letter-spacing: -.02em;
 }
 .it-t small { display: block; font-size: 9.5px; color: var(--faint); letter-spacing: 0; margin-top: 1px; }
+/* 只知道哪一天（源没给时刻）：时间位写 "10-27"。
+   字比时刻略小、颜色略淡，不用一行说明去解释"为什么没有时分"。 */
+.it-t--day {
+  font-size: 11px;
+  letter-spacing: -.03em;
+  color: var(--faint);
+  white-space: nowrap;
+}
 
 /* 同一分钟 ≥2 条：脊上出现一个实心节点。
    它表示"这一刻涌进来一批"，是时间轴上唯一有情报价值的位置 */
