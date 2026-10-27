@@ -930,8 +930,6 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--ink-2);
 }
 .kw b { color: var(--accent-ink); font-family: var(--font-num); font-weight: 600; margin-left: 4px; }
-.daily-cat { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12.5px; color: var(--muted); }
-.daily-cat span b { color: var(--ink); font-family: var(--font-num); }
 .daily-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .daily-list li { display: flex; gap: 8px; font-size: 13.4px; line-height: 1.55; }
 .daily-list li .at {
@@ -945,56 +943,6 @@ button[hidden], [hidden] { display: none !important; }
 .daily-more { margin-top: 11px; font-size: 12.5px; }
 .daily-more a { color: var(--muted); }
 .daily-more a:hover { color: var(--accent); }
-
-/* 日报里的分类分布：用分类色标记，比一排灰色文字更容易扫读 */
-.daily-cat span[data-tag] { position: relative; padding-left: 9px; }
-.daily-cat span[data-tag]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--dot, var(--line-strong));
-}
-.daily-cat span[data-tag="品牌动态"] { --dot: var(--c-brand); }
-.daily-cat span[data-tag="市场数据"] { --dot: var(--c-market); }
-.daily-cat span[data-tag="质量安全"] { --dot: var(--c-safety); }
-.daily-cat span[data-tag="供应链"]   { --dot: var(--c-supply); }
-.daily-cat span[data-tag="跨境电商"] { --dot: var(--c-cross); }
-.daily-cat span[data-tag="政策法规"] { --dot: var(--c-policy); }
-.daily-cat span[data-tag="海外动态"] { --dot: var(--c-global); }
-.daily-cat span[data-tag="行业动态"] { --dot: var(--c-industry); }
-
-/* ---------------------------------------------------------- 主题网格 */
-
-.topic-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
-  gap: 13px;
-}
-.topic {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 14px 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  transition: border-color .13s, box-shadow .13s;
-}
-.topic:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
-.topic-head { display: flex; align-items: baseline; gap: 8px; }
-.topic-name { font-size: 15px; font-weight: 700; }
-.topic-n { font-size: 11.5px; color: var(--faint); font-family: var(--font-num); }
-.topic-go { margin-left: auto; font-size: 11.5px; color: var(--muted); }
-.topic ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.topic li { font-size: 12.9px; color: var(--ink-2); line-height: 1.5; display: flex; gap: 6px; }
-.topic li::before { content: "·"; color: var(--faint); flex: none; }
-.topic li:hover { color: var(--ink); }
-.topic .topic-desc { font-size: 12px; color: var(--faint); line-height: 1.5; }
 
 /* ---------------------------------------------------------- 状态 / 页脚 */
 
@@ -1368,7 +1316,11 @@ button[hidden], [hidden] { display: none !important; }
 @media (max-width: 860px) {
   :root { --rail-w: 0px; --gutter: 46px; }
 
-  .shell { grid-template-columns: minmax(0, 1fr); }
+  /* 单列两行。align-content 必须改成 start：默认 stretch 会把 auto 行
+     拉伸填满 min-height:100vh，精选只有几件事时整行空白被塞进报头里，
+     报头撑到半屏高，正文被挤出首屏。桌面端两列要靠 stretch 撑满侧栏，
+     这里单列反而不需要。 */
+  .shell { grid-template-columns: minmax(0, 1fr); align-content: start; }
 
   /* 侧栏收成顶部报头。三段竖排：报头 / 导航 / 分类，各占一整行。
      原来报头挤在导航同一行里，375px 下"主题"那格被切掉半截，

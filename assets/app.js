@@ -14,7 +14,6 @@ const VIEWS = {
   all: { title: "全部动态" },
   hot: { title: "热点榜" },
   daily: { title: "日报" },
-  topics: { title: "主题" },
 };
 
 /* 精选按"事件"读，不按"稿件"读。
@@ -227,7 +226,7 @@ function renderRail() {
     btn.addEventListener("click", () => {
       state.tag = state.tag === tag ? "all" : tag;
       state.limit = PAGE_SIZE;
-      go(state.view === "daily" || state.view === "topics" ? "all" : state.view);
+      go(state.view === "daily" ? "all" : state.view);
     });
     el.cats.appendChild(btn);
   }
@@ -279,10 +278,11 @@ function applyRoute(firstLoad, keepScroll) {
   const meta = VIEWS[state.view];
   el.title.textContent = state.tag !== "all" ? `${meta.title} · ${state.tag}` : meta.title;
 
-  /* 精选是按分数挑出来的几件事，不按栏目分，所以侧栏的分类整块收起来——
-     摆在那却点不动最糟。全部动态、热点榜、日报这些要筛的时候再出现。
-     已经选了分类（精选退成时间流）时也留着，否则没法切回去。 */
-  el.catRail.hidden = state.view === "pick" && state.tag === "all";
+  /* 分类是给"翻找"用的，只在该翻找的视图里出现：全部动态、热点榜。
+     精选是按事件挑出来的几件事，栏目在那一屏帮不上忙——一条稿经常同时
+     属于两三个栏目，摆出来只让人分心。日报是按天回看的流水，同理。
+     已经选了某个分类（精选因此退成时间流）时保留，否则没法切回去。 */
+  el.catRail.hidden = state.tag === "all" && state.view !== "all" && state.view !== "hot";
 
   for (const btn of el.navItems) {
     btn.setAttribute("aria-current", String(btn.dataset.view === state.view));
@@ -318,10 +318,6 @@ function applyRoute(firstLoad, keepScroll) {
     el.board.hidden = true;
     el.board.innerHTML = "";
     renderDaily(rows);
-  } else if (state.view === "topics") {
-    el.board.hidden = true;
-    el.board.innerHTML = "";
-    renderTopics(rows);
   }
 
   if (!keepScroll) window.scrollTo({ top: 0, behavior: firstLoad ? "auto" : "smooth" });
@@ -670,12 +666,11 @@ function renderLead(group) {
   const foot = document.createElement("div");
   foot.className = "lead-f";
   const leadStamp = lead.published_at || lead.fetched_at;
-  [
-    FD.primaryTag(lead),
-    lead.source_name,
-    stampShort(leadStamp),
-    eventNote(group),
-  ]
+  /* 精选不标分类。栏目是抓取侧按词打出来的，粗且会漂——
+     "蒙牛终止与姆巴佩合作"被打成政策法规就是现成例子。
+     放在最贵的头条位上，一个标错的分类比不标更伤。
+     分类只在"全部动态"里出现，那里读者本来就在按栏目找东西。 */
+  [lead.source_name, stampShort(leadStamp), eventNote(group)]
     .filter(Boolean)
     .forEach((text, i) => {
       if (i) foot.appendChild(dotSpan());
@@ -932,7 +927,11 @@ function renderFeed(rows) {
 
     const meta = document.createElement("div");
     meta.className = "it-m";
-    meta.appendChild(tagChip(item));
+    /* 分类只在「全部动态」里出现。精选是按事件挑出来的几件事，
+       读者在那一屏要判断"要不要点开"，不是"它属于哪个栏目"；
+       每行前面挂一个"政策法规"只是把视线从标题上拽走。
+       日报同理——那是按天回看的流水，分类在侧栏已经能筛。 */
+    if (state.view === "all") meta.appendChild(tagChip(item));
     const src = document.createElement("span");
     src.className = "src";
     src.textContent = item.source_name || "未知来源";
@@ -1186,11 +1185,6 @@ function renderDaily(rows) {
     }
     const words = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
 
-    /* 分类分布 */
-    const cats = new Map();
-    for (const it of dayRows) for (const t of it.tags || []) cats.set(t, (cats.get(t) || 0) + 1);
-    const catList = [...cats.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-
     const box = document.createElement("section");
     box.className = "daily";
 
@@ -1214,18 +1208,6 @@ function renderDaily(rows) {
         kw.appendChild(span);
       }
       body.appendChild(kw);
-    }
-
-    if (catList.length) {
-      const cat = document.createElement("div");
-      cat.className = "daily-cat";
-      for (const [t, n] of catList) {
-        const span = document.createElement("span");
-        span.dataset.tag = t; // 借分类色，日报里一眼看出各栏目的构成
-        span.innerHTML = `${FD.escapeHtml(t)} <b>${n}</b>`;
-        cat.appendChild(span);
-      }
-      body.appendChild(cat);
     }
 
     const list = document.createElement("ul");
@@ -1265,77 +1247,6 @@ function renderDaily(rows) {
 }
 
 /* ------------------------------------------------------------ 主题 */
-
-const TOPIC_DESC = {
-  质量安全: "召回、抽检不合格、污染物与微生物事件",
-  政策法规: "配方注册、国标、海关与跨境监管口径",
-  跨境电商: "保税、正面清单、关税与渠道变化",
-  供应链: "奶源、原奶价格、乳清与乳铁蛋白等原料",
-  市场数据: "财报、市占率、价格与销量走势",
-  品牌动态: "新品、并购、人事与渠道动作",
-  海外动态: "海外市场、监管机构与跨国乳企",
-  行业动态: "其余与行业相关的内容",
-};
-
-function renderTopics(rows) {
-  const groups = new Map();
-  for (const item of rows) {
-    // 只按主分类归组：一条稿只出现在一个主题卡片里，卡片上的条数之和
-    // 等于总条数。原来遍历全部 tags，同一条会同时挂在两三个主题下。
-    const t = FD.primaryTag(item);
-    if (!groups.has(t)) groups.set(t, []);
-    groups.get(t).push(item);
-  }
-  const sorted = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
-  if (!sorted.length) {
-    el.status.textContent = "还没有可归类的主题。";
-    return;
-  }
-
-  const grid = document.createElement("div");
-  grid.className = "topic-grid";
-
-  for (const [tag, list] of sorted) {
-    const box = document.createElement("div");
-    box.className = "topic";
-
-    const head = document.createElement("div");
-    head.className = "topic-head";
-    head.innerHTML =
-      `<span class="topic-name">${FD.escapeHtml(tag)}</span>` +
-      `<span class="topic-n">${list.length} 条</span>`;
-    const go = document.createElement("a");
-    go.className = "topic-go";
-    go.href = "?view=all&tag=" + encodeURIComponent(tag);
-    go.textContent = "查看全部 →";
-    head.appendChild(go);
-    box.appendChild(head);
-
-    if (TOPIC_DESC[tag]) {
-      const desc = document.createElement("div");
-      desc.className = "topic-desc";
-      desc.textContent = TOPIC_DESC[tag];
-      box.appendChild(desc);
-    }
-
-    const ul = document.createElement("ul");
-    const latest = dedupeByTitle(list.slice().sort(newestFirst)).slice(0, 4);
-    for (const it of latest) {
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.href = FD.articleHref(it.id);
-      a.textContent = it.title_zh || it.title || "";
-      li.appendChild(a);
-      ul.appendChild(li);
-    }
-    box.appendChild(ul);
-    grid.appendChild(box);
-  }
-
-  el.view.appendChild(grid);
-  el.more.hidden = true;
-  el.status.textContent = `共 ${sorted.length} 个主题。点右上角进入该主题的全部条目。`;
-}
 
 /* ------------------------------------------------------------ 交互 */
 
