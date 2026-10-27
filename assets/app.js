@@ -401,7 +401,7 @@ function eventEntities(text) {
 }
 
 function eventStamp(item) {
-  const t = Date.parse(item.published_at || item.fetched_at || "");
+  const t = Date.parse(FD.freshTs(item) || "");
   return Number.isNaN(t) ? 0 : t;
 }
 
@@ -701,9 +701,12 @@ function renderPick(rows) {
     return;
   }
 
-  /* 头条要撑得住最贵的位置：有真实时刻、摘要够长、有要点。
+  /* 头条要撑得住最贵的位置：有可用的时间、摘要够长、有要点。
      只满足"有摘要"还不够——"XX 局公布不合格名单"这类稿件也有摘要，
-     但那是一份目录，放在头条位等于用整屏推荐一个索引页。 */
+     但那是一份目录，放在头条位等于用整屏推荐一个索引页。
+     "有可用的时间"走 freshTs：只给日期不给时刻的源会被规整成当天零点，
+     拿 published_at 判就等于把这类稿子全挡在头条外——可"蒙牛终止与
+     姆巴佩合作"这种当天突发正好是这种源，被挡掉才是真损失。 */
   const freshEnough = (g) => {
     const t = eventStamp(g.main);
     return t > 0 && Date.now() - t <= 72 * 36e5;
@@ -711,7 +714,7 @@ function renderPick(rows) {
   const strong = events.filter(
     (g) =>
       freshEnough(g) &&
-      FD.hasTime(g.main.published_at) &&
+      FD.hasTime(FD.freshTs(g.main)) &&
       (g.main.summary || "").length >= 60 &&
       (g.main.points || []).length >= 2,
   );
@@ -1079,7 +1082,18 @@ function renderHot(rows) {
     el.more.hidden = true;
     return;
   }
-  const all = dedupeByTitle(rows).sort((a, b) => (b._heat || 0) - (a._heat || 0));
+  /* 同一件事常被两三家媒体各写一条（有时同一家自己发两条），
+     逐条排会在榜上占掉两三个位置，读者看到的就是"这榜很重复"。
+     先按事件归组，每组只留热度最高那条当代表；组内还有几条记在
+     alsoOf 里，在 meta 上写成"另 N 篇"，信息不丢，位置不浪费。 */
+  const groups = clusterEvents(rows);
+  const alsoOf = new Map();
+  const all = groups
+    .map((g) => {
+      if (g.items.length > 1) alsoOf.set(g.main.id, g.items.length - 1);
+      return g.main;
+    })
+    .sort((a, b) => (b._heat || 0) - (a._heat || 0));
   const sorted = all.slice(0, HOT_MAX);
   const list = document.createElement("div");
   list.className = "ranklist";
@@ -1100,9 +1114,18 @@ function renderHot(rows) {
     t.textContent = item.title_zh || item.title || "";
     const meta = document.createElement("div");
     meta.className = "rank-meta";
-    /* 没有发布时间就写抓到的时刻，不加"收录于"——读者要看的是时间本身 */
-    const when = item.published_at ? FD.timeAgo(item.published_at) : FD.hm(item.fetched_at);
-    meta.textContent = [item.source_name, (item.tags || [])[0], when].filter(Boolean).join(" · ");
+    /* 时间走 freshTs：只给日期不给时刻的稿子，管线会把它规整成当天零点，
+       直接印出来就成了"十五小时前"，其实上午才发生。 */
+    const when = FD.timeAgo(FD.freshTs(item));
+    const also = alsoOf.get(item.id) || 0;
+    meta.textContent = [
+      item.source_name,
+      (item.tags || [])[0],
+      when,
+      also ? `另 ${also} 篇` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
     main.appendChild(t);
     main.appendChild(meta);
 
@@ -1120,8 +1143,8 @@ function renderHot(rows) {
   el.more.hidden = true;
   const formula = "热度 = 新鲜度 + 分类权重（召回、监管优先）+ 信息完整度，由规则算分，不涉及模型生成";
   el.status.textContent = all.length > HOT_MAX
-    ? `Top ${sorted.length}（候选 ${all.length} 条，其余见「全部动态」）。${formula}。`
-    : `共 ${sorted.length} 条，按热度排序。${formula}。`;
+    ? `Top ${sorted.length}（候选 ${all.length} 件事，其余见「全部动态」）。${formula}。`
+    : `共 ${sorted.length} 件事，按热度排序。${formula}。`;
 }
 
 /* ------------------------------------------------------------ 日报 */

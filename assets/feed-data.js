@@ -202,12 +202,26 @@
   }
 
   /**
+   * 新鲜度的时间基准。
+   * 有些源只给日期不给时刻，管线把它规整成当天 00:00——有时还会标
+   * published_guessed，有时不标（源自己就吐了 `…T00:00:00`）。
+   * 拿这个假零点去算，今天上午十点发生的新闻在榜上就成了"十五小时前"——
+   * 白丢一档时间分（+44 变 +30），看上去还不新鲜。抓到的时刻虽然晚于
+   * 真实发布，但比"当天零点"更接近真相，用它兜底。
+   */
+  FEED.freshTs = function (item) {
+    const p = (item && item.published_at) || "";
+    if (p && !item.published_guessed && FEED.hasTime(p)) return p;
+    return (item && item.fetched_at) || p;
+  };
+
+  /**
    * 热度分：新鲜度为主，分类权重次之，再看信息完整度。
    * 目的不是"科学排序"，而是让当天真正要紧的事浮在前面——
    * 召回/监管这类错过代价高的内容，比一条品牌软文更值得占据榜首。
    */
   FEED.heat = function (item, tagCounts) {
-    const t = Date.parse(item.published_at || item.fetched_at || "");
+    const t = Date.parse(FEED.freshTs(item) || "");
     const known = !Number.isNaN(t);
     const hours = known ? Math.max(0, (Date.now() - t) / 36e5) : 0;
     let h = 38;
@@ -241,9 +255,15 @@
     const tagCounts = {};
     for (const it of items) for (const t of it.tags || []) tagCounts[t] = (tagCounts[t] || 0) + 1;
     const scored = items.map((it) => ({ item: it, heat: FEED.heat(it, tagCounts) }));
+    /* 同分时比时间。不能比字符串：ISO 串带时区偏移，`…T21:30+08:00` 字典序
+       排在 `…T14:00+00:00` 之后，可它其实更早。解析成毫秒比。 */
+    const ts = (it) => {
+      const t = Date.parse(FEED.freshTs(it) || "");
+      return Number.isNaN(t) ? 0 : t;
+    };
     const byHeat = (a, b) => {
       if (b.heat !== a.heat) return b.heat - a.heat;
-      return (b.item.published_at || "") > (a.item.published_at || "") ? 1 : -1;
+      return ts(b.item) - ts(a.item);
     };
     scored.sort(byHeat);
 
