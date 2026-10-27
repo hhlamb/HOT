@@ -508,7 +508,7 @@ button[hidden], [hidden] { display: none !important; }
    全站唯一会提"重复"的地方，所以给它一点存在感——左侧一道竖线，
    读起来像编者按，不像又一行统计数字。 */
 .pick-sum {
-  margin: 0 0 4px;
+  margin: 0 0 14px;
   padding: 2px 0 2px 12px;
   border-left: 2px solid var(--line-strong);
   font-size: 12.5px;

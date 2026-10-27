@@ -688,8 +688,10 @@ function renderPick(rows) {
   if (recentEvents) {
     const sum = document.createElement("p");
     sum.className = "pick-sum";
+    /* 不写"近 24 小时"：页头那行已经说过一次，重复一遍像两个口径在打架。
+       这句话只为交代一件事——下面是一格一件事，不是一篇稿一格。 */
     sum.textContent =
-      `近 24 小时 ${recentRows.length} 篇报道，去掉同一件事的重复报道后是 ${recentEvents} 件。`;
+      `${recentRows.length} 篇报道归成 ${recentEvents} 件事，同一件事的多家报道只占一格。`;
     el.board.insertBefore(sum, el.board.firstChild);
   }
 
