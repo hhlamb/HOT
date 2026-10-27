@@ -1,9 +1,14 @@
 /* ============================================================
-   奶链雷达 · MILK RADAR
+   白鲸 · BELUGA
    ------------------------------------------------------------
-   版式：左侧固定竖栏（导航 + 分类）+ 右侧内容区。
-   取向：白纸底、极细边框、靠留白和字重做层级，不用阴影堆装饰。
-   尺寸用 clamp，手机上侧栏收成顶部横向条，不出现横向滚动。
+   版式：左侧固定竖栏 + 右侧内容区。内容区自上而下三层——
+     状态层（更新时间 / 今日条数 / 信源）
+     判断层（一个头条 + 四条要闻，仅精选页）
+     记录层（时间脊 + 条目）
+   取向：白纸底、无卡片边框、靠留白与字阶做层级，不用阴影堆装饰。
+   时间不是装饰，是骨架：左侧 60px 是页边注（日期数字挂在上面，
+   每条的时刻挂在每一行），轴心线只提示顺序，同一分钟涌进多条时
+   才点一个实心节点——那个点是"事件"，不是圆点阵。
    ============================================================ */
 
 :root {
@@ -14,7 +19,7 @@
   --surface-3: #eeece6;
   --ink: #14160f;
   --ink-2: #41453e;
-  /* 次级文字也要过 WCAG AA 4.5:1。原来 --muted #83877f 在纸底纸上只有 3.27、
+  /* 次级文字也要过 WCAG AA 4.5:1。原来 --muted #83877f 在纸底上只有 3.27、
      --faint #a8aca4 只有 2.06，摘要和时间戳看着"发虚"，是真实的读不清，
      不只是审美问题。这里压深一档，最低 4.72（--faint 在 --surface-2 上）。 */
   --muted: #5c605a;   /* 5.73 : 1 on #f4f2ed */
@@ -44,7 +49,11 @@
   --radius: 12px;
   --radius-sm: 8px;
   --rail-w: 226px;
-  --content-w: 902px;
+  /* 840 不是随手挑的：中文摘要 13.5px 时一行约 40 字，超过 40 字眼睛开始漂。
+     902px 让每行到了 55 字，读三行就想跳。 */
+  --content-w: 840px;
+  /* 左侧页边注宽度。日期数字、时刻、轴心线都挂在这一栏里 */
+  --gutter: 60px;
   --shadow-sm: 0 1px 2px rgba(20, 22, 15, .05);
   --shadow: 0 1px 2px rgba(20, 22, 15, .05), 0 10px 28px -20px rgba(20, 22, 15, .28);
 
@@ -54,17 +63,17 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0e100f;
-  --rail: #131615;
-  --surface: #161918;
-  --surface-2: #1d2120;
-  --surface-3: #242827;
+  --bg: #111413;
+  --rail: #141716;
+  --surface: #191d1b;
+  --surface-2: #1d2220;
+  --surface-3: #262b29;
   --ink: #eceee9;
   --ink-2: #c2c6bf;
-  --muted: #a3a89f;   /* 7.30 : 1 on #0e100f，暗底上要更亮才读得清 */
-  --faint: #8b908a;   /* 5.44 : 1 on #0e100f */
-  --line: #262b29;
-  --line-strong: #3a403d;
+  --muted: #a3a89f;   /* 7.30 : 1 on #111413，暗底上要更亮才读得清 */
+  --faint: #8b908a;   /* 5.44 : 1 on #111413 */
+  --line: #2c322f;
+  --line-strong: #3f4642;
   --accent: #4fd1b8;
   --accent-ink: #6fe0c9;
   --accent-soft: #16302c;
@@ -92,7 +101,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.62;
   -webkit-font-smoothing: antialiased;
 }
@@ -120,8 +129,8 @@ button[hidden], [hidden] { display: none !important; }
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px 14px 16px 18px;
+  gap: 20px;
+  padding: 24px 14px 18px 20px;
   background: var(--rail);
   border-right: 1px solid var(--line);
   overflow-y: auto;
@@ -135,7 +144,7 @@ button[hidden], [hidden] { display: none !important; }
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 2px 4px 16px;
+  padding: 2px 4px 2px;
 }
 .brand .mark { width: 28px; height: 28px; flex: none; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
@@ -156,83 +165,123 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--faint);
   font-family: var(--font-num);
 }
-.brand-en::before { content: ""; }
 
 .rail-group { display: flex; flex-direction: column; gap: 2px; }
 .rail-label {
-  font-size: 11px;
-  letter-spacing: .1em;
+  font-size: 10.5px;
+  letter-spacing: .14em;
   color: var(--faint);
   padding: 0 8px 7px;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
+/* 导航：选中态不再用"白底盒子 + 阴影"（那是在侧栏里又画了一张卡片），
+   改成左侧 2px 主色条 + 文字加深 —— 它长在栏上，不是浮在栏上。 */
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 9px;
-  border-radius: var(--radius-sm);
+  padding: 7px 8px;
+  border-radius: 7px;
   color: var(--ink-2);
-  font-size: 14px;
-  border: 1px solid transparent;
+  font-size: 13.8px;
+  border: 0;
   cursor: pointer;
   background: none;
   text-align: left;
   width: 100%;
   transition: background .13s, color .13s;
 }
-.nav-item svg { width: 16px; height: 16px; flex: none; opacity: .72; }
+.nav-item svg { width: 15px; height: 15px; flex: none; opacity: .6; }
 .nav-item:hover { background: var(--surface-3); color: var(--ink); }
-.nav-item[aria-current="true"] {
-  background: var(--surface);
-  border-color: var(--line);
-  color: var(--ink);
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-}
+.nav-item[aria-current="true"] { background: var(--surface-3); color: var(--ink); font-weight: 600; }
 .nav-item[aria-current="true"] svg { opacity: 1; color: var(--accent); }
+.nav-item[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
 .nav-item .n {
   margin-left: auto;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--faint);
   font-family: var(--font-num);
 }
-.nav-item[aria-current="true"] .n { color: var(--accent); }
 
-.rail-sep { height: 1px; background: var(--line); margin: 4px 8px; }
+.rail-sep { height: 1px; background: var(--line); margin: 2px 8px; }
 
-/* 分类列表：竖排，小圆点前缀 */
-.cat-list { display: flex; flex-direction: column; gap: 1px; }
+/* 分类：名字 + 计数 + 一条按占比伸缩的细条。
+   八个数字没有共同量纲，读完不知道今天哪类变多；细条把同一个总数画了八次，
+   扫一眼就能看出重心。 */
+.cat-list { display: flex; flex-direction: column; gap: 3px; }
 .cat-item {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 6px 9px;
-  border-radius: 7px;
-  font-size: 13.5px;
+  padding: 5px 8px 6px;
+  border-radius: 6px;
+  font-size: 13px;
   color: var(--ink-2);
   background: none;
-  border: 1px solid transparent;
+  border: 0;
   cursor: pointer;
   text-align: left;
   width: 100%;
+  transition: background .13s, color .13s;
 }
-.cat-item::before {
+.cat-item:hover { background: var(--surface-3); color: var(--ink); }
+.cat-item[aria-current="true"] { color: var(--ink); font-weight: 600; background: var(--surface-2); }
+.cat-item[aria-current="true"]::before {
   content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--dot, var(--accent));
+}
+
+.cat-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.cat-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--line-strong);
   flex: none;
-  transition: background .13s;
+  background: var(--dot, var(--line-strong));
+  opacity: .85;
 }
-.cat-item:hover { background: var(--surface-3); color: var(--ink); }
-.cat-item[aria-current="true"] { color: var(--ink); font-weight: 600; background: var(--surface); border-color: var(--line); box-shadow: var(--shadow-sm); }
-.cat-item[aria-current="true"]::before { background: var(--accent); }
-.cat-item .n { margin-left: auto; font-size: 11px; color: var(--faint); font-family: var(--font-num); }
+.cat-item .n {
+  font-size: 11px;
+  color: var(--faint);
+  font-family: var(--font-num);
+  padding-left: 8px;
+}
+.cat-bar {
+  grid-column: 1 / -1;
+  height: 2px;
+  margin-top: 5px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cat-bar i {
+  display: block;
+  height: 100%;
+  background: var(--dot, var(--accent));
+  opacity: .62;
+  border-radius: 2px;
+}
 
-/* 每个分类一个色点：八条规则比在 JS 里写内联样式更好维护，
+/* 每个分类一个色：八条规则比在 JS 里写内联样式更好维护，
    也保证"同一个分类在主列表、侧栏、标签处永远是同一个颜色" */
 .cat-item[data-tag="品牌动态"] { --dot: var(--c-brand); }
 .cat-item[data-tag="市场数据"] { --dot: var(--c-market); }
@@ -242,8 +291,6 @@ button[hidden], [hidden] { display: none !important; }
 .cat-item[data-tag="政策法规"] { --dot: var(--c-policy); }
 .cat-item[data-tag="海外动态"] { --dot: var(--c-global); }
 .cat-item[data-tag="行业动态"] { --dot: var(--c-industry); }
-.cat-item[data-tag]::before { background: var(--dot, var(--line-strong)); opacity: .85; }
-.cat-item[data-tag][aria-current="true"]::before { background: var(--dot, var(--accent)); opacity: 1; }
 
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
 .rail-stat {
@@ -271,31 +318,57 @@ button[hidden], [hidden] { display: none !important; }
 
 /* ---------------------------------------------------------- 内容区 */
 
-.main { min-width: 0; padding: 26px 30px 64px; }
+.main { min-width: 0; padding: 34px 44px 70px; }
 .inner { max-width: var(--content-w); margin: 0 auto; }
 
-.page-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.page-title { margin: 0; font-size: 27px; font-weight: 700; letter-spacing: -.01em; }
-.page-sub { margin: 5px 0 0; font-size: 13px; color: var(--muted); }
+/* ---------------------------------------------------------- 第一层 · 状态 */
 
-.head-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.hd {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.hd-main { min-width: 0; }
+.h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+
+/* 页头那行小字。原来这里是"跨境奶粉的每一次变动，都在这里"——
+   一句口号占了最贵的位置，却没说任何事实。现在是三个可核对的数据。 */
+.hd-s {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.hd-s .d { opacity: .4; }
+.hd-s .warn { color: var(--flag); }
+/* 这个点是"数据在走"，不是报警。用主色，红色留给真正需要警觉的数字 */
+.live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
 
 .searchbox {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 7px;
   height: 34px;
   padding: 0 11px;
-  width: 248px;
+  width: 236px;
   background: var(--surface-2);
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 8px;
   color: var(--muted);
+  flex: none;
 }
 .searchbox:focus-within { background: var(--surface); border-color: var(--line-strong); }
 .searchbox svg { width: 15px; height: 15px; flex: none; }
@@ -304,163 +377,342 @@ button[hidden], [hidden] { display: none !important; }
   outline: 0;
   background: none;
   color: var(--ink);
-  font-size: 13.5px;
+  font-size: 13px;
   width: 100%;
   min-width: 0;
   padding: 0;
 }
 .searchbox input::placeholder { color: var(--faint); }
 
-/* ---------------------------------------------------------- 当前热点（Top 5） */
-
-.hotbox {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 13px 15px 6px;
-  margin-bottom: 26px;
-}
-.hotbox-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-.hotbox-head .dot-live {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--flag);
-  box-shadow: 0 0 0 3px var(--flag-soft);
-  flex: none;
-}
-.hotbox-head h2 { margin: 0; font-size: 13.5px; font-weight: 700; }
-.hotbox-head a {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.hotbox-head a:hover { color: var(--accent); }
-
-.hot-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 0;
-  border-top: 1px solid var(--line);
-}
-.hot-row:first-of-type { border-top: 0; }
-.hot-rank {
-  width: 15px;
-  flex: none;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--faint);
-  font-family: var(--font-num);
-  text-align: center;
-}
-.hot-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 13.8px;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hot-title:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.hot-tags { display: flex; align-items: center; gap: 4px; flex: none; }
-
-/* 来源徽章：用首字代替 favicon，跨境场景下不会被墙 */
-.srcbadge {
-  width: 19px;
-  height: 19px;
-  border-radius: 50%;
+/* 四个数：第一屏要回答"今天量多不多、有没有事"，
+   这四个数比一句口号有用得多 */
+.stats {
   display: grid;
-  place-items: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  flex: none;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.st { padding-left: 16px; border-left: 1px solid var(--line); }
+.st:first-child { padding-left: 0; border-left: 0; }
+.st b {
+  display: block;
+  font-family: var(--font-num);
+  font-size: 23px;
+  font-weight: 600;
   letter-spacing: -.02em;
-  border: 1.5px solid var(--surface);
+  line-height: 1.1;
 }
-.srcbadge--more {
-  background: var(--surface-3) !important;
-  color: var(--muted);
-  font-size: 8.5px;
-  font-family: var(--font-num);
+.st em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: .02em;
 }
+.st--warn b { color: var(--flag); }
 
-.hot-heat {
-  width: 56px;
-  white-space: nowrap;
-  flex: none;
-  text-align: right;
-  font-size: 12px;
+/* ---------------------------------------------------------- 第二层 · 判断 */
+
+.board { margin-top: 26px; }
+
+/* 头条是纯排版：不配图。抓来的图里海报和栏目封面太多，一旦挑错，
+   最显眼的位置就成了一块跟全站灰绿纸色打架的彩色牌子。
+   没有图，标题就得自己扛住版面——所以它比下面所有标题都大一档。 */
+.lead {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 26px 28px;
+}
+/* 暗色下纸块和背景只差几个明度，全靠一条顶部内高光把它托起来，
+   否则整块会像浮着的灰雾 */
+[data-theme="dark"] .lead { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .055); }
+.lead-txt { min-width: 0; }
+
+.kick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-num);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.kick::before { content: ""; width: 14px; height: 1px; background: var(--accent); }
+
+.lead h2 {
+  margin: 11px 0 0;
+  font-size: 26px;
+  line-height: 1.38;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+.lead h2 a:hover { color: var(--accent-ink); }
+.lead p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--ink-2); }
+.lead ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.lead li {
+  position: relative;
+  padding-left: 13px;
+  font-size: 12.8px;
+  line-height: 1.6;
   color: var(--ink-2);
 }
-.hot-heat small { color: var(--faint); font-size: 10.5px; margin-left: 2px; }
-
-/* ---------------------------------------------------------- 日期分组 / 时间轴 */
-
-.daybar {
+.lead li::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .7;
+}
+.lead-f {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--faint);
   display: flex;
+  gap: 7px;
   align-items: center;
-  gap: 8px;
-  margin: 26px 0 12px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink);
+  flex-wrap: wrap;
 }
-.daybar:first-child { margin-top: 0; }
-.daybar .week { font-weight: 400; color: var(--faint); font-size: 12px; }
-.daybar .cnt { font-weight: 400; color: var(--faint); font-size: 12px; margin-left: 2px; }
+.lead-f .d { opacity: .45; }
 
-/* 每行：左列时间 + 圆点，右列卡片 */
-.row {
-  display: grid;
-  grid-template-columns: 58px 1fr;
-  position: relative;
+/* 四条要闻：一行一条，带 01–04 编号。它们比记录层"重"，
+   重的方式不是加框，是把字号、留白、行距拉开 */
+.briefs { margin: 0; padding: 0; list-style: none; }
+.br {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--line);
 }
-.row-time {
+.br-x { min-width: 0; flex: 1; }
+.br .no {
+  width: 20px;
+  flex: none;
+  font-family: var(--font-num);
+  font-size: 11.5px;
+  color: var(--faint);
+  padding-top: 3px;
+}
+.br h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.5; }
+.br h3 a:hover { color: var(--accent-ink); }
+.br .bm {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--faint);
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.br .bm .d { opacity: .45; }
+.br .ht {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-num);
+  font-size: 11.5px;
+  color: var(--muted);
+  padding-top: 3px;
+}
+
+/* ---------------------------------------------------------- 第三层 · 记录 */
+
+/* 章节头：日期数字挂在左侧页边注上。
+   原来"10 月 26 日"整串在右边、左栏空着，才出现 74px 的错位；
+   现在左栏从上到下没有空白，那 60px 就成了"悬挂缩进"，不再是对不齐。 */
+.day {
+  display: grid;
+  grid-template-columns: var(--gutter) minmax(0, 1fr);
+  align-items: end;
+  margin: 44px 0 4px;
+}
+.day:first-child { margin-top: 30px; }
+
+.day-n { text-align: right; padding-right: 15px; line-height: 1; }
+.day-n em {
+  display: block;
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+.day-n b {
+  font-family: var(--font-num);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -.03em;
+}
+.day-t { display: flex; align-items: baseline; gap: 9px; padding: 0 0 3px 18px; min-width: 0; }
+.day-t b { font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; }
+.day-t span {
   font-size: 11.5px;
   color: var(--faint);
   font-family: var(--font-num);
-  text-align: right;
-  padding: 17px 16px 0 0;
-  position: relative;
+  white-space: nowrap;
 }
-.row-time::after {
+/* 细线从文字拉到版心右边缘，章节头才有"章"的感觉 */
+.day-t::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  margin-left: 4px;
+  align-self: center;
+  background: linear-gradient(90deg, var(--line-strong), var(--line) 50%, transparent);
+}
+
+.it { display: grid; grid-template-columns: var(--gutter) minmax(0, 1fr); position: relative; }
+/* 轴心线：一条 1px，只提示顺序。不画每行的空心圆点——
+   300 条动态配 300 个点，每个点都没有语义，就只剩噪声 */
+.it::before {
   content: "";
   position: absolute;
-  right: 4px;
-  top: 19px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--surface);
-  border: 2px solid var(--line-strong);
-}
-.row::before {
-  content: "";
-  position: absolute;
-  left: 51px;
-  top: 4px;
+  left: calc(var(--gutter) - 1px);
+  top: 0;
   bottom: 0;
   width: 1px;
   background: var(--line-strong);
-  opacity: .7;
+  opacity: .5;
 }
-.card-slot { padding: 0 0 10px 16px; min-width: 0; }
+.it:last-child::before { bottom: auto; height: 34px; }
 
-/* ---------------------------------------------------------- 卡片 */
+.it-t {
+  position: relative;
+  text-align: right;
+  padding: 19px 15px 0 0;
+  font-family: var(--font-num);
+  font-size: 12.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.it-t small { display: block; font-size: 9.5px; color: var(--faint); letter-spacing: 0; margin-top: 1px; }
+
+/* 同一分钟 ≥2 条：脊上出现一个实心节点。
+   它表示"这一刻涌进来一批"，是时间轴上唯一有情报价值的位置 */
+.it--batch::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--gutter) - 5px);
+  top: 24px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+/* 同一批的后继条目：时刻留空、行距收紧，读者自然读成"同一时刻的一组" */
+.it--in .it-b { padding-top: 2px; }
+
+.it-b { padding: 16px 0 16px 18px; border-bottom: 1px solid var(--line); }
+.it:last-child .it-b { border-bottom: 0; }
+
+.it-h { display: flex; align-items: flex-start; gap: 18px; }
+.it-x { min-width: 0; flex: 1; }
+
+.it-m {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-bottom: 6px;
+  min-width: 0;
+}
+.it-m .src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.it h3 { margin: 0; font-size: 16.5px; font-weight: 600; line-height: 1.45; letter-spacing: -.005em; }
+/* 无图行标题再大一档，让它不至于因为旁边没图而显得单薄 */
+.it--txt h3 { font-size: 17.5px; }
+.it:hover h3 a { color: var(--accent-ink); }
+
+.it-s {
+  margin: 7px 0 0;
+  font-size: 13.5px;
+  line-height: 1.72;
+  color: var(--ink-2);
+  max-width: 68ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 分类标签：去掉底色，只留一个 5px 圆点 + 灰字。
+   彩色元素一屏只允许出现这么多次，多了视线就被平均分配 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  flex: none;
+}
+.tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--c, var(--line-strong));
+}
+.tag[data-tag="品牌动态"] { --c: var(--c-brand); }
+.tag[data-tag="市场数据"] { --c: var(--c-market); }
+.tag[data-tag="质量安全"] { --c: var(--c-safety); }
+.tag[data-tag="供应链"]   { --c: var(--c-supply); }
+.tag[data-tag="跨境电商"] { --c: var(--c-cross); }
+.tag[data-tag="政策法规"] { --c: var(--c-policy); }
+.tag[data-tag="海外动态"] { --c: var(--c-global); }
+.tag[data-tag="行业动态"] { --c: var(--c-industry); }
+
+/* 全站只有"质量安全"保留底色。风险必须第一眼被看到，
+   这一条不是审美选择，是功能 */
+.tag[data-c="warn"] {
+  background: var(--flag-soft);
+  color: var(--flag);
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+.tag[data-c="warn"]::before { background: var(--flag); }
+
+/* 缩略图 */
+.thumb {
+  width: 88px;
+  height: 64px;
+  flex: none;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+  outline: 1px solid rgba(20, 22, 15, .07);
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(.86) contrast(1.02);
+}
+.thumb.is-broken { display: none; }
+
+/* ---------------------------------------------------------- 渲染工具 / 延伸阅读卡 */
+/* .card 只服务详情页的"延伸阅读"。列表侧已经不用它了——
+   一屏 300 张带边框的卡片，排下来像一张网格纸，撑不出层级。 */
 
 .card {
+  position: relative;
   display: block;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -469,19 +721,6 @@ button[hidden], [hidden] { display: none !important; }
   transition: border-color .13s, box-shadow .13s;
 }
 .card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
-
-/* 无图行：同一张插画全页只用一次，用完之后这条卡片就退成纯文字。
-   靠左侧一条 2px 分类色竖线保持视觉节奏——它是"有意的版式"，
-   不是"图没加载出来"，所以不做整块灰底占位。
-   颜色沿用文件末尾 .card:has(.card-tag…) 那套，这里只负责把线常亮；
-   选择器必须多一层 .card，否则压不过那条 hover 规则里的 opacity:0。 */
-.card.card--text { padding-left: 18px; }
-.card.card--text::before {
-  left: 8px;
-  top: 15px;
-  bottom: 15px;
-  opacity: .7;
-}
 
 .card-body { display: flex; gap: 14px; align-items: flex-start; }
 .card-main { min-width: 0; flex: 1; }
@@ -507,16 +746,6 @@ button[hidden], [hidden] { display: none !important; }
   font-weight: 600;
   flex: none;
 }
-/* 标签底色 = 分类色兑进纸色里，所以既看得出区分，又不会变成彩色糖果 */
-.card-tag[data-tag="品牌动态"] { background: color-mix(in srgb, var(--c-brand) 12%, var(--surface)); color: var(--c-brand); }
-.card-tag[data-tag="市场数据"] { background: color-mix(in srgb, var(--c-market) 12%, var(--surface)); color: var(--c-market); }
-.card-tag[data-tag="质量安全"] { background: color-mix(in srgb, var(--c-safety) 12%, var(--surface)); color: var(--c-safety); }
-.card-tag[data-tag="供应链"]   { background: color-mix(in srgb, var(--c-supply) 14%, var(--surface)); color: var(--c-supply); }
-.card-tag[data-tag="跨境电商"] { background: color-mix(in srgb, var(--c-cross) 12%, var(--surface)); color: var(--c-cross); }
-.card-tag[data-tag="政策法规"] { background: color-mix(in srgb, var(--c-policy) 12%, var(--surface)); color: var(--c-policy); }
-.card-tag[data-tag="海外动态"] { background: color-mix(in srgb, var(--c-global) 12%, var(--surface)); color: var(--c-global); }
-.card-tag[data-tag="行业动态"] { background: color-mix(in srgb, var(--c-industry) 12%, var(--surface)); color: var(--c-industry); }
-.card-tag--warn { background: var(--flag-soft); color: var(--flag); }
 
 /* 详情页：主分类实色，辅分类描边。
    一条稿常同时挂"质量安全 + 政策法规"，两个都做淡底小字，读者分不出
@@ -544,15 +773,8 @@ button[hidden], [hidden] { display: none !important; }
 .card-source { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-sep { opacity: .45; }
 
-.card h2 {
-  margin: 0;
-  font-size: 15.8px;
-  font-weight: 600;
-  line-height: 1.5;
-  letter-spacing: -.005em;
-}
+.card h2 { margin: 0; font-size: 15.5px; font-weight: 600; line-height: 1.5; letter-spacing: -.005em; }
 .card:hover h2 { color: var(--accent-ink); }
-
 .card-summary {
   margin: 6px 0 0;
   font-size: 13.4px;
@@ -564,73 +786,33 @@ button[hidden], [hidden] { display: none !important; }
   overflow: hidden;
 }
 
-.card-foot {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 9px;
-  font-size: 11.5px;
-  color: var(--faint);
-}
-.card-foot .heat { font-family: var(--font-num); color: var(--muted); }
-/* 每行左侧已经有时刻（.row-time），脚注再写一遍"3 小时前"是重复信息，
-   所以这里压到最弱；"阅读全文"反而是唯一的行为入口，不能藏到 hover 里
-   ——触屏设备根本没有 hover。 */
-.card-foot .time { color: var(--faint); font-size: 11px; }
-.card-foot .more { margin-left: auto; color: var(--muted); opacity: .85; transition: opacity .13s, color .13s; }
-.card:hover .card-foot .more { opacity: 1; color: var(--accent); }
-
-/* 缩略图 */
-.thumb {
-  width: 108px;
-  height: 76px;
-  flex: none;
-  border-radius: 9px;
-  overflow: hidden;
-  background: var(--surface-2);
-}
-.thumb img { width: 100%; height: 100%; object-fit: cover; }
-.thumb.is-broken { display: none; }
-
-/* 头条：第一张卡放大，带大图 */
-.card--lead .card-body { flex-direction: column-reverse; gap: 12px; }
-.card--lead .thumb { width: 100%; height: 190px; border-radius: 10px; }
-.card--lead h2 { font-size: 21px; line-height: 1.42; }
-.card--lead .card-summary { -webkit-line-clamp: 3; font-size: 14px; }
-
-/* 模型给的关键要点 */
-.card-points { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
-.card-points li {
-  font-size: 12.6px;
-  color: var(--ink-2);
-  padding-left: 12px;
-  position: relative;
-}
-.card-points li::before {
+/* 延伸阅读卡 hover 时左侧浮起一条分类色细线。
+   :has 选中卡片自带的第一个标签，颜色自然跟着分类走 */
+.card::before {
   content: "";
   position: absolute;
-  left: 2px;
-  top: 8px;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
+  left: -1px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
   background: var(--accent);
+  opacity: 0;
+  transition: opacity .16s ease;
 }
+.card:hover::before { opacity: .55; }
+.card:has(.card-tag[data-tag="品牌动态"])::before { background: var(--c-brand); }
+.card:has(.card-tag[data-tag="市场数据"])::before { background: var(--c-market); }
+.card:has(.card-tag[data-tag="质量安全"])::before { background: var(--c-safety); }
+.card:has(.card-tag[data-tag="供应链"])::before   { background: var(--c-supply); }
+.card:has(.card-tag[data-tag="跨境电商"])::before { background: var(--c-cross); }
+.card:has(.card-tag[data-tag="政策法规"])::before { background: var(--c-policy); }
+.card:has(.card-tag[data-tag="海外动态"])::before { background: var(--c-global); }
+.card:has(.card-tag[data-tag="行业动态"])::before { background: var(--c-industry); }
 
-/* 推荐理由 / 摘要补充条 */
-.reason {
-  margin-top: 9px;
-  padding: 8px 10px;
-  border-radius: 7px;
-  background: var(--surface-2);
-  font-size: 12.3px;
-  color: var(--muted);
-  line-height: 1.55;
-}
-.reason b { color: var(--ink-2); font-weight: 600; }
+/* ---------------------------------------------------------- 热点榜 */
 
-/* 列表视图（热点榜完整版 / 延伸阅读） */
-.ranklist { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.ranklist { display: flex; flex-direction: column; }
 .rank-item {
   display: flex;
   align-items: flex-start;
@@ -652,8 +834,24 @@ button[hidden], [hidden] { display: none !important; }
 .rank-item:nth-child(-n+4) .rank-n { color: var(--flag); }
 .rank-main { min-width: 0; flex: 1; }
 .rank-t { font-size: 14.2px; font-weight: 500; line-height: 1.55; }
-.rank-meta { margin-top: 3px; font-size: 11.5px; color: var(--faint); display: flex; gap: 7px; flex-wrap: wrap; }
-.rank-heat { width: 56px; flex: none; text-align: right; font-family: var(--font-num); font-size: 12px; color: var(--ink-2); }
+.rank-meta {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--faint);
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.rank-heat {
+  width: 56px;
+  flex: none;
+  text-align: right;
+  font-family: var(--font-num);
+  font-size: 12px;
+  color: var(--ink-2);
+  /* 热度是 2~3 位数，等宽数字才能右对齐成一列 */
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------------------------------------------------------- 日报 */
 
@@ -700,6 +898,28 @@ button[hidden], [hidden] { display: none !important; }
 .daily-more a { color: var(--muted); }
 .daily-more a:hover { color: var(--accent); }
 
+/* 日报里的分类分布：用分类色标记，比一排灰色文字更容易扫读 */
+.daily-cat span[data-tag] { position: relative; padding-left: 9px; }
+.daily-cat span[data-tag]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--dot, var(--line-strong));
+}
+.daily-cat span[data-tag="品牌动态"] { --dot: var(--c-brand); }
+.daily-cat span[data-tag="市场数据"] { --dot: var(--c-market); }
+.daily-cat span[data-tag="质量安全"] { --dot: var(--c-safety); }
+.daily-cat span[data-tag="供应链"]   { --dot: var(--c-supply); }
+.daily-cat span[data-tag="跨境电商"] { --dot: var(--c-cross); }
+.daily-cat span[data-tag="政策法规"] { --dot: var(--c-policy); }
+.daily-cat span[data-tag="海外动态"] { --dot: var(--c-global); }
+.daily-cat span[data-tag="行业动态"] { --dot: var(--c-industry); }
+
 /* ---------------------------------------------------------- 主题网格 */
 
 .topic-grid {
@@ -730,7 +950,7 @@ button[hidden], [hidden] { display: none !important; }
 
 /* ---------------------------------------------------------- 状态 / 页脚 */
 
-.status { color: var(--muted); font-size: 13px; padding: 18px 0; text-align: center; }
+.status { color: var(--muted); font-size: 12.5px; padding: 18px 0; text-align: center; }
 .status code {
   background: var(--surface-2);
   padding: 1px 5px;
@@ -741,7 +961,7 @@ button[hidden], [hidden] { display: none !important; }
 
 .skeleton {
   height: 92px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.3s ease infinite;
@@ -759,7 +979,7 @@ button[hidden], [hidden] { display: none !important; }
   margin: 22px 0 6px;
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--surface);
   color: var(--muted);
   font-size: 13px;
@@ -768,11 +988,11 @@ button[hidden], [hidden] { display: none !important; }
 .more-btn:hover { border-color: var(--line-strong); color: var(--ink); }
 
 .site-footer {
-  margin-top: 40px;
+  margin-top: 46px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 11.8px;
+  font-size: 11.5px;
   line-height: 1.7;
 }
 .site-footer p { margin: 0 0 5px; }
@@ -824,7 +1044,12 @@ button[hidden], [hidden] { display: none !important; }
 .hero-img img { width: 100%; max-height: 380px; object-fit: cover; }
 .hero-img figcaption { padding: 7px 10px; font-size: 11.5px; color: var(--faint); border-top: 1px solid var(--line); }
 
-.rule { height: 1px; background: var(--line); margin: 22px 0; }
+/* 分隔线向右渐隐，比一根等号似的实线更像排版线 */
+.rule {
+  height: 1px;
+  margin: 22px 0;
+  background: linear-gradient(90deg, var(--line-strong), var(--line) 42%, transparent);
+}
 
 .section-label {
   font-size: 11.5px;
@@ -950,108 +1175,7 @@ button[hidden], [hidden] { display: none !important; }
 .extend-item .x-t { min-width: 0; flex: 1; }
 .extend-item .x-t small { display: block; color: var(--faint); font-size: 11.5px; margin-top: 2px; }
 
-/* ---------------------------------------------------------- 手机 */
-
-@media (max-width: 1000px) {
-  .main { padding: 18px 18px 56px; }
-}
-
-@media (max-width: 860px) {
-  :root { --rail-w: 0px; }
-
-  .shell { grid-template-columns: minmax(0, 1fr); }
-
-  .rail {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    height: auto;
-    max-height: none;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 7px;
-    gap: 8px;
-    padding: 9px 12px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-  }
-  .rail::-webkit-scrollbar { display: none; }
-
-  .brand { padding: 0 8px 0 0; flex: none; }
-  .brand .mark { width: 22px; height: 22px; }
-  .brand-cn { font-size: 15px; }
-  .brand-en { display: none; }
-
-  /* 两组导航各占一整行，横向滑动，不挤在同一排里 */
-  .rail-group { flex-direction: row; gap: 4px; width: 100%; overflow-x: auto; scrollbar-width: none; }
-  .rail-group::-webkit-scrollbar { display: none; }
-  .rail-group:first-of-type { width: auto; flex: 1; }
-  .rail-label, .rail-sep, .rail-foot { display: none; }
-  .cat-list { flex-direction: row; gap: 4px; }
-
-  .nav-item {
-    width: auto;
-    flex: none;
-    white-space: nowrap;
-    padding: 6px 10px;
-    font-size: 13px;
-  }
-  .nav-item svg { width: 14px; height: 14px; }
-  .nav-item .n { display: none; }
-
-  .cat-item {
-    width: auto;
-    flex: none;
-    white-space: nowrap;
-    padding: 5px 10px;
-    font-size: 12.6px;
-    border: 1px solid var(--line);
-  }
-  .cat-item::before { display: none; }
-  .cat-item .n { display: none; }
-
-  .page-head { flex-wrap: wrap; gap: 10px; }
-  .page-title { font-size: 21px; }
-  .head-actions { margin-left: 0; width: 100%; }
-  .searchbox { width: 100%; }
-
-  .hotbox { padding: 11px 12px 4px; }
-  .hot-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .hot-tags { display: none; }
-
-  .row { grid-template-columns: 1fr; }
-  .row-time { display: none; }
-  .row::before { display: none; }
-  .card-slot { padding-left: 0; }
-
-  .card-summary { -webkit-line-clamp: 3; }
-  .thumb { width: 78px; height: 58px; }
-  .card--lead .thumb { height: 200px; }
-  .card h2 { font-size: 15px; }
-  .card--lead h2 { font-size: 18.5px; }
-
-  .origin { flex-direction: column; align-items: stretch; gap: 11px; }
-  .origin .btn-primary { margin-left: 0; justify-content: center; }
-
-  .article h1 { font-size: 22px; }
-  .body-text { font-size: 15px; }
-  .hero-img img { max-height: 220px; }
-}
-
-/* 打印：只要正文 */
-@media print {
-  .rail, .card-foot, .origin, .more-btn, .searchbox { display: none !important; }
-  .shell { display: block; }
-  body { font-size: 12pt; }
-}
-
-/* ------------------------------------------------------------
-   详情页：AI 归纳标注 / 事件脉络
-   ------------------------------------------------------------ */
+/* 详情页：AI 归纳标注 / 事件脉络 */
 
 .label-tag {
   display: inline-block;
@@ -1133,21 +1257,12 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--faint);
 }
 
-@media (max-width: 640px) {
-  .tl-item { grid-template-columns: 1fr; gap: 3px; }
-  .tl-date { padding-top: 0; }
-  .tl-src { grid-column: 1; }
-}
-
 /* 分类主题插画（矢量示意图，非原文配图）
    统一 960×612（1.569:1），线宽用 non-scaling-stroke 锁在 1.5 CSS 像素，
-   所以缩到 108×76 的列表缩略图里线依然是一条实线，不会被压没。
+   所以缩到列表缩略图里线依然是一条实线，不会被压没。
    详情页大图按原始比例整体铺，不做任何裁切。 */
-.thumb--topic img { opacity: .97; }
 .thumb--topic { background: var(--paper-figure); }
 .hero-img--topic { background: var(--paper-figure); }
-.hero-img--topic figcaption::before { content: ""; }
-
 .hero-img--topic img {
   width: 100%;
   height: auto;
@@ -1170,125 +1285,147 @@ button[hidden], [hidden] { display: none !important; }
 /* 卡通位图不能反相——整张会变成负片。暗色下压暗压饱和，保留原配色，
    但要压够，否则米白底在深色页里就是一块亮斑 */
 [data-theme="dark"] .thumb--topic img.is-art,
-[data-theme="dark"] .hero-img--art img {
-  filter: brightness(.55) saturate(.82);
+[data-theme="dark"] .thumb img {
+  filter: brightness(.6) saturate(.8);
   opacity: .95;
 }
-/* 头条卡是 contain，图片两侧露出的容器底色要跟压暗后的纸色对齐，否则是一道深边 */
-[data-theme="dark"] .card--lead .thumb--topic { background: #7b766f; }
+[data-theme="dark"] .thumb { outline-color: rgba(255, 255, 255, .08); }
 
+/* ---------------------------------------------------------- 手机 */
 
-/* ------------------------------------------------------------
-   细节：克制的"高级感"
-   ------------------------------------------------------------ */
-
-/* 分隔线向右渐隐，比一根等号似的实线更像排版线 */
-.rule { background: linear-gradient(90deg, var(--line-strong), var(--line) 42%, transparent); }
-
-/* 卡片 hover 时左侧浮起一条分类色细线。
-   :has 选中卡片自带的第一个标签，颜色自然跟着分类走 */
-.card { position: relative; }
-.card::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: 14px;
-  bottom: 14px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--accent);
-  opacity: 0;
-  transition: opacity .16s ease;
+@media (max-width: 1000px) {
+  .main { padding: 24px 28px 64px; }
+  .lead { grid-template-columns: minmax(0, 1fr) 210px; }
 }
-.card:hover::before { opacity: .55; }
-.card:has(.card-tag[data-tag="品牌动态"])::before { background: var(--c-brand); }
-.card:has(.card-tag[data-tag="市场数据"])::before { background: var(--c-market); }
-.card:has(.card-tag[data-tag="质量安全"])::before { background: var(--c-safety); }
-.card:has(.card-tag[data-tag="供应链"])::before   { background: var(--c-supply); }
-.card:has(.card-tag[data-tag="跨境电商"])::before { background: var(--c-cross); }
-.card:has(.card-tag[data-tag="政策法规"])::before { background: var(--c-policy); }
-.card:has(.card-tag[data-tag="海外动态"])::before { background: var(--c-global); }
-.card:has(.card-tag[data-tag="行业动态"])::before { background: var(--c-industry); }
-
-/* 页头右下角一条极短的品牌渐变，收住标题区 */
-.page-head { position: relative; }
-.page-head::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -10px;
-  width: 46px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--accent), var(--gold));
-  opacity: .55;
-}
-
-/* "当前热点"左侧用金色竖条，与热榜呼应 */
-.hotbox { position: relative; }
-
-/* 侧栏底色做一道极淡的纵向渐变，跟右侧白纸区分开层次又不出现色块 */
-.rail { background: linear-gradient(180deg, var(--rail) 0%, var(--rail) 62%, var(--bg) 100%); }
-
-/* 热点盒左侧一条金色渐隐竖条，和热榜的琥珀呼应 */
-.hotbox::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 13px;
-  bottom: 13px;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--gold), transparent);
-  opacity: .7;
-}
-
-/* 头条卡片的大图。示意图是 1.569:1，塞进 3.8:1 的横幅里用 cover 会只剩中间一条，
-   所以改 contain：整张图缩进纸色底，两侧留白与图底色同色，看不出接缝。 */
-.card--lead .thumb { height: 250px; }
-.card--lead .thumb--topic img { object-fit: contain; }
-
-/* ------------------------------------------------------------
-   手机端收尾
-   ------------------------------------------------------------ */
 
 @media (max-width: 860px) {
-  /* 分类条横向滚动，但右侧被硬切看着像少了几个栏目。
-     加一道渐隐 + 右侧留白，让人知道还能往右滑。 */
-  .cat-list {
-    padding-right: 22px;
-    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
-    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+  :root { --rail-w: 0px; --gutter: 46px; }
+
+  .shell { grid-template-columns: minmax(0, 1fr); }
+
+  /* 侧栏收成顶部横条 */
+  .rail {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: auto;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 6px;
+    gap: 8px;
+    padding: 9px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--rail);
+    overflow: visible;
   }
-  /* 缩小一点内边距，一行能多露一个分类 */
-  .cat-item { padding: 6px 8px; font-size: 13px; }
-  .cat-item .n { display: none; }
+
+  .brand { padding: 0 8px 0 0; flex: none; }
+  .brand .mark { width: 22px; height: 22px; }
+  .brand-cn { font-size: 15px; }
+  .brand-en { display: none; }
+
+  /* 两组导航各占一整行，横向滑动，不挤在同一排里 */
+  .rail-group { flex-direction: row; gap: 4px; width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .rail-group::-webkit-scrollbar { display: none; }
+  .rail-group:first-of-type { width: auto; flex: 1; }
+  .rail-label, .rail-sep, .rail-foot { display: none; }
+  .cat-list { flex-direction: row; gap: 4px; }
+
+  .nav-item {
+    width: auto;
+    flex: none;
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  .nav-item svg { width: 14px; height: 14px; }
+  .nav-item .n { display: none; }
+  .nav-item[aria-current="true"]::before { display: none; }
+
+  .cat-item {
+    display: flex;
+    width: auto;
+    flex: none;
+    white-space: nowrap;
+    padding: 5px 10px;
+    font-size: 12.6px;
+    border-radius: 6px;
+    background: var(--surface-3);
+  }
+  .cat-dot, .cat-bar, .cat-item .n { display: none; }
+  .cat-item[aria-current="true"] { background: var(--accent-soft); color: var(--accent-ink); }
+  .cat-item[aria-current="true"]::before { display: none; }
+
+  /* 横滑到边缘时右侧被硬切，看着像"少了几个栏目"。导航和分类两行都要渐隐，
+     否则读者不知道右边还有内容 */
+  .rail-group:first-of-type,
+  .cat-list {
+    padding-right: 24px;
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
+  }
+
+  .main { padding: 20px 16px 56px; }
+
+  .hd { flex-wrap: wrap; align-items: flex-start; gap: 12px; padding-bottom: 14px; }
+  .h1 { font-size: 23px; }
+  .searchbox { width: 100%; margin-left: 0; }
+
+  .stats { grid-template-columns: repeat(2, 1fr); row-gap: 14px; }
+  .st:nth-child(3) { padding-left: 0; border-left: 0; }
+  .st b { font-size: 20px; }
+
+  .lead { padding: 18px 16px; }
+  .lead h2 { font-size: 20px; }
+  .lead p { font-size: 13px; }
+
+  .br { gap: 10px; padding: 12px 0; }
+  .br h3 { font-size: 14.2px; }
+  .br .ht { display: none; }
+
+  .day-n b { font-size: 21px; }
+  .day-n em { font-size: 9.5px; }
+  .day-t { padding-left: 14px; gap: 7px; }
+  .day-t b { font-size: 13.5px; }
+  .day-t span { font-size: 10.5px; }
+
+  .it-t { font-size: 11.5px; padding: 19px 11px 0 0; }
+  .it-t small { display: none; }
+  .it-b { padding-left: 14px; }
+  .it h3 { font-size: 15.2px; }
+  .it--txt h3 { font-size: 16px; }
+  .it-s { font-size: 13px; -webkit-line-clamp: 2; }
+  .it-h { gap: 13px; }
+  .thumb { width: 70px; height: 56px; }
+  .it--batch::after { left: calc(var(--gutter) - 5px); }
+
+  .origin { flex-direction: column; align-items: stretch; gap: 11px; }
+  .origin .btn-primary { margin-left: 0; justify-content: center; }
+
+  .article h1 { font-size: 22px; }
+  .body-text { font-size: 15px; }
+  .hero-img img { max-height: 220px; }
 
   /* 原文信息表在窄屏改成两列，四列会挤成一团 */
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 
-/* 日报里的分类分布：用分类色标记，比一排灰色文字更容易扫读 */
-.daily-cat span[data-tag] { position: relative; padding-left: 9px; }
-.daily-cat span[data-tag]::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--dot, var(--line-strong));
+@media (max-width: 640px) {
+  .tl-item { grid-template-columns: 1fr; gap: 3px; }
+  .tl-date { padding-top: 0; }
+  .tl-src { grid-column: 1; }
 }
-.daily-cat span[data-tag="品牌动态"] { --dot: var(--c-brand); }
-.daily-cat span[data-tag="市场数据"] { --dot: var(--c-market); }
-.daily-cat span[data-tag="质量安全"] { --dot: var(--c-safety); }
-.daily-cat span[data-tag="供应链"]   { --dot: var(--c-supply); }
-.daily-cat span[data-tag="跨境电商"] { --dot: var(--c-cross); }
-.daily-cat span[data-tag="政策法规"] { --dot: var(--c-policy); }
-.daily-cat span[data-tag="海外动态"] { --dot: var(--c-global); }
-.daily-cat span[data-tag="行业动态"] { --dot: var(--c-industry); }
+
+/* 打印：只要正文 */
+@media print {
+  .rail, .briefs, .thumb, .origin, .more-btn, .searchbox, .stats { display: none !important; }
+  .shell { display: block; }
+  body { font-size: 12pt; }
+}
 
 /* ============================================================
    窄屏悬浮主题切换
@@ -1296,7 +1433,7 @@ button[hidden], [hidden] { display: none !important; }
    手机上侧栏被压成一条横向滚动条，.rail-foot 整体隐藏，
    侧栏底部那个切换按钮就点不到了——等于手机上没有深色模式入口。
    这里单独挂一个右下角悬浮按钮，只在 ≤860px 出现。
-   位置避开了滚动到底时的版权页脚：贴右下 16px，半透明描边，
+   位置避开了滚动到底时的版权页脚：贴右下 14px，半透明描边，
    不抢内容，但一直够得着。
    ============================================================ */
 .theme-float { display: none; }
