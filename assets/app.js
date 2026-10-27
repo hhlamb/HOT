@@ -369,6 +369,14 @@ function filtered() {
 /* 判断层：一个头条 + 四条要闻。
    原来这里是"当前热点 Top5"的带框列表——只说了什么热，没说他为什么值得看。
    现在头条给出摘要与要点，剩下四条压成一行一条，三秒能扫完。 */
+/* 只给日期、没给时刻的稿子（管线会把它规整成当天 00:00）。
+   这些短行里宁可整段省掉，也别印一个看起来像真时间的 00:00——
+   头条摘要下面那一行本来就很挤，多一个日期反而更堵。 */
+function stampShort(iso) {
+  if (!iso || !FD.hasTime(iso)) return "";
+  return FD.hm(iso);
+}
+
 function renderBoard(rows) {
   el.board.innerHTML = "";
   if (state.query.trim() || state.tag !== "all" || !rows.length) {
@@ -434,7 +442,7 @@ function renderBoard(rows) {
   const foot = document.createElement("div");
   foot.className = "lead-f";
   const leadStamp = lead.published_at || lead.fetched_at;
-  const bits = [FD.primaryTag(lead), lead.source_name, FD.hm(leadStamp)];
+  const bits = [FD.primaryTag(lead), lead.source_name, stampShort(leadStamp)];
   if (lead._heat) bits.push("热度 " + lead._heat);
   bits.filter(Boolean).forEach((text, i) => {
     if (i) foot.appendChild(dotSpan());
@@ -470,7 +478,7 @@ function renderBoard(rows) {
       const bm = document.createElement("div");
       bm.className = "bm";
       const when = item.published_at || item.fetched_at;
-      [item.source_name, FD.primaryTag(item), FD.hm(when)]
+      [item.source_name, FD.primaryTag(item), stampShort(when)]
         .filter(Boolean)
         .forEach((text, k) => {
           if (k) bm.appendChild(dotSpan());
@@ -905,7 +913,7 @@ function renderDaily(rows) {
       const li = document.createElement("li");
       const at = document.createElement("span");
       at.className = "at";
-      at.textContent = FD.hm(it.published_at || it.fetched_at);
+      at.textContent = stampShort(it.published_at || it.fetched_at);
       const a = document.createElement("a");
       a.href = FD.articleHref(it.id);
       a.textContent = it.title_zh || it.title || "";
