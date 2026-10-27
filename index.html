@@ -97,6 +97,13 @@ try {
           </svg>
           <input id="search" type="search" placeholder="搜索标题、摘要或来源" autocomplete="off" spellcheck="false" aria-label="搜索资讯">
         </label>
+        <!-- 手机上搜索框默认收起，藏在这枚按钮后面：搜索是低频动作，
+             常驻一整行会白白吃掉首屏四十多像素 -->
+        <button class="search-mini" type="button" id="search-mini" aria-label="搜索" aria-expanded="false">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <circle cx="8.6" cy="8.6" r="5.4"/><path d="M12.7 12.7 16.5 16.5" stroke-linecap="round"/>
+          </svg>
+        </button>
       </header>
 
       <!-- 第二层 · 判断：一个头条 + 四条要闻（仅精选页） -->

@@ -386,6 +386,9 @@ button[hidden], [hidden] { display: none !important; }
 }
 .searchbox input::placeholder { color: var(--faint); }
 
+/* 手机上用的搜索开关，桌面端常驻搜索框，这枚按钮不出现 */
+.search-mini { display: none; }
+
 /* ---------------------------------------------------------- 第二层 · 判断 */
 
 .board { margin-top: 26px; }
@@ -1398,9 +1401,33 @@ button[hidden], [hidden] { display: none !important; }
 
   .main { padding: 20px 18px 56px; }
 
-  .hd { flex-wrap: wrap; align-items: flex-start; gap: 12px; padding-bottom: 14px; }
-  .h1 { font-size: 24px; }
-  .searchbox { width: 100%; margin-left: 0; }
+  .hd { position: relative; flex-wrap: wrap; align-items: flex-start; gap: 12px; padding-bottom: 12px; }
+  .h1 { font-size: 21px; padding-right: 44px; }
+
+  /* 搜索框默认收起，只留右上角一枚放大镜。
+     展开时它自己占一整行回来，标题和状态行不用让位。 */
+  .search-mini {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .search-mini svg { width: 16px; height: 16px; }
+  .search-mini:active { transform: scale(.94); }
+  .hd.is-searching .search-mini { color: var(--ink); border-color: var(--accent); }
+
+  .searchbox { display: none; width: 100%; margin-left: 0; }
+  .hd.is-searching .searchbox { display: flex; }
 
   .lead { padding: 18px 16px; }
   .lead h2 { font-size: 20px; }

@@ -987,6 +987,25 @@ el.search.addEventListener("input", () => {
   }, 160);
 });
 
+/* 手机端：点放大镜才展开搜索框。再点一次收起，并把已输入的关键词清掉，
+   否则"收起"之后列表还停在筛选结果里，读者会以为内容少了。 */
+const searchMini = document.getElementById("search-mini");
+if (searchMini) {
+  searchMini.addEventListener("click", () => {
+    const hd = searchMini.closest(".hd");
+    const open = hd.classList.toggle("is-searching");
+    searchMini.setAttribute("aria-expanded", String(open));
+    if (open) {
+      el.search.focus();
+    } else if (el.search.value) {
+      el.search.value = "";
+      state.query = "";
+      state.limit = PAGE_SIZE;
+      applyRoute(false, true);
+    }
+  });
+}
+
 el.more.addEventListener("click", () => {
   state.limit += PAGE_SIZE;
   applyRoute(false, true);
