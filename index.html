@@ -104,6 +104,11 @@ try {
       <!-- 第二层 · 判断：一个头条 + 四条要闻（仅精选页） -->
       <div class="board" id="board" hidden></div>
 
+      <!-- 分类筛选：只在「全部动态」出现。手机上侧栏收成顶栏、分类行让位给它，
+           所以这一行在窄屏是唯一的筛选入口；桌面和侧栏共用同一份 state.tag，
+           点哪边都同步。 -->
+      <div class="filters" id="filters" hidden></div>
+
       <!-- 第三层 · 记录：时间脊 + 条目 -->
       <div id="view" aria-live="polite"></div>
 

@@ -63,6 +63,7 @@ const el = {
   cats: document.getElementById("cats"),
   catRail: document.getElementById("rail-cats"),
   search: document.getElementById("search"),
+  filters: document.getElementById("filters"),
   title: document.getElementById("page-title"),
   live: document.getElementById("live"),
   board: document.getElementById("board"),
@@ -232,6 +233,39 @@ function renderRail() {
   }
 }
 
+/* 内容区顶部的分类筛选条：只在「全部动态」出现。
+   手机上侧栏的分类那一行被它顶掉了（顶栏已经三段，再塞一排分类会把首屏
+   吃掉一截），所以窄屏这一条就是唯一的分类入口。桌面和侧栏共用同一个
+   state.tag，点哪边都同步——两套控件状态不一致是最容易让人怀疑站坏了的地方。 */
+function renderFilters() {
+  if (!el.filters) return;
+  el.filters.innerHTML = "";
+  const sorted = Object.entries(state.tagCounts).sort((a, b) => b[1] - a[1]);
+
+  const mk = (tag, label, n) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "fchip";
+    btn.dataset.tag = tag;
+    btn.setAttribute("aria-current", String(state.tag === tag));
+    btn.appendChild(document.createTextNode(label));
+    if (n) {
+      const b = document.createElement("b");
+      b.textContent = n;
+      btn.appendChild(b);
+    }
+    btn.addEventListener("click", () => {
+      state.tag = state.tag === tag ? "all" : tag;
+      state.limit = PAGE_SIZE;
+      go(state.view);
+    });
+    el.filters.appendChild(btn);
+  };
+
+  mk("all", "全部", state.items.length);
+  for (const [tag, n] of sorted) mk(tag, tag, n);
+}
+
 function renderFoot() {
   const sources = new Set(state.items.map((i) => i.source_id)).size;
   const stamp = state.meta.last_updated || (state.items[0] && state.items[0].fetched_at) || "";
@@ -283,6 +317,15 @@ function applyRoute(firstLoad, keepScroll) {
      属于两三个栏目，摆出来只让人分心。日报是按天回看的流水，同理。
      已经选了某个分类（精选因此退成时间流）时保留，否则没法切回去。 */
   el.catRail.hidden = state.tag === "all" && state.view !== "all" && state.view !== "hot";
+
+  /* 筛选条只服务「全部动态」。其余视图的分类要么在侧栏、要么由自身版式
+     承担（热点榜每条都带栏目、日报按天分卡片），再顶一条只会重复。 */
+  if (el.filters) {
+    const on = state.view === "all";
+    el.filters.hidden = !on;
+    if (on) renderFilters();
+    else el.filters.innerHTML = "";
+  }
 
   for (const btn of el.navItems) {
     btn.setAttribute("aria-current", String(btn.dataset.view === state.view));
@@ -814,24 +857,60 @@ function tagChip(item) {
   return span;
 }
 
-/* 缩略图：只放原文真配图。抓来的封面九成是栏目图或分享卡片，
-   拿分类插画顶上，筛到单个分类时一屏全是同一张放大镜——比没有图更糟。
-   没有真图就不放图，让标题自己撑住版面（.it--txt 会把字号提一档）。 */
+/* 缩略图：三级回落，让每条都有图可看。
+     1. 原文配图 —— 同屏只认一次。重复的原文图会让人以为两条是同一件事，
+        宁可这一条不放图。
+     2. 专属示意图 assets/items/<id>.svg —— 构建时按标题/摘要生成的矢量线稿，
+        一条一张，不会撞图（只在 _site 里，不进仓库）。
+     3. 分类主题图 assets/topic/cartoon/<slug>.webp —— 8 张 AI 图，按主分类配。
+        同一张在同屏最多出现两次，再多就成了"图没加载完"的观感。
+
+   后两级是版式填充、不是新闻配图，所以加 title 说明，不给它冒充原文图的机会。
+   图挂了就整块撤掉，不留空气泡。 */
+const FILL_REPEAT = 2;
+
 function thumbFor(item) {
-  const realImg = usableImage(item);
-  if (!realImg) return null;
-  if ((usedImages.get(realImg) || 0) >= 1) return null;
-  usedImages.set(realImg, (usedImages.get(realImg) || 0) + 1);
+  let src = "";
+  let fill = false; // 是不是"版式填充图"
+
+  const real = usableImage(item);
+  if (real) {
+    if ((usedImages.get("real:" + real) || 0) >= 1) return null;
+    usedImages.set("real:" + real, 1);
+    src = real;
+  } else {
+    const own = FD.itemCover(item);
+    if (!usedImages.has("own:" + own)) {
+      usedImages.set("own:" + own, 1);
+      src = own;
+      fill = true;
+    } else {
+      const theme = FD.topicCover(item);
+      const n = usedImages.get("theme:" + theme) || 0;
+      if (n >= FILL_REPEAT) return null;
+      usedImages.set("theme:" + theme, n + 1);
+      src = theme;
+      fill = true;
+    }
+  }
 
   const box = document.createElement("div");
-  box.className = "thumb";
+  box.className = "thumb" + (fill ? " thumb--fill" : "");
+  if (fill) box.title = "分类示意图，非原文配图";
+
   const img = document.createElement("img");
-  img.src = realImg;
+  img.src = src;
   img.loading = "lazy";
   img.referrerPolicy = "no-referrer";
   img.alt = "";
-  /* 图挂了就整块撤掉，不留一个空框 */
-  img.addEventListener("error", () => box.remove());
+  /* 示意图 404 时回落到分类主题图；主题图再挂就整块撤掉，不留空框 */
+  img.addEventListener("error", () => {
+    if (!fill) return box.remove();
+    const theme = FD.topicCover(item);
+    if (img.dataset.fb || img.src.endsWith(theme)) return box.remove();
+    img.dataset.fb = "1";
+    img.src = theme;
+  });
   box.appendChild(img);
   return box;
 }
@@ -936,6 +1015,17 @@ function renderFeed(rows) {
     src.className = "src";
     src.textContent = item.source_name || "未知来源";
     meta.appendChild(src);
+
+    /* 热度只给「全部动态」看。这一屏按时间排，读者没有别的东西判断哪条
+       值得点开，分数在这里是唯一的线索；精选已经按事件挑过、热点榜本身就是
+       榜，再印一遍只会让人把它当唯一标准。 */
+    if (state.view === "all" && item._heat) {
+      const heat = document.createElement("span");
+      heat.className = "heat";
+      heat.title = "热度分 = 新鲜度 + 分类权重 + 信息完整度";
+      heat.textContent = item._heat;
+      meta.appendChild(heat);
+    }
     main.appendChild(meta);
 
     const h3 = document.createElement("h3");
@@ -950,6 +1040,23 @@ function renderFeed(rows) {
       p.className = "it-s";
       p.textContent = item.summary;
       main.appendChild(p);
+    }
+
+    /* 辅分类挂在卡片最底下，和顶部的主分类分开：主分类回答"它归哪个栏目"，
+       辅分类回答"它还牵涉什么"。只给全部动态——那一屏读者是在横着扫，
+       多一个词就多一个判断依据；精选和日报是竖着读，加这行只有噪声。 */
+    if (state.view === "all") {
+      const extra = FD.secondaryTags(item);
+      if (extra.length) {
+        const tags = document.createElement("div");
+        tags.className = "it-tags";
+        for (const t of extra) {
+          const s = document.createElement("span");
+          s.textContent = "#" + t;
+          tags.appendChild(s);
+        }
+        main.appendChild(tags);
+      }
     }
     head.appendChild(main);
 

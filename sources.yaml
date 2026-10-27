@@ -687,3 +687,30 @@ sources:
     priority: P0
     enabled: true
     note: 兜底。官网被 Cloudflare/Incapsula 挡时，NZ Herald、Stuff、RNZ 的转载仍能从这里进；与上面几家会有重复，靠标题归一化去重
+
+  # ---------- 亲子母婴媒体清单筛选（2026-10-27）----------
+  # 背景：用户给了 40 家「亲子母婴类媒体」清单，逐个探测后的取舍——
+  #   落选：育儿网/摇篮网/中国童装品牌网 本地连接失败（站点半死或被墙）；
+  #   妈妈网首页 JS 模板化，可解析链接全是社区/wiki 入口，没有新闻列表；
+  #   中国妇女网是妇联系统站，首页稿件停在 2022 年，对奶粉行业零增量；
+  #   其余（《数字化报》《消费界》《新时代周刊》母婴版等）查无独立站点，
+  #   疑似软文投放名录，无抓取入口。
+  # 最终只留两家「真实可抓 + 服务从业者决策」的：
+  - id: qinbei
+    name: 亲贝网
+    url: https://www.qinbei.com/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 清单里唯一活着且纯母婴行业的媒体（品牌融资、CBME 展会、行业白皮书）。列表 SSR 可解析，文章 URL 自带紧凑日期（/6/20250925/…，fetchers 已支持）；更新慢（每周两三篇）但垂直度高
+
+  - id: sina_baby
+    name: 新浪育儿
+    url: https://baby.sina.com.cn/
+    type: html
+    lang: zh
+    priority: P1
+    enabled: true
+    url_must_include: 'sina\.com\.cn/.*20\d{2}-\d{2}-\d{2}'
+    note: 大门户育儿频道，育儿补贴、校园餐、学前教育等政策与社会议题的一手转载，首页 SSR。只留 URL 带日期的 baby.sina.com.cn 文章；k.sina.com.cn 跳转链无发布日期，一律丢弃以免时间失真

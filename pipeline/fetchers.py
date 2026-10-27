@@ -39,6 +39,9 @@ MONTHS = {m: i + 1 for i, m in enumerate(
 DATE_URL_DIR = re.compile(r"/(20\d{2})/(\d{1,2})/(\d{1,2})(?:/|$)")
 DATE_URL_YM = re.compile(r"/(20\d{2})/(\d{1,2})(?:/|$)")
 DATE_URL_HYPHEN = re.compile(r"/(20\d{2})-(\d{2})-(\d{2})(?:/|_|-|\.|$)")
+# 亲贝网式紧凑日期：/6/20250925/1867990.shtml。8 位全数字才认，非法月份
+# （如商品 ID 12345678）会因 ValueError 被跳过，不会误判成 1234 年。
+DATE_URL_COMPACT = re.compile(r"/(20\d{2})(\d{2})(\d{2})(?:/|_|-|\.|$)")
 
 # 明显不是文章页的路径片段
 BAD_PATH = re.compile(
@@ -152,7 +155,7 @@ def parse_date_text(text: str, now: datetime) -> tuple[str, bool]:
 
 
 def _date_from_url(url: str, now: datetime) -> tuple[str, bool]:
-    for pattern, fmt in ((DATE_URL_DIR, "dmy"), (DATE_URL_HYPHEN, "dmy"), (DATE_URL_YM, "ym")):
+    for pattern, fmt in ((DATE_URL_DIR, "dmy"), (DATE_URL_HYPHEN, "dmy"), (DATE_URL_COMPACT, "dmy"), (DATE_URL_YM, "ym")):
         m = pattern.search(url)
         if not m:
             continue

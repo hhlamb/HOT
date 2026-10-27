@@ -567,6 +567,50 @@ button[hidden], [hidden] { display: none !important; }
 }
 .to-all:hover { border-color: var(--accent); color: var(--accent-ink); }
 
+/* ---------------------------------------------------------- 分类筛选条 */
+
+/* 只在「全部动态」出现。手机上侧栏的分类那一行让它顶掉了，窄屏这一条
+   就是唯一的分类入口；桌面和侧栏共用同一个 state.tag，点哪边都同步。 */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 20px;
+}
+/* display:flex 会盖掉 hidden 的默认 display:none，必须显式收回 */
+.filters[hidden] { display: none; }
+
+.fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .13s, border-color .13s, color .13s;
+}
+.fchip b {
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.fchip:hover { border-color: var(--line-strong); color: var(--ink); }
+/* 选中态是"反相"而不是加色：一屏只有一枚深色药丸，位置就是"你现在在哪" */
+.fchip[aria-current="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fchip[aria-current="true"] b { color: var(--bg); opacity: .55; }
+
 /* ---------------------------------------------------------- 第三层 · 记录 */
 
 /* 章节头：日期数字挂在左侧页边注上。
@@ -576,7 +620,7 @@ button[hidden], [hidden] { display: none !important; }
   display: grid;
   grid-template-columns: var(--gutter) minmax(0, 1fr);
   align-items: end;
-  margin: 44px 0 4px;
+  margin: 40px 0 10px;
 }
 .day:first-child { margin-top: 30px; }
 
@@ -613,7 +657,15 @@ button[hidden], [hidden] { display: none !important; }
   background: linear-gradient(90deg, var(--line-strong), var(--line) 50%, transparent);
 }
 
-.it { display: grid; grid-template-columns: var(--gutter) minmax(0, 1fr); position: relative; }
+/* 每条是一张独立的卡片，卡片之间留 10px：间距靠留白给，不靠分隔线——
+   一屏十几条横线，读起来像表格。时间脊的竖线仍然连续，它才是把一天
+   串起来的那根轴。 */
+.it {
+  display: grid;
+  grid-template-columns: var(--gutter) minmax(0, 1fr);
+  position: relative;
+  padding-bottom: 10px;
+}
 /* 轴心线：一条 1px，只提示顺序。不画每行的空心圆点——
    300 条动态配 300 个点，每个点都没有语义，就只剩噪声 */
 .it::before {
@@ -626,14 +678,14 @@ button[hidden], [hidden] { display: none !important; }
   background: var(--line-strong);
   opacity: .5;
 }
-.it:last-child::before { bottom: auto; height: 34px; }
+.it:last-child::before { bottom: auto; height: 46px; }
 
 .it-t {
   position: relative;
   text-align: right;
-  padding: 19px 15px 0 0;
+  padding: 16px 15px 0 0;
   font-family: var(--font-num);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
@@ -654,18 +706,28 @@ button[hidden], [hidden] { display: none !important; }
   content: "";
   position: absolute;
   left: calc(var(--gutter) - 5px);
-  top: 24px;
+  top: 20px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 3px var(--bg);
 }
-/* 同一批的后继条目：时刻留空、行距收紧，读者自然读成"同一时刻的一组" */
-.it--in .it-b { padding-top: 2px; }
+/* 同一批的后续条目：卡片间隙收到 5px，读成"同一时刻的一组"。
+   不再压缩卡片内边距——那会让同组里的标题高低不齐，比不做还乱。 */
+.it--in { padding-bottom: 5px; }
 
-.it-b { padding: 16px 0 16px 18px; border-bottom: 1px solid var(--line); }
-.it:last-child .it-b { border-bottom: 0; }
+.it-b {
+  padding: 14px 16px 15px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color .14s, box-shadow .14s;
+}
+.it:hover .it-b {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
 
 .it-h { display: flex; align-items: flex-start; gap: 18px; }
 .it-x { min-width: 0; flex: 1; }
@@ -680,6 +742,18 @@ button[hidden], [hidden] { display: none !important; }
   min-width: 0;
 }
 .it-m .src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 热度分压在元信息行最右：全部动态是纯时间流，读者需要一个"哪条更值得
+   点开"的线索，但它不该独占一行，也不该比标题更响 */
+.it-m .heat {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.it-m .heat::before { content: "热度 "; opacity: .65; }
 
 .it h3 { margin: 0; font-size: 16.5px; font-weight: 600; line-height: 1.45; letter-spacing: -.005em; }
 /* 无图行标题再大一档，让它不至于因为旁边没图而显得单薄 */
@@ -697,6 +771,22 @@ button[hidden], [hidden] { display: none !important; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* 辅分类：卡片最底下一行很小的 #词。
+   主分类回答"归哪个栏目"，这里回答"还牵涉什么"——一条召回稿同时是
+   质量安全和供应链，顶部只放得下一个。只在全部动态出现。 */
+.it-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--faint);
+  letter-spacing: .01em;
+}
+.it-tags span { white-space: nowrap; }
 
 /* 分类标签：去掉底色，只留一个 5px 圆点 + 灰字。
    彩色元素一屏只允许出现这么多次，多了视线就被平均分配 */
@@ -742,7 +832,7 @@ button[hidden], [hidden] { display: none !important; }
   width: 88px;
   height: 64px;
   flex: none;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--surface-2);
   outline: 1px solid rgba(20, 22, 15, .07);
@@ -753,6 +843,9 @@ button[hidden], [hidden] { display: none !important; }
   object-fit: cover;
   filter: saturate(.86) contrast(1.02);
 }
+/* 版式填充图（专属示意图 / 分类主题图）不是原文配图，让它在视觉上退一档，
+   读者不会把它当成"这张照片就是这条新闻" */
+.thumb--fill img { opacity: .92; filter: saturate(.8) contrast(1.01); }
 .thumb.is-broken { display: none; }
 
 /* ---------------------------------------------------------- 渲染工具 / 延伸阅读卡 */
@@ -1291,6 +1384,19 @@ button[hidden], [hidden] { display: none !important; }
 }
 [data-theme="dark"] .thumb { outline-color: rgba(255, 255, 255, .08); }
 
+/* 卡片化之后暗色要单独托一下：--surface(#191d1b) 与 --bg(#111413) 只差 8 个明度，
+   1px 边框在深底上本来就弱，块和底会糊在一起。给卡片加一道顶部内高光，
+   等于给纸块一个受光面，边界就出来了。 */
+[data-theme="dark"] .it-b {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045);
+}
+[data-theme="dark"] .it:hover .it-b {
+  border-color: rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+/* 选中药丸在暗色下是"浅底深字"，靠 --ink/--bg 反相自动成立，只补一点边界 */
+[data-theme="dark"] .fchip[aria-current="true"] { background: var(--ink); border-color: var(--ink); }
+
 /* ---------------------------------------------------------- 旧结构残留清理 */
 
 /* 上一版的热点榜用 .hotbox / .hot-row / .hot-heat / .srcbadge 这套类名，
@@ -1457,15 +1563,23 @@ button[hidden], [hidden] { display: none !important; }
   .day-t b { font-size: 13.5px; }
   .day-t span { font-size: 10.5px; }
 
-  .it-t { font-size: 11.5px; padding: 19px 11px 0 0; }
+  .it-t { font-size: 12px; padding: 13px 11px 0 0; }
   .it-t small { display: none; }
-  .it-b { padding: 15px 0 15px 14px; }
+  .it { padding-bottom: 8px; }
+  .it-b { padding: 12px 13px 13px; border-radius: 9px; }
   .it h3 { font-size: 15.4px; line-height: 1.56; }
   .it--txt h3 { font-size: 16.2px; }
   .it-s { font-size: 13.4px; line-height: 1.74; margin-top: 6px; }
+  .it-tags { margin-top: 8px; padding-top: 7px; font-size: 11px; gap: 8px; }
   .it-h { gap: 13px; }
   .thumb { width: 70px; height: 56px; }
-  .it--batch::after { left: calc(var(--gutter) - 5px); }
+  .it--batch::after { left: calc(var(--gutter) - 5px); top: 17px; }
+
+  /* 分类筛选条已经在内容区顶部，侧栏这一行让位：
+     顶栏三段（报头 / 导航 / 分类）在手机上吃掉的首屏太多，留两段就够。 */
+  #rail-cats { display: none !important; }
+  .filters { margin-top: 14px; }
+  .fchip { height: 28px; padding: 0 10px; font-size: 12px; }
 
   .origin { flex-direction: column; align-items: stretch; gap: 11px; }
   .origin .btn-primary { margin-left: 0; justify-content: center; }
