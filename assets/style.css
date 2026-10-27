@@ -640,11 +640,11 @@ button[hidden], [hidden] { display: none !important; }
 }
 .rank-item:hover .rank-t { color: var(--accent-ink); }
 .rank-n {
-  width: 26px;
+  width: 27px;
   flex: none;
   font-family: var(--font-num);
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 16px;
+  line-height: 1.38;
   font-weight: 700;
   color: var(--faint);
   padding-top: 1px;
