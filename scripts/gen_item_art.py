@@ -313,8 +313,9 @@ def background(tone: str, rnd: random.Random, variant: int) -> str:
             s += (f'<circle cx="{rnd.randint(56, 908)}" cy="{rnd.randint(44, 566)}" '
                   f'r="{rnd.choice([2.0, 2.5, 3.0])}" fill="{INK}" opacity=".13"/>')
     elif variant == 1:
+        # 同心弧挪到左下角：右上角留给主元素呼吸，不再有任何装饰线条
         for r in (150, 196, 242):
-            s += (f'<path d="M{888 - r} 92 A {r} {r} 0 0 1 888 {92 + r}" fill="none" '
+            s += (f'<path d="M{150 - r} 520 A {r} {r} 0 0 1 150 {520 + r}" fill="none" '
                   f'stroke="{INK}" stroke-width="1.1" opacity=".12" '
                   f'vector-effect="non-scaling-stroke"/>')
     elif variant == 2:
@@ -324,9 +325,10 @@ def background(tone: str, rnd: random.Random, variant: int) -> str:
             s += (f'<line x1="868" y1="{y}" x2="{868 + 34 - i * 3}" y2="{y}" stroke="{INK}" '
                   f'stroke-width="1.1" opacity=".16" vector-effect="non-scaling-stroke"/>')
     else:
+        # 点阵同样挪到左下，避开右上角
         for gx in range(5):
             for gy in range(4):
-                s += (f'<circle cx="{712 + gx * 42}" cy="{70 + gy * 42}" r="2.2" '
+                s += (f'<circle cx="{110 + gx * 42}" cy="{368 + gy * 42}" r="2.2" '
                       f'fill="{INK}" opacity=".14"/>')
 
     s += (f'<line x1="110" y1="524" x2="860" y2="524" stroke="{INK_SOFT}" '
@@ -335,15 +337,9 @@ def background(tone: str, rnd: random.Random, variant: int) -> str:
 
 
 def accents(tone: str, rnd: random.Random) -> str:
-    """四枚金色点缀：两段小弧 + 两个点，放在右上角，不压主体。"""
-    s = ""
-    for _ in range(2):
-        cx, cy = rnd.randint(742, 862), rnd.randint(66, 168)
-        r = rnd.randint(22, 40)
-        s += (f'<path class="gd" d="M{cx - r} {cy} A {r} {r} 0 0 1 {cx} {cy - r}"/>')
-    for _ in range(2):
-        s += f'<circle class="gb" cx="{rnd.randint(756, 872)}" cy="{rnd.randint(96, 196)}" r="3.2"/>'
-    return s
+    """已停用：右上角的金色虚线弧和金点在缩略图里显得杂乱，按用户要求去掉。
+    保留空函数是为了不动的调用点。"""
+    return ""
 
 
 def build_svg(item: dict) -> str:
