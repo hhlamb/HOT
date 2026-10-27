@@ -52,6 +52,41 @@ jobs:
         with:
           fetch-depth: 1
 
+      # 改样式、改页面根本不需要重新抓一遍新闻，但抓取和部署绑在同一个 run 里，
+      # 以前改一个字号也得陪着跑 9 分钟的抓取。这里先看这轮 push 改了什么：
+      # 只碰前端文件就跳过抓取，直接打包部署（约 2 分钟）；只要沾了抓取逻辑、
+      # 数据或配置，就老老实实全跑。定时的和手动触发的一律全跑。
+      - name: 判断这轮要不要抓新闻
+        id: gate
+        run: |
+          need="true"
+          base="${{ github.event.before }}"
+          head="${{ github.event.after }}"
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "非 push 触发（定时/手动），照常抓取"
+          elif [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "拿不到上一版提交（首次或强推），按需要抓取处理"
+          else
+            # 浅克隆只有 head 一个提交，把 base 单独拉下来才能 diff
+            git fetch --depth=1 origin "$base" >/dev/null 2>&1 || true
+            changed=$(git diff --name-only "$base" "$head" 2>/dev/null || true)
+            if [ -z "$changed" ]; then
+              echo "取不到改动清单，按需要抓取处理"
+            else
+              echo "本轮改动："
+              echo "$changed" | sed 's/^/  - /'
+              # 白名单之外只要有一个文件，就得跑完整抓取
+              outside=$(echo "$changed" | grep -vE '^(assets/|index\.html$|article\.html$|scripts/build_site\.py$|robots\.txt$)' || true)
+              if [ -z "$outside" ]; then
+                need="false"
+                echo "只动了前端，跳过抓取"
+              else
+                echo "动到了抓取/数据/配置，走完整流程"
+              fi
+            fi
+          fi
+          echo "need_fetch=$need" >> "$GITHUB_OUTPUT"
+
       - name: 安装 Python
         uses: actions/setup-python@v5
         with:
@@ -62,12 +97,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 抓取 + 清洗 + 摘要
+        if: steps.gate.outputs.need_fetch == 'true'
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: python scripts/run.py
 
       - name: 提交数据（无变化则跳过）
         id: commit
+        if: steps.gate.outputs.need_fetch == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -109,6 +146,7 @@ jobs:
       # 公开仓库连续 60 天没有提交，schedule 会被 GitHub 自动停用（很隐蔽的坑）。
       # 只在「7 天没有数据提交」时补一次心跳；内容恒定，内容不变就不会产生新 blob。
       - name: 心跳（防 60 天静默停更）
+        if: steps.gate.outputs.need_fetch == 'true'
         run: |
           mkdir -p meta
           last=$(git log -1 --format=%ct -- data/ || echo 0)
