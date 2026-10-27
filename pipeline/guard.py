@@ -328,6 +328,11 @@ BAD_IMAGE = re.compile(
     re.I,
 )
 
+# 导读/早报类稿件的"原图"是原文站的栏目封面（糖果底、日历底那种），
+# 与正文内容无关，挂在详情页只会让人疑惑。丢弃后前端回落到分类主题图。
+# 注意不要把"盘点/测评"这类正经稿子误伤——它们的图通常真是内容图。
+DIGEST_TITLE = re.compile(r"今日导读|每日早报|新闻早报|晚报|晨读|新闻一览|每日一览")
+
 
 def normalize_image(url: str) -> str:
     """配图 URL 规整：去掉明显不是配图的、把 http 升到 https。
@@ -363,6 +368,10 @@ def clean_item(item: dict, seen: dict[str, str] | None = None) -> list[str]:
 
     # 1) 配图
     img = _txt(item.get("image")).strip()
+    if img and DIGEST_TITLE.search(title):
+        item.pop("image", None)
+        notes.append("image-dropped")
+        img = ""
     fixed = normalize_image(img)
     if img and not fixed:
         item.pop("image", None)
