@@ -97,14 +97,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 抓取 + 清洗 + 摘要
-        if: steps.gate.outputs.need_fetch == 'true'
+        if: steps.gate.outputs.need_fetch != 'false'
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: python scripts/run.py
 
       - name: 提交数据（无变化则跳过）
         id: commit
-        if: steps.gate.outputs.need_fetch == 'true'
+        if: steps.gate.outputs.need_fetch != 'false'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -146,7 +146,7 @@ jobs:
       # 公开仓库连续 60 天没有提交，schedule 会被 GitHub 自动停用（很隐蔽的坑）。
       # 只在「7 天没有数据提交」时补一次心跳；内容恒定，内容不变就不会产生新 blob。
       - name: 心跳（防 60 天静默停更）
-        if: steps.gate.outputs.need_fetch == 'true'
+        if: steps.gate.outputs.need_fetch != 'false'
         run: |
           mkdir -p meta
           last=$(git log -1 --format=%ct -- data/ || echo 0)
