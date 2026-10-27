@@ -504,6 +504,55 @@ button[hidden], [hidden] { display: none !important; }
   padding-top: 3px;
 }
 
+/* 精选的补充区：一行一条，不编号也不给热度——它比要闻"轻"，
+   要闻是要读的，这里是可以略过的。标题比记录层大一点，
+   因为精选里每一条都是挑出来的，不该跟流水账一个字号。 */
+.picks { margin-top: 30px; }
+.picks-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  color: var(--faint);
+  padding-bottom: 4px;
+}
+.picks-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.pick-list { margin: 0; padding: 0; list-style: none; }
+.pk { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.pk:last-child { border-bottom: 0; }
+.pk h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.55; }
+.pk h3 a:hover { color: var(--accent-ink); }
+.pk .pm {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--faint);
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pk .pm .d { opacity: .45; }
+
+/* 精选到这儿就结束了，得有一条明显的路通向完整列表，
+   否则读者会以为"精选只有这些"。 */
+.to-all {
+  display: block;
+  width: 100%;
+  margin: 22px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .18s, color .18s;
+}
+.to-all:hover { border-color: var(--accent); color: var(--accent-ink); }
+
 /* ---------------------------------------------------------- 第三层 · 记录 */
 
 /* 章节头：日期数字挂在左侧页边注上。

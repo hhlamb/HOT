@@ -21,6 +21,13 @@ const VIEWS = {
    再多的"热点"就不再是判断，而是把记录层复制一遍。 */
 const BRIEF_COUNT = 4;
 
+/* 精选页在头条与要闻之后再加的条数。
+   精选是"今天该看什么"，不是"今天有多少"——所以它必须有尽头：
+   一屏头条、四条要闻、六条补充，看完就该去全部动态了。
+   原来精选底下直接铺完整时间脊，跟全部动态长得一模一样，
+   等于把同一个列表做了两个入口。 */
+const PICK_EXTRA = 6;
+
 const state = {
   items: [],
   meta: {},
@@ -152,8 +159,9 @@ function dotSpan() {
 /* ------------------------------------------------------------ 侧栏 */
 
 function renderRail() {
-  const today = state.items.filter((i) => withinHours(i, 24)).length;
-  document.getElementById("n-pick").textContent = today || "";
+  /* 精选不给数字：它是"挑过的十几条"，写个"21"会让人以为点进去有 21 条。
+     全部动态和日报的数是真能点开的量，留着。 */
+  document.getElementById("n-pick").textContent = "";
   document.getElementById("n-all").textContent = state.items.length;
   document.getElementById("n-hot").textContent = "";
   const days = new Set(state.items.map((i) => FD.dayKey(i.published_at || i.fetched_at))).size;
@@ -261,8 +269,15 @@ function applyRoute(firstLoad, keepScroll) {
   const rows = filtered();
 
   if (state.view === "pick") {
-    renderBoard(rows);
-    renderFeed(rows);
+    /* 筛了分类或搜了关键词，精选就退回时间流：这时候读者是在找东西，
+       推荐位只会挡住结果。 */
+    if (state.tag !== "all" || state.query.trim()) {
+      el.board.hidden = true;
+      el.board.innerHTML = "";
+      renderFeed(rows);
+    } else {
+      renderPick(rows);
+    }
   } else if (state.view === "all") {
     el.board.hidden = true;
     el.board.innerHTML = "";
@@ -285,11 +300,6 @@ function applyRoute(firstLoad, keepScroll) {
 }
 
 /* ------------------------------------------------------------ 过滤 */
-
-function withinHours(item, hours) {
-  const t = Date.parse(item.published_at || item.fetched_at || "");
-  return !Number.isNaN(t) && Date.now() - t <= hours * 36e5;
-}
 
 /* 时间倒序比较。不能比字符串：ISO 串带时区偏移，`…T21:30+08:00` 字典序
    排在 `…T14:00+00:00` 之后，可它其实更早（13:30Z）。源里 +08:00 / Z / 空
@@ -333,6 +343,12 @@ function stampShort(iso) {
   return FD.hm(iso);
 }
 
+/* 头条要的是"一件事"，不是"一份目录"。
+   "今日导读 / 早报 / 一周要闻"这类稿子标题里就写着自己是汇总，
+   放进头条位等于用最贵的位置放一个目录页。精选页各处都用这条判断。 */
+const DIGEST_RE = /今日导读|早报|晚报|周报|日报|汇总|盘点|速览|一周要闻|要闻回顾/;
+const isDigestTitle = (i) => DIGEST_RE.test(i.title_zh || i.title || "");
+
 function renderBoard(rows) {
   el.board.innerHTML = "";
   if (state.query.trim() || state.tag !== "all" || !rows.length) {
@@ -342,13 +358,7 @@ function renderBoard(rows) {
 
   const byHeat = rows.slice().sort((a, b) => (b._heat || 0) - (a._heat || 0));
 
-  /* 头条要的是"一件事"，不是"一份目录"。
-     "今日导读 / 早报 / 一周要闻"这类稿子标题里就写着自己是汇总，
-     放进头条位等于用最贵的位置放一个目录页。 */
-  const DIGEST = /今日导读|早报|晚报|周报|日报|汇总|盘点|速览|一周要闻|要闻回顾/;
-  const isDigest = (i) => DIGEST.test(i.title_zh || i.title || "");
-
-  const solid = byHeat.filter((i) => !isDigest(i));
+  const solid = byHeat.filter((i) => !isDigestTitle(i));
   const pool = solid.length >= 3 ? solid : byHeat;
   // 有摘要才撑得起头条位：只有标题的一条放在这里，下面是空的
   const withSum = pool.filter((i) => (i.summary || "").length >= 40);
@@ -454,6 +464,109 @@ function renderBoard(rows) {
   }
 
   el.board.hidden = false;
+  /* 已经占掉版面的条目，交给下面"还有这些"去避开 */
+  return new Set([lead, ...briefs].map((i) => i.id));
+}
+
+/* 精选的"还有这些"：从剩下的稿子里按热度补。
+   两条约束：
+   ① 同一个分类最多两条——否则一个类目包场，读者还是只看得到一个话题；
+   ② 同一个来源最多一条，且要闻里已经用过的来源不再出现——同一家媒体
+      用两条不同标题写同一件事（"终止与姆巴佩合作"），只看标题去重挡不住，
+      但同源会露馅。 */
+function pickExtras(rows, used, n) {
+  const pool = dedupeByTitle(rows)
+    .filter((i) => !used.has(i.id) && !isDigestTitle(i))
+    .slice()
+    .sort((a, b) => (b._heat || 0) - (a._heat || 0));
+
+  const perTag = new Map();
+  const perSrc = new Map();
+  const out = [];
+  // 要闻和头条已经占掉的来源，这里不再用
+  for (const i of rows) {
+    if (used.has(i.id)) perSrc.set(i.source_id || "?", 1);
+  }
+  const take = (it) => {
+    out.push(it);
+    used.add(it.id);
+    perSrc.set(it.source_id || "?", 1);
+  };
+
+  for (const it of pool) {
+    if (out.length >= n) break;
+    const t = FD.primaryTag(it);
+    const c = perTag.get(t) || 0;
+    if (c >= 2) continue;
+    if ((perSrc.get(it.source_id || "?") || 0) >= 1) continue;
+    perTag.set(t, c + 1);
+    take(it);
+  }
+  // 分类或来源太单一时逐个放宽，宁可有两条同类，也别让这一块空着
+  for (const it of pool) {
+    if (out.length >= n) break;
+    if (!used.has(it.id)) take(it);
+  }
+  return out;
+}
+
+/* 精选：节选，不是全部。
+   与"全部动态"的分工是"该看什么"和"有什么"：这里最多一个头条、四条要闻、
+   六条补充，看完就该走；完整时间流留给全部动态。
+   原来精选把整条时间脊也铺了一遍，两个入口点开内容几乎一样。 */
+function renderPick(rows) {
+  const used = renderBoard(rows) || new Set();
+  const extras = pickExtras(rows, used, PICK_EXTRA);
+
+  if (extras.length) {
+    const box = document.createElement("section");
+    box.className = "picks";
+
+    const head = document.createElement("div");
+    head.className = "picks-h";
+    head.textContent = "还有这些";
+    box.appendChild(head);
+
+    const ul = document.createElement("ul");
+    ul.className = "pick-list";
+    for (const item of extras) {
+      const li = document.createElement("li");
+      li.className = "pk";
+
+      const h3 = document.createElement("h3");
+      const a = document.createElement("a");
+      a.href = FD.articleHref(item.id);
+      a.textContent = item.title_zh || item.title || "（无标题）";
+      h3.appendChild(a);
+      li.appendChild(h3);
+
+      const meta = document.createElement("div");
+      meta.className = "pm";
+      [FD.primaryTag(item), item.source_name, stampShort(item.published_at || item.fetched_at)]
+        .filter(Boolean)
+        .forEach((text, i) => {
+          if (i) meta.appendChild(dotSpan());
+          meta.appendChild(document.createTextNode(text));
+        });
+      li.appendChild(meta);
+
+      ul.appendChild(li);
+    }
+    box.appendChild(ul);
+    el.view.appendChild(box);
+  }
+
+  /* 出口：精选是节选，想翻完的人必须有明确的一条路 */
+  const toAll = document.createElement("button");
+  toAll.type = "button";
+  toAll.className = "to-all";
+  toAll.textContent = `全部 ${state.items.length} 条动态 →`;
+  toAll.addEventListener("click", () => go("all"));
+  el.view.appendChild(toAll);
+
+  el.more.hidden = true;
+  /* used 里已经含头条、要闻和上面补的六条，别再相加 */
+  el.status.textContent = `看完这 ${used.size} 条就够，其余 ${state.items.length} 条都在「全部动态」。`;
 }
 
 function tagChip(item) {
