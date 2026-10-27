@@ -5,6 +5,9 @@
 
 const FD = window.FeedData;
 const PAGE_SIZE = 30;
+/* 热点榜只在精不在多：30 条以外的事，读者从"全部动态"里翻更合适。
+   榜单拉得太长会让第 40 名之后的内容显得也"很热"，反而模糊了重点。 */
+const HOT_MAX = 30;
 
 const VIEWS = {
   pick: { title: "精选", sub: "今天值得看的几条，加上最新动态" },
@@ -536,7 +539,8 @@ function renderHot(rows) {
     el.more.hidden = true;
     return;
   }
-  const sorted = dedupeByTitle(rows).sort((a, b) => (b._heat || 0) - (a._heat || 0)).slice(0, 100);
+  const all = dedupeByTitle(rows).sort((a, b) => (b._heat || 0) - (a._heat || 0));
+  const sorted = all.slice(0, HOT_MAX);
   const list = document.createElement("div");
   list.className = "ranklist";
 
@@ -573,7 +577,10 @@ function renderHot(rows) {
 
   el.view.appendChild(list);
   el.more.hidden = true;
-  el.status.textContent = `共 ${sorted.length} 条，按热度排序。热度综合新鲜度、分类权重（召回与监管优先）、是否有图与信息完整度。`;
+  const formula = "热度 = 新鲜度 + 分类权重（召回、监管优先）+ 信息完整度，由规则算分，不涉及模型生成";
+  el.status.textContent = all.length > HOT_MAX
+    ? `Top ${sorted.length}（候选 ${all.length} 条，其余见「全部动态」）。${formula}。`
+    : `共 ${sorted.length} 条，按热度排序。${formula}。`;
 }
 
 /* ------------------------------------------------------------ 日报 */
