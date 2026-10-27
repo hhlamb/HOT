@@ -468,34 +468,24 @@ function tagChip(item) {
   return span;
 }
 
-/* 缩略图：有原文配图用原文的，没有就用分类卡通图，每张全页只用一次。
-   用完不复用——同一张插画连着出现，读者会怀疑这几条是不是同一篇。 */
+/* 缩略图：只放原文真配图。抓来的封面九成是栏目图或分享卡片，
+   拿分类插画顶上，筛到单个分类时一屏全是同一张放大镜——比没有图更糟。
+   没有真图就不放图，让标题自己撑住版面（.it--txt 会把字号提一档）。 */
 function thumbFor(item) {
   const realImg = usableImage(item);
-  const key = realImg || "topic:" + FD.topicCover(item);
-  if ((usedImages.get(key) || 0) >= 1) return null;
-  usedImages.set(key, (usedImages.get(key) || 0) + 1);
+  if (!realImg) return null;
+  if ((usedImages.get(realImg) || 0) >= 1) return null;
+  usedImages.set(realImg, (usedImages.get(realImg) || 0) + 1);
 
   const box = document.createElement("div");
-  box.className = "thumb" + (realImg ? "" : " thumb--topic");
+  box.className = "thumb";
   const img = document.createElement("img");
-  img.src = realImg || FD.topicCover(item);
+  img.src = realImg;
   img.loading = "lazy";
   img.referrerPolicy = "no-referrer";
   img.alt = "";
-  if (!realImg) img.classList.add("is-art");
-
-  const fallback = () => {
-    if (!img.dataset.fb) {
-      img.dataset.fb = "1";
-      img.src = FD.topicCover(item);
-      box.classList.add("thumb--topic");
-      img.classList.add("is-art");
-    } else {
-      box.classList.add("is-broken");
-    }
-  };
-  img.addEventListener("error", fallback);
+  /* 图挂了就整块撤掉，不留一个空框 */
+  img.addEventListener("error", () => box.remove());
   box.appendChild(img);
   return box;
 }
