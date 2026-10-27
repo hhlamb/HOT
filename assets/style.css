@@ -320,6 +320,22 @@ button[hidden], [hidden] { display: none !important; }
 }
 .icon-btn:hover { color: var(--ink); border-color: var(--line-strong); }
 
+/* 触控热区外扩：视觉一点不变，可点范围变大。
+   这几枚按钮本体只有 30–34px，拇指很难按准（HIG 建议 ≥44px），
+   用透明伪元素把热区撑出来，布局零影响。 */
+.icon-btn::after, .search-mini::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+}
+/* 分类胶囊在横滑行里彼此只隔 4px，外扩 6px 会互相压住造成误触，只扩 3px */
+.cat-item::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+}
+
 /* ---------------------------------------------------------- 内容区 */
 
 .main { min-width: 0; padding: 34px 44px 70px; }
@@ -756,6 +772,9 @@ button[hidden], [hidden] { display: none !important; }
 .it-m .heat::before { content: "热度 "; opacity: .65; }
 
 .it h3 { margin: 0; font-size: 16.5px; font-weight: 600; line-height: 1.45; letter-spacing: -.005em; }
+/* 整卡可点（跳转由 app.js 委托）：移动端标题链接只有 21px 高，
+   逐字瞄准是列表类产品的典型硬伤；卡片其余区域点下去等效点标题 */
+.it, .pk { cursor: pointer; }
 /* 无图行标题再大一档，让它不至于因为旁边没图而显得单薄 */
 .it--txt h3 { font-size: 17.5px; }
 .it:hover h3 a { color: var(--accent-ink); }
@@ -1088,16 +1107,6 @@ button[hidden], [hidden] { display: none !important; }
 
 /* ---------------------------------------------------------- 详情页 */
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.8px;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
-.back:hover { color: var(--accent); }
-
 .article { max-width: 728px; }
 .article-meta {
   display: flex;
@@ -1218,8 +1227,8 @@ button[hidden], [hidden] { display: none !important; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 34px;
-  padding: 0 15px;
+  height: 40px;
+  padding: 0 17px;
   border-radius: 8px;
   background: var(--accent);
   color: #fff;
@@ -1479,7 +1488,7 @@ button[hidden], [hidden] { display: none !important; }
     width: auto;
     flex: none;
     white-space: nowrap;
-    padding: 7px 11px;
+    padding: 9px 12px;
     font-size: 13px;
     border-radius: 6px;
   }
@@ -1649,4 +1658,17 @@ button[hidden], [hidden] { display: none !important; }
     -webkit-tap-highlight-color: transparent;
   }
   .theme-float:active { transform: scale(.94); }
+}
+
+/* ---------------------------------------------------------- 宽屏收框
+   ≥1600px 时把侧栏和内容一起收进一个居中的框：1920 宽屏上原来
+   侧栏贴着屏幕最左、与居中的内容列隔着约 300px 空白，像被遗忘在角落。
+   收框后两者始终挨着，两侧留白交给页面底色。 */
+@media (min-width: 1600px) {
+  .shell {
+    max-width: 1320px;
+    margin: 0 auto;
+    border-inline: 1px solid var(--line);
+  }
+  .main { padding-inline: 56px; }
 }

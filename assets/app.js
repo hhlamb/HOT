@@ -1395,6 +1395,19 @@ el.more.addEventListener("click", () => {
   applyRoute(false, true);
 });
 
+/* 整卡可点：375px 下标题链接实测只有 21px 高，逐字瞄准太难。
+   卡片其余区域点下去等效点标题；真链接、按钮不受影响，
+   桌面上想拖选文字也不受影响（有选区时不跳转）。 */
+el.view.addEventListener("click", (e) => {
+  if (e.target.closest("a, button, input, select, textarea")) return;
+  const sel = window.getSelection && window.getSelection();
+  if (sel && String(sel)) return;
+  const card = e.target.closest(".it, .pk");
+  if (!card) return;
+  const link = card.querySelector("h3 a");
+  if (link) window.location.href = link.href;
+});
+
 for (const btn of el.navItems) {
   btn.addEventListener("click", () => {
     if (btn.dataset.view === state.view) {
