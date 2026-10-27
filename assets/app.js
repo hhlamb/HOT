@@ -5,9 +5,9 @@
 
 const FD = window.FeedData;
 const PAGE_SIZE = 30;
-/* 热点榜只在精不在多：30 条以外的事，读者从"全部动态"里翻更合适。
+/* 热点榜只在精不在多：20 条以外的事，读者从"全部动态"里翻更合适。
    榜单拉得太长会让第 40 名之后的内容显得也"很热"，反而模糊了重点。 */
-const HOT_MAX = 30;
+const HOT_MAX = 20;
 
 const VIEWS = {
   pick: { title: "精选", sub: "今天值得看的几条，加上最新动态" },
