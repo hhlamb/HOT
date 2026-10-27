@@ -1,5 +1,5 @@
 {
- "last_updated": "2026-10-27T10:55:12+00:00",
+ "last_updated": "2026-10-27T11:54:23+00:00",
  "total": 339,
  "months": [
   {
@@ -24,7 +24,7 @@
   "跨境电商"
  ],
  "sources_total": 54,
- "sources_ok": 48,
+ "sources_ok": 49,
  "with_summary": 339,
  "retention_days": 90
 }
