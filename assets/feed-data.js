@@ -287,6 +287,16 @@
     return `${p(d.getHours())}:${p(d.getMinutes())}`;
   };
 
+  /* 有些源只给日期不给时刻，管线会把它们规整成当天 00:00:00。
+     直接印 00:00 是假信息——读者会以为那批稿子真是零点发的。
+     判断依据两条：① 原串里根本没有时分；② 时分恰好是整点零点
+     （真实稿件卡在 00:00:00 的概率低到可以忽略，而日期截断一定长这样）。 */
+  FEED.hasTime = function (iso) {
+    const s = String(iso || "");
+    if (!/[T ]\d{1,2}:\d{2}/.test(s)) return false;
+    return !/[T ]00:00(:00)?(\.|Z|[+-]|$)/.test(s);
+  };
+
   FEED.mdDate = function (iso) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";

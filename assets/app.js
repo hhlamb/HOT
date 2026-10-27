@@ -555,7 +555,13 @@ function renderFeed(rows) {
   const uniq = dedupeByTitle(rows);
   const shown = uniq.slice(0, state.limit);
   const stampOf = (it) => it.published_at || it.fetched_at || "";
-  const minuteOf = (it) => FD.dayKey(stampOf(it)) + "|" + FD.hm(stampOf(it));
+  /* 有些源只给日期不给时刻，解析后统一落在 00:00。这类条目既不该在
+     脊上印一个假的 00:00，也不该跟"真的零点那一批"并成一个节点。 */
+  const hasTimeOf = (it) => FD.hasTime(stampOf(it));
+  const minuteOf = (it) =>
+    hasTimeOf(it)
+      ? FD.dayKey(stampOf(it)) + "|" + FD.hm(stampOf(it))
+      : "notime|" + (it.id || it.url || "");
 
   // 先数一遍每分钟几条，才知道哪些行要合并成一批
   const perMinute = new Map();
@@ -587,16 +593,23 @@ function renderFeed(rows) {
     const time = document.createElement("div");
     time.className = "it-t";
     if (!isIn) {
-      time.appendChild(document.createTextNode(FD.hm(stamp)));
+      const known = hasTimeOf(item);
+      time.appendChild(document.createTextNode(known ? FD.hm(stamp) : "--:--"));
       const small = document.createElement("small");
       // 批次头把"这一批几条"放在时刻下面，比"3 小时前"更有用
       small.textContent = isBatch
         ? `${same} 条`
-        : item.published_at
-          ? FD.timeAgo(item.published_at)
-          : "收录";
+        : !known
+          ? "仅日期"
+          : item.published_at
+            ? FD.timeAgo(item.published_at)
+            : "收录";
       time.appendChild(small);
-      if (stamp) time.title = FD.fmtFull(stamp);
+      if (stamp) {
+        time.title = known
+          ? FD.fmtFull(stamp)
+          : FD.mdDate(stamp) + " · 原文未标时刻";
+      }
     }
     row.appendChild(time);
 
@@ -676,7 +689,12 @@ function dayHead(iso, rows, key) {
   /* 时间轴上最值钱的是"密度"，删掉圆点阵之后要靠这行字把它换回来：
      平均 47 分钟一条是平淡，平均 3 分钟一条说明那天出事了。 */
   const parts = [`${inDay.length} 条`];
-  const ts = inDay.map(pubTs).filter((t) => t).sort((a, b) => a - b);
+  // 只拿"确实有时刻"的条目算节奏，否则一堆 00:00 会把平均间隔压成几分钟
+  const ts = inDay
+    .filter((i) => FD.hasTime(i.published_at || i.fetched_at))
+    .map(pubTs)
+    .filter((t) => t)
+    .sort((a, b) => a - b);
   if (ts.length >= 2) {
     const gapMin = Math.round((ts[ts.length - 1] - ts[0]) / 60e3 / (ts.length - 1));
     if (gapMin >= 1) {

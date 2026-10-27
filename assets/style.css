@@ -165,6 +165,8 @@ button[hidden], [hidden] { display: none !important; }
   color: var(--faint);
   font-family: var(--font-num);
 }
+/* 只在手机报头上出现的一行定位语，桌面侧栏太窄放不下 */
+.brand-sub { display: none; }
 
 .rail-group { display: flex; flex-direction: column; gap: 2px; }
 .rail-label {
@@ -1102,11 +1104,13 @@ button[hidden], [hidden] { display: none !important; }
   border: 1.5px solid var(--accent);
 }
 
-.body-text { font-size: 15.5px; line-height: 1.85; color: var(--ink-2); }
-.body-text p { margin: 0 0 15px; }
+/* 正文：中文长文最怕"糊成一片"。行距 1.88、段距跟着字号走（em 而不是 px），
+   这样换字号不会把节奏打乱；字距加一点点，中文小块字才不挤。 */
+.body-text { font-size: 15.5px; line-height: 1.88; color: var(--ink-2); letter-spacing: .012em; }
+.body-text p { margin: 0 0 1.08em; }
 /* 第一段是"读不读下去"的分水岭：提一档字号、颜色压到正文色，
    后面段落维持原样，形成落差但不靠加粗（中文加粗容易糊） */
-.body-text p:first-child { color: var(--ink); font-size: 16.4px; line-height: 1.8; }
+.body-text p:first-child { color: var(--ink); font-size: 16.4px; line-height: 1.82; }
 .body-note { margin: 14px 0 0; font-size: 12px; color: var(--faint); line-height: 1.6; }
 
 .origin {
@@ -1318,44 +1322,50 @@ button[hidden], [hidden] { display: none !important; }
 
   .shell { grid-template-columns: minmax(0, 1fr); }
 
-  /* 侧栏收成顶部横条 */
+  /* 侧栏收成顶部报头。三段竖排：报头 / 导航 / 分类，各占一整行。
+     原来报头挤在导航同一行里，375px 下"主题"那格被切掉半截，
+     而且站名被压到 15px，完全不像一个报头。 */
   .rail {
     position: sticky;
     top: 0;
     z-index: 40;
     height: auto;
     max-height: none;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 6px;
-    gap: 8px;
-    padding: 9px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    padding: 8px 14px 9px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
     background: var(--rail);
     overflow: visible;
   }
 
-  /* 手机上左侧竖栏没了，站名只剩顶栏这一处。这里不但不能缩，
-     还要放大：logo 30px、站名 18px/800、英文名保留。
-     整块是 <a href="./">，点哪儿都能回首页，高度撑到 44px 方便拇指点。 */
+  /* 报头：logo 30px + 站名 18px/800 + 英文名，右侧挂一行定位语。
+     整块是 <a href="./">，点哪儿都能回首页，高度 42px 够拇指点。 */
   .brand {
-    flex: none;
-    gap: 10px;
-    min-height: 44px;
-    padding: 0 12px 0 0;
-    margin-right: 2px;
-    border-right: 1px solid var(--line);
+    width: 100%;
+    gap: 11px;
+    min-height: 42px;
+    padding: 0 46px 8px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
     -webkit-tap-highlight-color: transparent;
   }
   .brand .mark { width: 30px; height: 30px; }
-  .brand-cn { font-size: 18px; }
+  .brand-cn { font-size: 18px; letter-spacing: .06em; }
+  .brand-sub {
+    display: block;
+    margin-left: auto;
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    color: var(--faint);
+    white-space: nowrap;
+  }
 
   /* 两组导航各占一整行，横向滑动，不挤在同一排里 */
   .rail-group { flex-direction: row; gap: 4px; width: 100%; overflow-x: auto; scrollbar-width: none; }
   .rail-group::-webkit-scrollbar { display: none; }
-  .rail-group:first-of-type { width: auto; flex: 1; }
   .rail-label, .rail-sep, .rail-foot { display: none; }
   .cat-list { flex-direction: row; gap: 4px; }
 
@@ -1363,12 +1373,21 @@ button[hidden], [hidden] { display: none !important; }
     width: auto;
     flex: none;
     white-space: nowrap;
-    padding: 6px 10px;
+    padding: 7px 11px;
     font-size: 13px;
     border-radius: 6px;
   }
-  .nav-item svg { width: 14px; height: 14px; }
+  /* 手机上去掉图标、只留文字：五个栏目加起来比 375px 只多一点点，
+     去掉 5 个 14px 图标正好全部装下，不用横滑，也不会把"主题"切半截 */
+  .nav-item svg { display: none; }
   .nav-item .n { display: none; }
+  /* 桌面用左侧竖条表示"当前在哪一屏"，手机上竖条被隐藏了，
+     改成底色——否则四个按钮长得一模一样，看不出当前视图 */
+  .nav-item[aria-current="true"] {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
   .nav-item[aria-current="true"]::before { display: none; }
 
   .cat-item {
@@ -1394,7 +1413,7 @@ button[hidden], [hidden] { display: none !important; }
     mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 28px), transparent 100%);
   }
 
-  .main { padding: 20px 16px 56px; }
+  .main { padding: 20px 18px 56px; }
 
   .hd { flex-wrap: wrap; align-items: flex-start; gap: 12px; padding-bottom: 14px; }
   .h1 { font-size: 24px; }
@@ -1423,10 +1442,10 @@ button[hidden], [hidden] { display: none !important; }
 
   .it-t { font-size: 11.5px; padding: 19px 11px 0 0; }
   .it-t small { display: none; }
-  .it-b { padding-left: 14px; }
-  .it h3 { font-size: 15.2px; }
-  .it--txt h3 { font-size: 16px; }
-  .it-s { font-size: 13px; -webkit-line-clamp: 2; }
+  .it-b { padding: 15px 0 15px 14px; }
+  .it h3 { font-size: 15.4px; line-height: 1.56; }
+  .it--txt h3 { font-size: 16.2px; }
+  .it-s { font-size: 13.4px; line-height: 1.74; margin-top: 6px; }
   .it-h { gap: 13px; }
   .thumb { width: 70px; height: 56px; }
   .it--batch::after { left: calc(var(--gutter) - 5px); }
@@ -1434,8 +1453,25 @@ button[hidden], [hidden] { display: none !important; }
   .origin { flex-direction: column; align-items: stretch; gap: 11px; }
   .origin .btn-primary { margin-left: 0; justify-content: center; }
 
-  .article h1 { font-size: 22px; }
-  .body-text { font-size: 15px; }
+  /* 手机是主阅读场景。中文正文 16px / 行距 1.95 / 段距 1.2em，
+     比桌面更松——窄屏一行只有二十来个字，行距一紧整段就糊成灰块。
+     标题也放到 25px，进正文前先有一个明确的"停顿"。 */
+  .article h1 { font-size: 25px; line-height: 1.42; letter-spacing: -.01em; }
+  .article-title-en { font-size: 12.5px; line-height: 1.6; margin-top: 10px; }
+
+  .body-text { font-size: 16px; line-height: 1.95; letter-spacing: .015em; }
+  .body-text p { margin-bottom: 1.2em; }
+  .body-text p:first-child { font-size: 16.8px; line-height: 1.9; }
+
+  .ai-box { font-size: 15px; line-height: 1.85; padding: 15px 16px; }
+  .ai-points { gap: 10px; margin-top: 13px; }
+  .ai-points li { font-size: 14.4px; line-height: 1.72; }
+  .body-note { font-size: 12.4px; line-height: 1.7; }
+
+  /* 区块之间的实分隔在手机上拉开一点，滚动时才看得出换了章节 */
+  .article > section + section { margin-top: 34px; }
+  .article > section + section::before { margin-bottom: 24px; }
+  .section-label { margin-bottom: 11px; }
   .hero-img img { max-height: 220px; }
 
   /* 原文信息表在窄屏改成两列，四列会挤成一团 */
@@ -1456,13 +1492,11 @@ button[hidden], [hidden] { display: none !important; }
 }
 
 /* ============================================================
-   窄屏悬浮主题切换
+   窄屏深浅色开关
    ------------------------------------------------------------
-   手机上侧栏被压成一条横向滚动条，.rail-foot 整体隐藏，
-   侧栏底部那个切换按钮就点不到了——等于手机上没有深色模式入口。
-   这里单独挂一个右下角悬浮按钮，只在 ≤860px 出现。
-   位置避开了滚动到底时的版权页脚：贴右下 14px，半透明描边，
-   不抢内容，但一直够得着。
+   原来挂在右下角当悬浮球，滚动时会压在摘要和缩略图上。
+   现在收进手机报头的右上角：和报头同一行，位置固定、不遮内容，
+   而且和"点站名回首页"分处两端，误触概率更低。
    ============================================================ */
 .theme-float { display: none; }
 
@@ -1470,18 +1504,16 @@ button[hidden], [hidden] { display: none !important; }
   .theme-float {
     display: grid;
     place-items: center;
-    position: fixed;
+    position: absolute;
+    top: 12px;
     right: 14px;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-    z-index: 60;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--ink-2);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
     border: 1px solid var(--line-strong);
-    box-shadow: var(--shadow);
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1;
     -webkit-tap-highlight-color: transparent;
   }

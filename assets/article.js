@@ -61,6 +61,9 @@ function splitParagraphs(text) {
 }
 
 const timeOf = (item) => item.published_at || item.fetched_at || "";
+/* 原站只给日期时，管线会把它规整成当天 00:00。这里只印日期，
+   不印一个假的"00:00"——列表页的时间脊用的是同一套判断。 */
+const pubLabel = (iso) => (FD.hasTime(iso) ? FD.fmtFull(iso) : FD.mdDate(iso));
 
 async function main() {
   const id = new URLSearchParams(location.search).get("id");
@@ -147,7 +150,7 @@ function render(item, all) {
   }
   el.meta.appendChild(text(item.source_name || "未知来源"));
   el.meta.appendChild(sepDot());
-  el.meta.appendChild(text(timeOf(item) ? FD.fmtFull(timeOf(item)) : "时间未知"));
+  el.meta.appendChild(text(timeOf(item) ? pubLabel(timeOf(item)) : "时间未知"));
   if (item.language === "en") {
     el.meta.appendChild(sepDot());
     el.meta.appendChild(text("原文为英文"));
@@ -261,7 +264,7 @@ function render(item, all) {
   /* 原文信息表 */
   const facts = [
     ["来源", item.source_name || "未知"],
-    ["发布于", timeOf(item) ? FD.fmtFull(timeOf(item)) : "时间未知"],
+    ["发布于", timeOf(item) ? pubLabel(timeOf(item)) : "时间未知"],
     ["收录于", item.fetched_at ? FD.fmtFull(item.fetched_at) : "—"],
     ["分类", (item.tags || []).join(" / ") || "未分类"],
   ];
