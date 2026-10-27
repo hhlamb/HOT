@@ -68,7 +68,7 @@ const pubLabel = (iso) => (FD.hasTime(iso) ? FD.fmtFull(iso) : FD.mdDate(iso));
 async function main() {
   const id = new URLSearchParams(location.search).get("id");
   if (!id) {
-    fail("缺少文章编号，请从列表页点进来。");
+    fail("这个链接不完整，回列表页重新点一次。");
     return;
   }
 
@@ -76,13 +76,14 @@ async function main() {
   try {
     data = await FD.loadAll();
   } catch (err) {
-    fail("数据加载失败：" + err.message);
+    console.error("[数据加载失败]", err);
+    fail("内容没能加载出来，刷新一下试试。");
     return;
   }
 
   const item = data.items.find((i) => String(i.id) === id);
   if (!item) {
-    fail("这篇文章不在最近的数据里——可能已超过 90 天保留期，或者链接被截断了。");
+    fail("没找到这篇文章，可能已经下线了。");
     return;
   }
 
@@ -248,27 +249,25 @@ function render(item, all) {
       el.body.appendChild(node);
     }
     el.bodyWrap.hidden = false;
-    const n = (item.body || "").length;
-    el.bodyNote.textContent = `以上为原文关键段落摘录，约 ${n} 字，用于判断是否值得深读；完整内容请点下方原文按钮。`;
+    el.bodyNote.textContent = "以下为原文关键段落摘录，完整内容请点下方原文。";
   } else {
     // 检索类来源（Google News 跳转、数据接口）和需要登录/纯图片的站拿不到网页正文。
     // 与其空着，不如把这一条在"事件脉络"里的位置摆出来，让人顺着看前后进展。
     const hint = document.createElement("p");
     hint.className = "body-note body-note--muted";
     hint.textContent = summaryText
-      ? "原文站点没有可直接抓取的正文（可能是图片长图、需登录或触发了反爬），上方速览是根据标题与可获得的信息做的 AI 归纳，下方可查看事件脉络与原文。"
-      : "这篇还没抓到正文，可以直接查看原文。";
+      ? "原文站点未提供正文，上方速览由 AI 根据标题与公开信息归纳，仅供参考。"
+      : "这篇暂时只有标题，可以直接查看原文。";
     el.originBox.parentNode.insertBefore(hint, el.originBox);
   }
 
-  /* 原文信息表 */
+  /* 原文信息表：只留读者判断这篇值不值得读用得上的字段。
+     "收录于""时间说明"是抓取侧的口径，读者看了只会以为是站点出错。 */
   const facts = [
     ["来源", item.source_name || "未知"],
     ["发布于", timeOf(item) ? pubLabel(timeOf(item)) : "时间未知"],
-    ["收录于", item.fetched_at ? FD.fmtFull(item.fetched_at) : "—"],
     ["分类", (item.tags || []).join(" / ") || "未分类"],
   ];
-  if (item.published_guessed) facts.push(["时间说明", "源未给准确时间，按抓取日估算"]);
   if (item.author) facts.push(["作者", item.author]);
   for (const [k, v] of facts) {
     const wrap = document.createElement("div");
@@ -283,9 +282,9 @@ function render(item, all) {
   }
   el.factsWrap.hidden = false;
 
-  /* 原文出口 */
+  /* 原文出口：只写清出处，版权声明页脚已经有一处，这里不必再说一遍 */
   const url = item.original_url || "";
-  el.originText.textContent = `原文出处：${item.source_name || "原媒体"}。本站只做聚合与摘要，版权归原媒体所有。`;
+  el.originText.textContent = `出处 · ${item.source_name || "原媒体"}`;
   if (url.startsWith("http")) el.origin.href = url;
   else el.origin.hidden = true;
 

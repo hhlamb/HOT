@@ -39,11 +39,9 @@ const el = {
   search: document.getElementById("search"),
   title: document.getElementById("page-title"),
   live: document.getElementById("live"),
-  stats: document.getElementById("stats"),
   board: document.getElementById("board"),
   railStat: document.getElementById("rail-stat"),
   theme: document.getElementById("theme-btn"),
-  footMeta: document.getElementById("foot-meta"),
   navItems: [...document.querySelectorAll(".nav-item")],
 };
 
@@ -61,11 +59,10 @@ async function load() {
   try {
     data = await FD.loadAll();
   } catch (err) {
+    /* 页面只说读者能处理的话，具体原因留控制台 */
+    console.error("[数据加载失败]", err);
     el.view.innerHTML = "";
-    el.status.innerHTML =
-      "数据加载失败：" + FD.escapeHtml(err.message) + "<br>" +
-      "如果是双击打开的，请确认 <code>data/latest.js</code> 存在；" +
-      "要看全量数据，在该目录执行 <code>python -m http.server 8000</code> 后访问 localhost:8000。";
+    el.status.textContent = "内容没能加载出来，刷新一下试试。";
     return;
   }
 
@@ -82,7 +79,7 @@ async function load() {
 
   if (!state.items.length) {
     el.view.innerHTML = "";
-    el.status.textContent = "还没有任何数据。先跑一次 python scripts/run.py 生成 data/ 目录。";
+    el.status.textContent = "暂时还没有内容，稍后再来看看。";
     return;
   }
 
@@ -97,7 +94,6 @@ async function load() {
   renderRail();
   renderFoot();
   renderLive();
-  renderStats();
   applyRoute(true);
 }
 
@@ -136,16 +132,12 @@ function renderLive() {
     el.live.appendChild(document.createTextNode(text));
   });
 
-  /* 抓取失败数只有后端给了口径才显示。没有这组字段时宁可不提，
-     也不编一个数字——这是全站唯一会让人怀疑"数据是不是缺了"的地方。 */
+  /* 源健康度只留给排障：读者看到"5 个源抓取失败"不会知道该怎么办，
+     只会怀疑站点是不是缺数据。运维口径走控制台，页面上一个数字都不出现。 */
   const total = Number(state.meta.sources_total || 0);
   const ok = Number(state.meta.sources_ok || 0);
   if (total && ok && total > ok) {
-    el.live.appendChild(dotSpan());
-    const warn = document.createElement("span");
-    warn.className = "warn";
-    warn.textContent = `${total - ok} 个源抓取失败`;
-    el.live.appendChild(warn);
+    console.info(`[源健康度] 本轮 ${ok}/${total} 个源抓取成功，失败 ${total - ok} 个`);
   }
 }
 
@@ -155,35 +147,6 @@ function dotSpan() {
   s.setAttribute("aria-hidden", "true");
   s.textContent = "·";
   return s;
-}
-
-/* 四个数：读者在第一屏要判断"今天量多不多、有没有事"，
-   这四个数比一句口号有用得多。 */
-function renderStats() {
-  const recent = recentItems();
-  const risk = recent.filter((i) => FD.primaryTag(i) === "质量安全").length;
-  const policy = recent.filter((i) => FD.primaryTag(i) === "政策法规").length;
-  const sources = new Set(state.items.map((i) => i.source_id)).size;
-
-  const cells = [
-    { v: recent.length, label: "近 24 小时" },
-    { v: risk, label: "风险提示", warn: risk > 0 },
-    { v: policy, label: "政策法规" },
-    { v: sources, label: "覆盖信源" },
-  ];
-
-  el.stats.innerHTML = "";
-  for (const c of cells) {
-    const box = document.createElement("div");
-    box.className = "st" + (c.warn ? " st--warn" : "");
-    const b = document.createElement("b");
-    b.textContent = c.v;
-    const em = document.createElement("em");
-    em.textContent = c.label;
-    box.appendChild(b);
-    box.appendChild(em);
-    el.stats.appendChild(box);
-  }
 }
 
 /* ------------------------------------------------------------ 侧栏 */
@@ -246,10 +209,9 @@ function renderFoot() {
     `已收录 <b>${state.items.length}</b> 条 · <b>${sources}</b> 个信源<br>` +
     (stamp ? `更新于 ${FD.fmtStamp(stamp)}` : "");
 
-  const parts = [`共 ${state.items.length} 条`, `保留最近 ${state.meta.retention_days || 90} 天`];
-  if (state.meta.sources_total) parts.push(`本轮源健康度 ${state.meta.sources_ok}/${state.meta.sources_total}`);
-  parts.push(`数据源 ${sources} 个`);
-  el.footMeta.textContent = parts.join(" · ");
+  /* 页脚不再出现"源健康度 x/y"、保留天数、数据源个数：
+     这些是站长的运维口径，读者只需要知道今天有几条可看。
+     收录量与信源数在状态行和侧栏已经说过一次，不必再说第二遍。 */
 }
 
 /* ------------------------------------------------------------ 路由 */
@@ -297,12 +259,6 @@ function applyRoute(firstLoad, keepScroll) {
   el.status.textContent = "";
 
   const rows = filtered();
-
-  /* 只有"按时间读"的两个视图才配得上状态层和判断层。
-     热点榜、日报、主题各自有明确的任务，再在顶上压四个数和一个头条，
-     等于三套导航同时抢注意力。 */
-  const isFeed = state.view === "pick" || state.view === "all";
-  el.stats.hidden = !isFeed;
 
   if (state.view === "pick") {
     renderBoard(rows);
@@ -602,17 +558,31 @@ function renderFeed(rows) {
     time.className = "it-t";
     if (!isIn) {
       const known = hasTimeOf(item);
-      time.appendChild(document.createTextNode(known ? FD.hm(stamp) : "--:--"));
-      const small = document.createElement("small");
-      // 批次头把"这一批几条"放在时刻下面，比"3 小时前"更有用
-      small.textContent = isBatch
-        ? `${same} 条`
-        : !known
-          ? "仅日期"
+      if (known) {
+        time.appendChild(document.createTextNode(FD.hm(stamp)));
+        const small = document.createElement("small");
+        // 批次头把"这一批几条"放在时刻下面，比"3 小时前"更有用
+        small.textContent = isBatch
+          ? `${same} 条`
           : item.published_at
             ? FD.timeAgo(item.published_at)
             : "收录";
-      time.appendChild(small);
+        time.appendChild(small);
+      } else {
+        /* 有的源只给日期不给时刻。原来这里印 "--:--"，读者的第一反应是
+           数据坏了，不会读成"这家源只有日期"。索性把话说清楚：
+           时间位写"仅日期"，字号按小字处理，不占时间的位置。 */
+        time.className = "it-t it-t--od";
+        const only = document.createElement("span");
+        only.className = "it-t-od";
+        only.textContent = "仅日期";
+        time.appendChild(only);
+        if (isBatch) {
+          const small = document.createElement("small");
+          small.textContent = `${same} 条`;
+          time.appendChild(small);
+        }
+      }
       if (stamp) {
         time.title = known
           ? FD.fmtFull(stamp)

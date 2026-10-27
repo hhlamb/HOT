@@ -386,34 +386,6 @@ button[hidden], [hidden] { display: none !important; }
 }
 .searchbox input::placeholder { color: var(--faint); }
 
-/* 四个数：第一屏要回答"今天量多不多、有没有事"，
-   这四个数比一句口号有用得多 */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  padding: 16px 0 14px;
-  border-bottom: 1px solid var(--line);
-}
-.st { padding-left: 16px; border-left: 1px solid var(--line); }
-.st:first-child { padding-left: 0; border-left: 0; }
-.st b {
-  display: block;
-  font-family: var(--font-num);
-  font-size: 23px;
-  font-weight: 600;
-  letter-spacing: -.02em;
-  line-height: 1.1;
-}
-.st em {
-  display: block;
-  margin-top: 3px;
-  font-style: normal;
-  font-size: 11px;
-  color: var(--faint);
-  letter-spacing: .02em;
-}
-.st--warn b { color: var(--flag); }
-
 /* ---------------------------------------------------------- 第二层 · 判断 */
 
 .board { margin-top: 26px; }
@@ -601,6 +573,15 @@ button[hidden], [hidden] { display: none !important; }
   letter-spacing: -.02em;
 }
 .it-t small { display: block; font-size: 9.5px; color: var(--faint); letter-spacing: 0; margin-top: 1px; }
+/* 源只给日期、没有时刻：时间位写"仅日期"（小字灰调），不再印 "--:--"。
+   读者看到横杠只会以为数据坏了，看到"仅日期"才明白是这家源本身如此。 */
+.it-t-od {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0;
+  color: var(--faint);
+  white-space: nowrap;
+}
 
 /* 同一分钟 ≥2 条：脊上出现一个实心节点。
    它表示"这一刻涌进来一批"，是时间轴上唯一有情报价值的位置 */
@@ -998,7 +979,6 @@ button[hidden], [hidden] { display: none !important; }
   line-height: 1.7;
 }
 .site-footer p { margin: 0 0 5px; }
-.foot-meta { font-family: var(--font-num); font-size: 11px; }
 
 /* ---------------------------------------------------------- 详情页 */
 
@@ -1084,6 +1064,9 @@ button[hidden], [hidden] { display: none !important; }
   border-left: 3px solid var(--accent);
   border-radius: 0 10px 10px 0;
   padding: 14px 16px;
+  /* 中文正文的习惯：首行空两格。不缩进时首行与盒子左边框齐平，
+     整段像一段被切出来的引文，读起来更吃力。 */
+  text-indent: 2em;
 }
 .ai-points { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .ai-points li {
@@ -1107,7 +1090,7 @@ button[hidden], [hidden] { display: none !important; }
 /* 正文：中文长文最怕"糊成一片"。行距 1.88、段距跟着字号走（em 而不是 px），
    这样换字号不会把节奏打乱；字距加一点点，中文小块字才不挤。 */
 .body-text { font-size: 15.5px; line-height: 1.88; color: var(--ink-2); letter-spacing: .012em; }
-.body-text p { margin: 0 0 1.08em; }
+.body-text p { margin: 0 0 1.08em; text-indent: 2em; }
 /* 第一段是"读不读下去"的分水岭：提一档字号、颜色压到正文色，
    后面段落维持原样，形成落差但不靠加粗（中文加粗容易糊） */
 .body-text p:first-child { color: var(--ink); font-size: 16.4px; line-height: 1.82; }
@@ -1419,13 +1402,6 @@ button[hidden], [hidden] { display: none !important; }
   .h1 { font-size: 24px; }
   .searchbox { width: 100%; margin-left: 0; }
 
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 0; }
-  /* 2×2 之后分隔线要重排：左列不要左边框，下面一格补上边线 */
-  .st:nth-child(odd) { padding-left: 0; border-left: 0; }
-  .st:nth-child(n + 3) { padding-top: 12px; border-top: 1px solid var(--line); }
-  .st:nth-child(-n + 2) { padding-bottom: 12px; }
-  .st b { font-size: 20px; }
-
   .lead { padding: 18px 16px; }
   .lead h2 { font-size: 20px; }
   .lead p { font-size: 13px; }
@@ -1486,7 +1462,7 @@ button[hidden], [hidden] { display: none !important; }
 
 /* 打印：只要正文 */
 @media print {
-  .rail, .briefs, .thumb, .origin, .more-btn, .searchbox, .stats { display: none !important; }
+  .rail, .briefs, .thumb, .origin, .more-btn, .searchbox { display: none !important; }
   .shell { display: block; }
   body { font-size: 12pt; }
 }
