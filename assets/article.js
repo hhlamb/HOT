@@ -39,7 +39,7 @@ const el = {
 
 FD.initTheme(el.theme);
 
-const SITE = "奶链雷达";
+const SITE = "白鲸";
 
 /** 把整段正文切成好读的段落（每段 110~150 字） */
 function splitParagraphs(text) {

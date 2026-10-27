@@ -1291,6 +1291,21 @@ button[hidden], [hidden] { display: none !important; }
 }
 [data-theme="dark"] .thumb { outline-color: rgba(255, 255, 255, .08); }
 
+/* ---------------------------------------------------------- 旧结构残留清理 */
+
+/* 上一版的热点榜用 .hotbox / .hot-row / .hot-heat / .srcbadge 这套类名，
+   新版已经不再输出。但如果浏览器里还缓存着旧 app.js（或者有人从快照
+   打开旧页面），这些节点会因为类名失效而塌成一串内联元素，其中最明显
+   的是 .srcbadge —— 它的底色是 JS 内联写上去的，于是页面上出现几个
+   带底色的实心小方块，看起来就是"绿色小字/绿块"。这里直接压掉。 */
+.hotbox,
+.hot-row,
+.hot-rank,
+.hot-heat,
+.hot-tags,
+.hot-heat small,
+.srcbadge { display: none !important; }
+
 /* ---------------------------------------------------------- 手机 */
 
 @media (max-width: 1000px) {
@@ -1322,10 +1337,20 @@ button[hidden], [hidden] { display: none !important; }
     overflow: visible;
   }
 
-  .brand { padding: 0 8px 0 0; flex: none; }
-  .brand .mark { width: 22px; height: 22px; }
-  .brand-cn { font-size: 15px; }
-  .brand-en { display: none; }
+  /* 手机上左侧竖栏没了，站名只剩顶栏这一处。这里不但不能缩，
+     还要放大：logo 30px、站名 18px/800、英文名保留。
+     整块是 <a href="./">，点哪儿都能回首页，高度撑到 44px 方便拇指点。 */
+  .brand {
+    flex: none;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px 0 0;
+    margin-right: 2px;
+    border-right: 1px solid var(--line);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .brand .mark { width: 30px; height: 30px; }
+  .brand-cn { font-size: 18px; }
 
   /* 两组导航各占一整行，横向滑动，不挤在同一排里 */
   .rail-group { flex-direction: row; gap: 4px; width: 100%; overflow-x: auto; scrollbar-width: none; }
@@ -1372,11 +1397,14 @@ button[hidden], [hidden] { display: none !important; }
   .main { padding: 20px 16px 56px; }
 
   .hd { flex-wrap: wrap; align-items: flex-start; gap: 12px; padding-bottom: 14px; }
-  .h1 { font-size: 23px; }
+  .h1 { font-size: 24px; }
   .searchbox { width: 100%; margin-left: 0; }
 
-  .stats { grid-template-columns: repeat(2, 1fr); row-gap: 14px; }
-  .st:nth-child(3) { padding-left: 0; border-left: 0; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 0; }
+  /* 2×2 之后分隔线要重排：左列不要左边框，下面一格补上边线 */
+  .st:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .st:nth-child(n + 3) { padding-top: 12px; border-top: 1px solid var(--line); }
+  .st:nth-child(-n + 2) { padding-bottom: 12px; }
   .st b { font-size: 20px; }
 
   .lead { padding: 18px 16px; }

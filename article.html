@@ -5,8 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
-<title>奶链雷达 · 跨境母婴奶粉情报</title>
+<title>白鲸 · 跨境母婴奶粉情报</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script>
+/* 深色模式必须在样式计算之前定下来。app.js 在 body 末尾才执行，
+   放那里会让暗色用户每次刷新都先看一帧白屏。 */
+try {
+  if (localStorage.getItem("milkradar-theme") === "dark") {
+    document.documentElement.dataset.theme = "dark";
+  }
+} catch (e) {}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -17,8 +26,8 @@
     <a class="brand" href="./">
       <img class="mark" src="assets/logo.svg" alt="" width="27" height="27">
       <span class="brand-text">
-        <span class="brand-cn">奶链雷达</span>
-        <span class="brand-en">Milk Radar</span>
+        <span class="brand-cn">白鲸</span>
+        <span class="brand-en">BELUGA</span>
       </span>
     </a>
 
@@ -113,7 +122,7 @@
       </section>
 
       <footer class="site-footer">
-        <p>奶链雷达是个人自用的行业信息聚合，仅呈现标题、摘要与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
+        <p>白鲸是个人自用的行业信息聚合，仅呈现标题、摘要与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
       </footer>
     </div>
   </main>

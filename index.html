@@ -7,8 +7,17 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="跨境母婴与婴幼儿配方奶粉的行业情报雷达：监管通告、品牌动态、质量召回、供应链与跨境电商政策，每 4 小时自动更新。">
-<title>奶链雷达 · 跨境母婴奶粉情报</title>
+<title>白鲸 · 跨境母婴奶粉情报</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script>
+/* 深色模式必须在样式计算之前定下来。app.js 在 body 末尾才执行，
+   放那里会让暗色用户每次刷新都先看一帧白屏。 */
+try {
+  if (localStorage.getItem("milkradar-theme") === "dark") {
+    document.documentElement.dataset.theme = "dark";
+  }
+} catch (e) {}
+</script>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -20,8 +29,8 @@
     <a class="brand" href="./">
       <img class="mark" src="assets/logo.svg" alt="" width="28" height="28">
       <span class="brand-text">
-        <span class="brand-cn">奶链雷达</span>
-        <span class="brand-en">Milk&nbsp;·&nbsp;Radar</span>
+        <span class="brand-cn">白鲸</span>
+        <span class="brand-en">BELUGA</span>
       </span>
     </a>
 
@@ -71,38 +80,33 @@
   <main class="main">
     <div class="inner">
 
-      <div class="page-head">
-        <div>
-          <h1 class="page-title" id="page-title">精选</h1>
-          <p class="page-sub" id="page-sub">跨境奶粉的每一次变动，都在这里</p>
+      <!-- 第一层 · 状态：这一屏是什么时候的、有多少东西 -->
+      <header class="hd">
+        <div class="hd-main">
+          <h1 class="h1" id="page-title">精选</h1>
+          <p class="hd-s" id="live"></p>
         </div>
-        <div class="head-actions">
-          <label class="searchbox">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-              <circle cx="8.6" cy="8.6" r="5.4"/><path d="M12.7 12.7 16.5 16.5" stroke-linecap="round"/>
-            </svg>
-            <input id="search" type="search" placeholder="搜索标题、摘要或来源" autocomplete="off" spellcheck="false" aria-label="搜索资讯">
-          </label>
-        </div>
-      </div>
+        <label class="searchbox">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <circle cx="8.6" cy="8.6" r="5.4"/><path d="M12.7 12.7 16.5 16.5" stroke-linecap="round"/>
+          </svg>
+          <input id="search" type="search" placeholder="搜索标题、摘要或来源" autocomplete="off" spellcheck="false" aria-label="搜索资讯">
+        </label>
+      </header>
 
-      <!-- 当前热点（精选页顶部） -->
-      <section class="hotbox" id="hotbox" hidden>
-        <div class="hotbox-head">
-          <span class="dot-live" aria-hidden="true"></span>
-          <h2>当前热点</h2>
-          <a href="?view=hot">完整榜单 →</a>
-        </div>
-        <div id="hotbox-list"></div>
-      </section>
+      <div class="stats" id="stats" hidden></div>
 
+      <!-- 第二层 · 判断：一个头条 + 四条要闻（仅精选页） -->
+      <div class="board" id="board" hidden></div>
+
+      <!-- 第三层 · 记录：时间脊 + 条目 -->
       <div id="view" aria-live="polite"></div>
 
       <p id="status" class="status">正在读取数据…</p>
       <button id="more-btn" class="more-btn" type="button" hidden>加载更多</button>
 
       <footer class="site-footer">
-        <p>奶链雷达是个人自用的行业信息聚合，仅呈现标题、摘要、要点与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
+        <p>白鲸是个人自用的行业信息聚合，仅呈现标题、摘要、要点与原文摘录，版权归原媒体所有；每篇均标注出处并提供原文链接。</p>
         <p id="foot-meta" class="foot-meta"></p>
       </footer>
 

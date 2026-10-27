@@ -10,12 +10,16 @@ const PAGE_SIZE = 30;
 const HOT_MAX = 20;
 
 const VIEWS = {
-  pick: { title: "精选", sub: "今天值得看的几条，加上最新动态" },
-  all: { title: "全部动态", sub: "按发布时间排，最新的在最上面" },
-  hot: { title: "热点榜", sub: "按热度排序：新鲜度、影响面、信息完整度" },
-  daily: { title: "日报", sub: "每天一屏看完整天发生了什么" },
-  topics: { title: "主题", sub: "按赛道归类，找细分类目更方便" },
+  pick: { title: "精选" },
+  all: { title: "全部动态" },
+  hot: { title: "热点榜" },
+  daily: { title: "日报" },
+  topics: { title: "主题" },
 };
+
+/* 判断层的体量：一个头条 + 四条要闻。
+   再多的"热点"就不再是判断，而是把记录层复制一遍。 */
+const BRIEF_COUNT = 4;
 
 const state = {
   items: [],
@@ -34,9 +38,9 @@ const el = {
   cats: document.getElementById("cats"),
   search: document.getElementById("search"),
   title: document.getElementById("page-title"),
-  sub: document.getElementById("page-sub"),
-  hotbox: document.getElementById("hotbox"),
-  hotboxList: document.getElementById("hotbox-list"),
+  live: document.getElementById("live"),
+  stats: document.getElementById("stats"),
+  board: document.getElementById("board"),
   railStat: document.getElementById("rail-stat"),
   theme: document.getElementById("theme-btn"),
   footMeta: document.getElementById("foot-meta"),
@@ -92,7 +96,94 @@ async function load() {
 
   renderRail();
   renderFoot();
+  renderLive();
+  renderStats();
   applyRoute(true);
+}
+
+/* ------------------------------------------------------------ 状态层 */
+
+/* 统计口径用滚动 24 小时，不用自然日。
+   自然日在凌晨和清早一定是 0 条（数据还没抓到今天的），
+   四个数字全挂 0 会让读者以为站点停了。24 小时窗口任何时候都有意义。 */
+function recentItems(hours = 24) {
+  const now = Date.now();
+  return state.items.filter((i) => {
+    const t = Date.parse(i.published_at || i.fetched_at || "");
+    return !Number.isNaN(t) && now - t <= hours * 36e5;
+  });
+}
+
+/* 页头下面那行小字：这一屏是什么时候的。
+   口号（"每一次变动都在这里"）在这里没有信息量，换成三个事实。 */
+function renderLive() {
+  const recent = recentItems();
+  const sources = new Set(state.items.map((i) => i.source_id)).size;
+  const stamp = state.meta.last_updated || (state.items[0] && state.items[0].fetched_at) || "";
+
+  el.live.innerHTML = "";
+  const dot = document.createElement("i");
+  dot.className = "live";
+  dot.setAttribute("aria-hidden", "true");
+  el.live.appendChild(dot);
+
+  const facts = [];
+  if (stamp) facts.push(`最近更新 ${FD.fmtStamp(stamp)}`);
+  facts.push(`近 24 小时 ${recent.length} 条`);
+  facts.push(`${sources} 个信源`);
+  facts.forEach((text, i) => {
+    if (i) el.live.appendChild(dotSpan());
+    el.live.appendChild(document.createTextNode(text));
+  });
+
+  /* 抓取失败数只有后端给了口径才显示。没有这组字段时宁可不提，
+     也不编一个数字——这是全站唯一会让人怀疑"数据是不是缺了"的地方。 */
+  const total = Number(state.meta.sources_total || 0);
+  const ok = Number(state.meta.sources_ok || 0);
+  if (total && ok && total > ok) {
+    el.live.appendChild(dotSpan());
+    const warn = document.createElement("span");
+    warn.className = "warn";
+    warn.textContent = `${total - ok} 个源抓取失败`;
+    el.live.appendChild(warn);
+  }
+}
+
+function dotSpan() {
+  const s = document.createElement("span");
+  s.className = "d";
+  s.setAttribute("aria-hidden", "true");
+  s.textContent = "·";
+  return s;
+}
+
+/* 四个数：读者在第一屏要判断"今天量多不多、有没有事"，
+   这四个数比一句口号有用得多。 */
+function renderStats() {
+  const recent = recentItems();
+  const risk = recent.filter((i) => FD.primaryTag(i) === "质量安全").length;
+  const policy = recent.filter((i) => FD.primaryTag(i) === "政策法规").length;
+  const sources = new Set(state.items.map((i) => i.source_id)).size;
+
+  const cells = [
+    { v: recent.length, label: "近 24 小时" },
+    { v: risk, label: "风险提示", warn: risk > 0 },
+    { v: policy, label: "政策法规" },
+    { v: sources, label: "覆盖信源" },
+  ];
+
+  el.stats.innerHTML = "";
+  for (const c of cells) {
+    const box = document.createElement("div");
+    box.className = "st" + (c.warn ? " st--warn" : "");
+    const b = document.createElement("b");
+    b.textContent = c.v;
+    const em = document.createElement("em");
+    em.textContent = c.label;
+    box.appendChild(b);
+    box.appendChild(em);
+    el.stats.appendChild(box);
+  }
 }
 
 /* ------------------------------------------------------------ 侧栏 */
@@ -105,8 +196,11 @@ function renderRail() {
   const days = new Set(state.items.map((i) => FD.dayKey(i.published_at || i.fetched_at))).size;
   document.getElementById("n-daily").textContent = days;
 
-  // 分类：按条数降序
+  /* 分类：名字 + 计数 + 一条按占比伸缩的细条。
+     原来是"色点 + 数字"，八个数字没有共同的量纲，读完不知道今天哪类变多。
+     细条把同一个总数画了八次，扫一眼就能看出重心在哪。 */
   const sorted = Object.entries(state.tagCounts).sort((a, b) => b[1] - a[1]);
+  const maxN = sorted.length ? sorted[0][1] : 1;
   el.cats.innerHTML = "";
   for (const [tag, n] of sorted) {
     const btn = document.createElement("button");
@@ -114,11 +208,28 @@ function renderRail() {
     btn.className = "cat-item";
     btn.dataset.tag = tag;
     btn.setAttribute("aria-current", String(state.tag === tag));
-    btn.appendChild(document.createTextNode(tag));
+
+    const row = document.createElement("span");
+    row.className = "cat-row";
+    const dot = document.createElement("i");
+    dot.className = "cat-dot";
+    dot.setAttribute("aria-hidden", "true");
+    row.appendChild(dot);
+    row.appendChild(document.createTextNode(tag));
     const num = document.createElement("span");
     num.className = "n";
     num.textContent = n;
-    btn.appendChild(num);
+    row.appendChild(num);
+    btn.appendChild(row);
+
+    const bar = document.createElement("span");
+    bar.className = "cat-bar";
+    const fill = document.createElement("i");
+    // 最小 6%：只有一条的分类也留一道可见的短线，否则像没渲染
+    fill.style.width = Math.max(6, Math.round((n / maxN) * 100)) + "%";
+    bar.appendChild(fill);
+    btn.appendChild(bar);
+
     btn.addEventListener("click", () => {
       state.tag = state.tag === tag ? "all" : tag;
       state.limit = PAGE_SIZE;
@@ -174,7 +285,6 @@ function go(view, keepScroll) {
 function applyRoute(firstLoad, keepScroll) {
   const meta = VIEWS[state.view];
   el.title.textContent = state.tag !== "all" ? `${meta.title} · ${state.tag}` : meta.title;
-  el.sub.textContent = meta.sub;
 
   for (const btn of el.navItems) {
     btn.setAttribute("aria-current", String(btn.dataset.view === state.view));
@@ -184,21 +294,34 @@ function applyRoute(firstLoad, keepScroll) {
   }
 
   el.view.innerHTML = "";
-  el.hotbox.hidden = true;
   el.status.textContent = "";
 
   const rows = filtered();
 
+  /* 只有"按时间读"的两个视图才配得上状态层和判断层。
+     热点榜、日报、主题各自有明确的任务，再在顶上压四个数和一个头条，
+     等于三套导航同时抢注意力。 */
+  const isFeed = state.view === "pick" || state.view === "all";
+  el.stats.hidden = !isFeed;
+
   if (state.view === "pick") {
-    renderHotbox(rows);
-    renderTimeline(rows, true);
+    renderBoard(rows);
+    renderFeed(rows);
   } else if (state.view === "all") {
-    renderTimeline(rows, false);
+    el.board.hidden = true;
+    el.board.innerHTML = "";
+    renderFeed(rows);
   } else if (state.view === "hot") {
+    el.board.hidden = true;
+    el.board.innerHTML = "";
     renderHot(rows);
   } else if (state.view === "daily") {
+    el.board.hidden = true;
+    el.board.innerHTML = "";
     renderDaily(rows);
   } else if (state.view === "topics") {
+    el.board.hidden = true;
+    el.board.innerHTML = "";
     renderTopics(rows);
   }
 
@@ -241,52 +364,183 @@ function filtered() {
   return rows.slice().sort(newestFirst);
 }
 
-/* ------------------------------------------------------------ 精选：当前热点 + 时间轴 */
+/* ------------------------------------------------------------ 精选：判断层 + 记录层 */
 
-function renderHotbox(rows) {
-  // 只在没有搜索、没有筛分类时出现：此时"当前热点"才代表全局
-  if (state.query.trim() || state.tag !== "all" || !rows.length) return;
+/* 判断层：一个头条 + 四条要闻。
+   原来这里是"当前热点 Top5"的带框列表——只说了什么热，没说他为什么值得看。
+   现在头条给出摘要与要点，剩下四条压成一行一条，三秒能扫完。 */
+function renderBoard(rows) {
+  el.board.innerHTML = "";
+  if (state.query.trim() || state.tag !== "all" || !rows.length) {
+    el.board.hidden = true;
+    return;
+  }
 
-  const top = rows.slice().sort((a, b) => (b._heat || 0) - (a._heat || 0)).slice(0, 5);
-  el.hotboxList.innerHTML = "";
+  const byHeat = rows.slice().sort((a, b) => (b._heat || 0) - (a._heat || 0));
 
-  top.forEach((item, i) => {
-    const row = document.createElement("div");
-    row.className = "hot-row";
+  /* 头条要的是"一件事"，不是"一份目录"。
+     "今日导读 / 早报 / 一周要闻"这类稿子标题里就写着自己是汇总，
+     放进头条位等于用最贵的位置放一个目录页。 */
+  const DIGEST = /今日导读|早报|晚报|周报|日报|汇总|盘点|速览|一周要闻|要闻回顾/;
+  const isDigest = (i) => DIGEST.test(i.title_zh || i.title || "");
 
-    const rank = document.createElement("span");
-    rank.className = "hot-rank";
-    rank.textContent = i + 1;
-    row.appendChild(rank);
+  const solid = byHeat.filter((i) => !isDigest(i));
+  const pool = solid.length >= 3 ? solid : byHeat;
+  // 有摘要才撑得起头条位：只有标题的一条放在这里，下面是空的
+  const withSum = pool.filter((i) => (i.summary || "").length >= 40);
+  const lead = withSum[0] || pool[0] || null;
+  if (!lead) {
+    el.board.hidden = true;
+    return;
+  }
 
-    const a = document.createElement("a");
-    a.className = "hot-title";
-    a.href = FD.articleHref(item.id);
-    a.textContent = item.title_zh || item.title || "（无标题）";
-    a.title = a.textContent;
-    row.appendChild(a);
+  /* 头条不放配图。抓来的 image 里活动海报、栏目封面、分享卡片占比很高，
+     靠宽高比分辨不出来；一旦挑错，最显眼的位置就成了一块和全站灰绿纸色
+     打架的彩色牌子。宁可纯排版，也不赌图源质量。 */
+  const card = document.createElement("article");
+  card.className = "lead";
 
-    const tags = document.createElement("span");
-    tags.className = "hot-tags";
-    const src = document.createElement("span");
-    src.className = "srcbadge";
-    src.style.background = FD.badgeColor(item.source_id);
-    src.textContent = FD.initial(item.source_name);
-    src.title = item.source_name || "";
-    tags.appendChild(src);
-    row.appendChild(tags);
+  const txt = document.createElement("div");
+  txt.className = "lead-txt";
 
-    const heat = document.createElement("span");
-    heat.className = "hot-heat";
-    heat.innerHTML = `${item._heat || 0}<small>热度</small>`;
-    row.appendChild(heat);
+  const kick = document.createElement("div");
+  kick.className = "kick";
+  kick.textContent = "今日头条";
+  txt.appendChild(kick);
 
-    el.hotboxList.appendChild(row);
+  const h2 = document.createElement("h2");
+  const link = document.createElement("a");
+  link.href = FD.articleHref(lead.id);
+  link.textContent = lead.title_zh || lead.title || "（无标题）";
+  h2.appendChild(link);
+  txt.appendChild(h2);
+
+  if (lead.summary) {
+    const p = document.createElement("p");
+    p.textContent = lead.summary;
+    txt.appendChild(p);
+  }
+
+  if ((lead.points || []).length) {
+    const ul = document.createElement("ul");
+    for (const pt of lead.points.slice(0, 3)) {
+      const li = document.createElement("li");
+      li.textContent = pt;
+      ul.appendChild(li);
+    }
+    txt.appendChild(ul);
+  }
+
+  const foot = document.createElement("div");
+  foot.className = "lead-f";
+  const leadStamp = lead.published_at || lead.fetched_at;
+  const bits = [FD.primaryTag(lead), lead.source_name, FD.hm(leadStamp)];
+  if (lead._heat) bits.push("热度 " + lead._heat);
+  bits.filter(Boolean).forEach((text, i) => {
+    if (i) foot.appendChild(dotSpan());
+    foot.appendChild(document.createTextNode(text));
   });
-  el.hotbox.hidden = top.length === 0;
+  txt.appendChild(foot);
+  card.appendChild(txt);
+
+  el.board.appendChild(card);
+
+  const briefs = pool.filter((i) => i !== lead).slice(0, BRIEF_COUNT);
+  if (briefs.length) {
+    const ol = document.createElement("ol");
+    ol.className = "briefs";
+    briefs.forEach((item, i) => {
+      const li = document.createElement("li");
+      li.className = "br";
+
+      const no = document.createElement("span");
+      no.className = "no";
+      no.textContent = String(i + 1).padStart(2, "0");
+      li.appendChild(no);
+
+      const box = document.createElement("div");
+      box.className = "br-x";
+      const h3 = document.createElement("h3");
+      const a = document.createElement("a");
+      a.href = FD.articleHref(item.id);
+      a.textContent = item.title_zh || item.title || "（无标题）";
+      h3.appendChild(a);
+      box.appendChild(h3);
+
+      const bm = document.createElement("div");
+      bm.className = "bm";
+      const when = item.published_at || item.fetched_at;
+      [item.source_name, FD.primaryTag(item), FD.hm(when)]
+        .filter(Boolean)
+        .forEach((text, k) => {
+          if (k) bm.appendChild(dotSpan());
+          bm.appendChild(document.createTextNode(text));
+        });
+      box.appendChild(bm);
+      li.appendChild(box);
+
+      const ht = document.createElement("span");
+      ht.className = "ht";
+      ht.textContent = item._heat || 0;
+      li.appendChild(ht);
+
+      ol.appendChild(li);
+    });
+    el.board.appendChild(ol);
+  }
+
+  el.board.hidden = false;
 }
 
-function renderTimeline(rows, isPick) {
+function tagChip(item) {
+  const name = FD.primaryTag(item);
+  const span = document.createElement("span");
+  span.className = "tag";
+  span.dataset.tag = name;
+  /* 全站只给"质量安全"留着底色。风险必须第一眼被看到，
+     其余的彩色标签撤掉底色，视线才不会被平均分配。 */
+  if (name === "质量安全") span.dataset.c = "warn";
+  span.textContent = name;
+  return span;
+}
+
+/* 缩略图：有原文配图用原文的，没有就用分类卡通图，每张全页只用一次。
+   用完不复用——同一张插画连着出现，读者会怀疑这几条是不是同一篇。 */
+function thumbFor(item) {
+  const realImg = usableImage(item);
+  const key = realImg || "topic:" + FD.topicCover(item);
+  if ((usedImages.get(key) || 0) >= 1) return null;
+  usedImages.set(key, (usedImages.get(key) || 0) + 1);
+
+  const box = document.createElement("div");
+  box.className = "thumb" + (realImg ? "" : " thumb--topic");
+  const img = document.createElement("img");
+  img.src = realImg || FD.topicCover(item);
+  img.loading = "lazy";
+  img.referrerPolicy = "no-referrer";
+  img.alt = "";
+  if (!realImg) img.classList.add("is-art");
+
+  const fallback = () => {
+    if (!img.dataset.fb) {
+      img.dataset.fb = "1";
+      img.src = FD.topicCover(item);
+      box.classList.add("thumb--topic");
+      img.classList.add("is-art");
+    } else {
+      box.classList.add("is-broken");
+    }
+  };
+  img.addEventListener("error", fallback);
+  box.appendChild(img);
+  return box;
+}
+
+/* 记录层：时间脊。
+   左侧 60px 是页边注，不是"时间列"——日期数字挂在上面，时刻挂在每一行，
+   轴心线只负责提示顺序。只有当同一分钟涌进多条时，脊上才点一个实心节点：
+   那个点是"事件"，不是装饰。 */
+function renderFeed(rows) {
   usedImages.clear();
   if (!rows.length) {
     el.status.textContent = state.query
@@ -296,51 +550,151 @@ function renderTimeline(rows, isPick) {
     return;
   }
 
-  // 转载稿标题完全相同，这一屏里只留一条（列表视图在这里去重，
-  // 主题页的计数才不会被削减）。总数也用去重后的，否则"还有 N 条"
-  // 会把重复稿算进去，点到底却是空的。
+  // 转载稿标题完全相同，这一屏里只留一条（计数也用去重后的，
+  // 否则"还有 N 条"会把重复稿算进去，点到底却是空的）
   const uniq = dedupeByTitle(rows);
   const shown = uniq.slice(0, state.limit);
-  // 精选视图里，最新一条若有摘要就放大成头条，让页面有视觉重心
-  const leadId =
-    isPick && !state.query && shown[0] && (shown[0].summary || "").length >= 40 ? shown[0].id : null;
+  const stampOf = (it) => it.published_at || it.fetched_at || "";
+  const minuteOf = (it) => FD.dayKey(stampOf(it)) + "|" + FD.hm(stampOf(it));
+
+  // 先数一遍每分钟几条，才知道哪些行要合并成一批
+  const perMinute = new Map();
+  for (const it of shown) {
+    const k = minuteOf(it);
+    perMinute.set(k, (perMinute.get(k) || 0) + 1);
+  }
 
   let lastDay = null;
+  let prevMinute = null;
+
   for (const item of shown) {
-    const key = FD.dayKey(item.published_at || item.fetched_at);
-    if (key !== lastDay) {
-      el.view.appendChild(dayBar(item.published_at || item.fetched_at, rows, key));
-      lastDay = key;
+    const stamp = stampOf(item);
+    const day = FD.dayKey(stamp);
+    if (day !== lastDay) {
+      el.view.appendChild(dayHead(stamp, rows, day));
+      lastDay = day;
+      prevMinute = null;
     }
-    const row = document.createElement("div");
-    row.className = "row";
+
+    const mk = minuteOf(item);
+    const same = perMinute.get(mk) || 1;
+    const isIn = same > 1 && mk === prevMinute; // 同一批里的后续条目
+    const isBatch = same > 1 && !isIn;          // 这一批的第一条，脊上画节点
+
+    const row = document.createElement("article");
+    row.className = "it" + (isBatch ? " it--batch" : "") + (isIn ? " it--in" : "");
+
     const time = document.createElement("div");
-    time.className = "row-time";
-    time.textContent = FD.hm(item.published_at || item.fetched_at);
+    time.className = "it-t";
+    if (!isIn) {
+      time.appendChild(document.createTextNode(FD.hm(stamp)));
+      const small = document.createElement("small");
+      // 批次头把"这一批几条"放在时刻下面，比"3 小时前"更有用
+      small.textContent = isBatch
+        ? `${same} 条`
+        : item.published_at
+          ? FD.timeAgo(item.published_at)
+          : "收录";
+      time.appendChild(small);
+      if (stamp) time.title = FD.fmtFull(stamp);
+    }
     row.appendChild(time);
-    const slot = document.createElement("div");
-    slot.className = "card-slot";
-    slot.appendChild(makeCard(item, { lead: item.id === leadId }));
-    row.appendChild(slot);
+
+    const body = document.createElement("div");
+    body.className = "it-b";
+    const head = document.createElement("div");
+    head.className = "it-h";
+
+    const main = document.createElement("div");
+    main.className = "it-x";
+
+    const meta = document.createElement("div");
+    meta.className = "it-m";
+    meta.appendChild(tagChip(item));
+    const src = document.createElement("span");
+    src.className = "src";
+    src.textContent = item.source_name || "未知来源";
+    meta.appendChild(src);
+    main.appendChild(meta);
+
+    const h3 = document.createElement("h3");
+    const link = document.createElement("a");
+    link.href = FD.articleHref(item.id);
+    link.textContent = item.title_zh || item.title || "（无标题）";
+    h3.appendChild(link);
+    main.appendChild(h3);
+
+    if (item.summary) {
+      const p = document.createElement("p");
+      p.className = "it-s";
+      p.textContent = item.summary;
+      main.appendChild(p);
+    }
+    head.appendChild(main);
+
+    const thumb = thumbFor(item);
+    if (thumb) head.appendChild(thumb);
+    else row.classList.add("it--txt");
+
+    body.appendChild(head);
+    row.appendChild(body);
     el.view.appendChild(row);
+
+    prevMinute = mk;
   }
 
   el.more.hidden = uniq.length <= state.limit;
   if (!el.more.hidden) el.more.textContent = `加载更多（还有 ${uniq.length - state.limit} 条）`;
 }
 
-function dayBar(iso, rows, key) {
-  const d = document.createElement("div");
-  d.className = "daybar";
-  const n = rows.filter((i) => FD.dayKey(i.published_at || i.fetched_at) === key).length;
-  d.innerHTML =
-    `<span>${FD.mdDate(iso) || "时间未知"}</span>` +
-    `<span class="week">${FD.weekday(iso)}</span>` +
-    `<span class="cnt">· ${n} 条</span>`;
-  return d;
+/* 章节头：日期数字挂在左侧页边注上，右边是星期 + 条数 + 节奏。
+   原来"10 月 26 日"整串在右侧、左栏空着，才出现 74px 的错位；
+   现在左栏从上到下没有空白，那条 60px 就成了"悬挂缩进"，不再是对不齐。 */
+function dayHead(iso, rows, key) {
+  const wrap = document.createElement("div");
+  wrap.className = "day";
+
+  const inDay = rows.filter((i) => FD.dayKey(i.published_at || i.fetched_at) === key);
+  const d = new Date(iso);
+  const ok = !Number.isNaN(d.getTime());
+
+  const num = document.createElement("div");
+  num.className = "day-n";
+  const mon = document.createElement("em");
+  mon.textContent = ok ? d.getMonth() + 1 + " 月" : "日期";
+  const day = document.createElement("b");
+  day.textContent = ok ? d.getDate() : "?";
+  num.appendChild(mon);
+  num.appendChild(day);
+
+  const title = document.createElement("div");
+  title.className = "day-t";
+  const week = document.createElement("b");
+  week.textContent = ok ? FD.weekday(iso) : "时间未知";
+  title.appendChild(week);
+
+  /* 时间轴上最值钱的是"密度"，删掉圆点阵之后要靠这行字把它换回来：
+     平均 47 分钟一条是平淡，平均 3 分钟一条说明那天出事了。 */
+  const parts = [`${inDay.length} 条`];
+  const ts = inDay.map(pubTs).filter((t) => t).sort((a, b) => a - b);
+  if (ts.length >= 2) {
+    const gapMin = Math.round((ts[ts.length - 1] - ts[0]) / 60e3 / (ts.length - 1));
+    if (gapMin >= 1) {
+      parts.push(
+        gapMin >= 60 ? `平均间隔 ${(gapMin / 60).toFixed(1)} 小时` : `平均间隔 ${gapMin} 分钟`
+      );
+    }
+  }
+  const detail = document.createElement("span");
+  detail.textContent = parts.join(" · ");
+  title.appendChild(detail);
+
+  wrap.appendChild(num);
+  wrap.appendChild(title);
+  return wrap;
 }
 
-/* ------------------------------------------------------------ 卡片 */
+/* ------------------------------------------------------------ 渲染工具 */
 
 /* 同一篇稿被几家媒体转载时标题一字不差（Google News 抓到的尤其常见），
    榜单里出现两次很刺眼。这里按"剥掉站点后缀 + 去标点"的标题做一次过滤。 */
@@ -391,144 +745,6 @@ function usableImage(item) {
   if ((imageFreq.get(url) || 0) >= 2) return ""; // 同图复用两次以上 = 通用图
   if (staleImage(url, item)) return "";
   return url;
-}
-
-function makeCard(item, opts = {}) {
-  const card = document.createElement("a");
-  card.className = "card" + (opts.lead ? " card--lead" : "");
-  card.href = FD.articleHref(item.id);
-  card.dataset.tag = FD.primaryTag(item); // 无图行靠它取分类色
-
-  const body = document.createElement("div");
-  body.className = "card-body";
-
-  /* 缩略图：有原文配图用原文的，没有就用分类卡通插画。
-     每张图全页只用一次（quota = 1）——同一张插画在信息流里重复出现，
-     读者第一反应是"这几条是不是同一篇"，而且一屏里连着几张一样的画很难看。
-     用完的图不再复用，这条卡片就退成纯文字行（左侧一条分类色竖线做区分，
-     不是把图放大凑数）。 */
-  const realImg = usableImage(item);
-  const imgKey = realImg || "topic:" + FD.topicCover(item);
-  if ((usedImages.get(imgKey) || 0) < 1) {
-    usedImages.set(imgKey, (usedImages.get(imgKey) || 0) + 1);
-    const thumb = document.createElement("div");
-    thumb.className = "thumb";
-    const img = document.createElement("img");
-    img.src = imgKey.startsWith("topic:") ? FD.topicCover(item) : realImg;
-    img.loading = "lazy";
-    img.referrerPolicy = "no-referrer";
-    img.alt = "";
-    if (!realImg) {
-      thumb.classList.add("thumb--topic");
-      img.classList.add("is-art");     // 卡通位图，暗色下不能走反相
-    }
-    /* 原文图加载失败 → 退回分类插画，而不是退回逐条线稿。
-       列表和详情页都用同一套卡通插画，混两套风格会出现"首页线稿、
-       点进去变卡通"的割裂；实在退不了就直接隐藏缩略图。 */
-    const fallback = () => {
-      if (!img.dataset.fb) {
-        img.dataset.fb = "1";
-        img.src = FD.topicCover(item);
-        thumb.classList.add("thumb--topic");
-        img.classList.add("is-art");
-      } else {
-        thumb.classList.add("is-broken");
-      }
-    };
-    img.addEventListener("error", fallback);
-    thumb.appendChild(img);
-    body.appendChild(thumb);
-    card.classList.add("card--pic");
-  } else {
-    card.classList.add("card--text"); // 无图行：靠左侧分类色竖线保持节奏
-  }
-
-  const main = document.createElement("div");
-  main.className = "card-main";
-
-  /* 顶行：分类 + 来源 */
-  const top = document.createElement("div");
-  top.className = "card-top";
-  const tag = (item.tags || [])[0];
-  if (tag) {
-    const span = document.createElement("span");
-    span.className = "card-tag";
-    span.dataset.tag = tag;
-    span.textContent = tag;
-    top.appendChild(span);
-  }
-  const src = document.createElement("span");
-  src.className = "card-source";
-  src.textContent = item.source_name || "未知来源";
-  top.appendChild(src);
-  main.appendChild(top);
-
-  /* 标题 */
-  const h2 = document.createElement("h2");
-  h2.textContent = item.title_zh || item.title || "（无标题）";
-  main.appendChild(h2);
-
-  /* 摘要 */
-  if (item.summary) {
-    const p = document.createElement("p");
-    p.className = "card-summary";
-    p.textContent = item.summary;
-    main.appendChild(p);
-  }
-
-  /* 要点：头条位展开前两条，让首屏信息量足一些 */
-  if (opts.lead && (item.points || []).length) {
-    const ul = document.createElement("ul");
-    ul.className = "card-points";
-    for (const pt of item.points.slice(0, 2)) {
-      const li = document.createElement("li");
-      li.textContent = pt;
-      ul.appendChild(li);
-    }
-    main.appendChild(ul);
-  }
-
-  /* 脚注 */
-  const foot = document.createElement("div");
-  foot.className = "card-foot";
-  const time = document.createElement("span");
-  time.className = "time";
-  const stamp = item.published_at || item.fetched_at;
-  // 源没给发布时间的老稿不少，写"时间未知"观感很差；用抓取时间并标明是收录时间
-  time.textContent = item.published_at ? FD.timeAgo(item.published_at) : "收录于 " + FD.hm(stamp);
-  if (stamp) time.title = FD.fmtFull(stamp);
-  foot.appendChild(time);
-
-  if (item.language === "en") {
-    foot.appendChild(sepDot());
-    const lang = document.createElement("span");
-    lang.textContent = "外媒";
-    foot.appendChild(lang);
-  }
-  if (item._heat) {
-    foot.appendChild(sepDot());
-    const heat = document.createElement("span");
-    heat.className = "heat";
-    heat.textContent = "热度 " + item._heat;
-    foot.appendChild(heat);
-  }
-
-  const more = document.createElement("span");
-  more.className = "more";
-  more.textContent = "阅读全文 →";
-  foot.appendChild(more);
-  main.appendChild(foot);
-
-  body.appendChild(main);
-  card.appendChild(body);
-  return card;
-}
-
-function sepDot() {
-  const s = document.createElement("span");
-  s.className = "card-sep";
-  s.textContent = "·";
-  return s;
 }
 
 /* ------------------------------------------------------------ 热点榜 */
