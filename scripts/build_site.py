@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -20,6 +21,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 INCLUDE_DIRS = ["assets", "data"]
 INCLUDE_FILES = ["index.html", "article.html", "robots.txt"]
+# 这几支文件被页面直接 <script>/<link> 引用。改完推上去，浏览器仍可能拿缓存里的
+# 旧版本（实测改了榜单条数，刷新还是老样子），所以发布时按内容摘要加 ?v=，
+# 内容一变 URL 就变，缓存自然失效。
+VERSIONED_ASSETS = ["assets/style.css", "assets/feed-data.js", "assets/app.js", "assets/article.js"]
+
+
+def _asset_version(rel: str) -> str | None:
+    path = ROOT / rel
+    if not path.exists():
+        return None
+    return hashlib.md5(path.read_bytes()).hexdigest()[:8]
+
+
+def _versioned_html(raw: bytes) -> str:
+    """给 HTML 里的静态资源引用加上内容摘要，避免读者拿到缓存里的旧 js/css。"""
+    text = raw.decode("utf-8")
+    for rel in VERSIONED_ASSETS:
+        v = _asset_version(rel)
+        if v:
+            text = text.replace(f'"{rel}"', f'"{rel}?v={v}"')
+    return text
 
 
 def main() -> int:
@@ -43,10 +65,14 @@ def main() -> int:
 
     for name in INCLUDE_FILES:
         src = ROOT / name
-        if src.exists():
-            shutil.copy2(src, out / name)
-        else:
+        if not src.exists():
             print(f"! 缺少 {name}", file=sys.stderr)
+        elif name.endswith(".html"):
+            # 用二进制读进来再整体替换，避免 read_text 把 CRLF 折成 LF
+            html = _versioned_html(src.read_bytes())
+            (out / name).write_bytes(html.encode("utf-8"))
+        else:
+            shutil.copy2(src, out / name)
 
     for name in INCLUDE_DIRS:
         src = ROOT / name
