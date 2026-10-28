@@ -76,24 +76,29 @@ jobs:
           path: meta/health-state.json
           key: health-state-${{ github.run_id }}
 
-      # 同一个问题只维护一个 issue：已开着就追加评论，不让邮箱被刷屏
+      # 告警：同一个问题只维护一个 issue，且在 12 小时内不重复评论（每天最多两条邮件）。
+      # 周报：单独开一条，不跟告警混在一个 thread 里。
       - name: 开 issue 或追加评论
         if: steps.check.outputs.alert == '1' || steps.check.outputs.weekly == '1'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh label create health --color FBCA04 --description "抓取健康检查" 2>/dev/null || true
-          label="health"
+
           if [ "${{ steps.check.outputs.weekly }}" = "1" ]; then
-            body="meta/weekly.md"
-            title="站点周报"
-          else
-            body="meta/health-alert.md"
-            title="抓取异常"
+            gh issue create --title "站点周报 · $(date -u +'%Y-%m-%d')" --label health --body-file meta/weekly.md
+            exit 0
           fi
-          num=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty' || true)
+
+          num=$(gh issue list --label health --state open --search "抓取异常 in:title" --json number --jq '.[0].number // empty' || true)
           if [ -n "$num" ]; then
-            gh issue comment "$num" --body-file "$body"
+            updated=$(gh issue view "$num" --json updatedAt --jq .updatedAt)
+            age=$(( ( $(date -u +%s) - $(date -u -d "$updated" +%s) ) / 3600 ))
+            if [ "$age" -lt 12 ]; then
+              echo "issue #$num 在 ${age}h 前刚更新过，本轮不重复评论"
+              exit 0
+            fi
+            gh issue comment "$num" --body-file meta/health-alert.md
           else
-            gh issue create --title "$title · $(date -u +'%Y-%m-%d %H:%M') UTC" --label "$label" --body-file "$body"
+            gh issue create --title "抓取异常 · $(date -u +'%Y-%m-%d %H:%M') UTC" --label health --body-file meta/health-alert.md
           fi
