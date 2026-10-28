@@ -6,7 +6,6 @@
 const FD = window.FeedData;
 
 const el = {
-  cats: document.getElementById("cats"),
   theme: document.getElementById("theme-btn"),
   article: document.getElementById("article"),
   meta: document.getElementById("a-meta"),
@@ -87,40 +86,13 @@ async function main() {
     return;
   }
 
-  FD.rankByHeat(data.items); // 让侧栏和延伸阅读也能显示热度
-  renderRail(data.items, item);
+  FD.rankByHeat(data.items); // 让延伸阅读也能显示热度
   render(item, data.items);
 }
 
 function fail(msg) {
   el.status.textContent = msg;
   el.article.hidden = true;
-}
-
-function renderRail(items, current) {
-  // 与首页同一口径：只统计主分类，各栏相加必须等于总条数。
-  // 原来遍历全部 tags，同一篇稿在三个栏目里各计一次，合计 447 > 实际 289 条。
-  const counts = {};
-  for (const it of items) {
-    const t = FD.primaryTag(it);
-    counts[t] = (counts[t] || 0) + 1;
-  }
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  el.cats.innerHTML = "";
-  for (const [tag, n] of sorted) {
-    const a = document.createElement("a");
-    a.className = "cat-item";
-    a.href = "?view=all&tag=" + encodeURIComponent(tag);
-    a.dataset.tag = tag;
-    // 只标主分类：一篇文章常挂三个标签，全高亮会让人以为同时选中了三个栏目
-    a.setAttribute("aria-current", String((current.tags || [])[0] === tag));
-    a.appendChild(document.createTextNode(tag));
-    const num = document.createElement("span");
-    num.className = "n";
-    num.textContent = n;
-    a.appendChild(num);
-    el.cats.appendChild(a);
-  }
 }
 
 function render(item, all) {
