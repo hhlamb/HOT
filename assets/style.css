@@ -870,10 +870,8 @@ button[hidden], [hidden] { display: none !important; }
 
 /* 缩略图 */
 .thumb {
-  /* 88×64 在 840 宽的内容列里只占十分之一，读起来像一枚图标而不是配图；
-     116×84 才够看清画面，又不至于把标题栏挤到两行。 */
-  width: 116px;
-  height: 84px;
+  width: 88px;
+  height: 64px;
   flex: none;
   border-radius: 8px;
   overflow: hidden;
