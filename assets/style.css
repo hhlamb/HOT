@@ -169,6 +169,8 @@ button[hidden], [hidden] { display: none !important; }
 .brand-sub { display: none; }
 
 .rail-group { display: flex; flex-direction: column; gap: 2px; }
+/* 主导航是四个独立的框，挨得太紧会连成一条 */
+.rail-nav { gap: 6px; }
 /* flex 会盖住 hidden 属性，得显式收一次：精选视图要把"分类"整块藏掉 */
 .rail-group[hidden] { display: none; }
 .rail-label {
@@ -180,38 +182,36 @@ button[hidden], [hidden] { display: none !important; }
   text-transform: uppercase;
 }
 
-/* 导航：选中态不再用"白底盒子 + 阴影"（那是在侧栏里又画了一张卡片），
-   改成左侧 2px 主色条 + 文字加深 —— 它长在栏上，不是浮在栏上。 */
+/* 导航：四个主栏目做成带框的一级入口。
+   原来只是四行灰字，跟下面的分类、跟正文里的普通链接长得一模一样，
+   读者一眼看不出"这是在四屏之间切"。套上框之后，它是一组主入口，
+   分类退成里面的筛选，层级一眼分得开。
+   原先那条"左侧 2px 竖条"的选中标记撤掉——有边框之后它是第二套标记。 */
 .nav-item {
   position: relative;
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 8px;
-  border-radius: 7px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   color: var(--ink-2);
   font-size: 13.8px;
-  border: 0;
+  background: var(--surface);
   cursor: pointer;
-  background: none;
   text-align: left;
   width: 100%;
-  transition: background .13s, color .13s;
+  transition: background .13s, border-color .13s, color .13s;
 }
 .nav-item svg { width: 15px; height: 15px; flex: none; opacity: .6; }
-.nav-item:hover { background: var(--surface-3); color: var(--ink); }
-.nav-item[aria-current="true"] { background: var(--surface-3); color: var(--ink); font-weight: 600; }
-.nav-item[aria-current="true"] svg { opacity: 1; color: var(--accent); }
-.nav-item[aria-current="true"]::before {
-  content: "";
-  position: absolute;
-  left: -20px;
-  top: 9px;
-  bottom: 9px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--accent);
+.nav-item:hover { background: var(--surface-2); border-color: var(--line-strong); color: var(--ink); }
+.nav-item[aria-current="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
 }
+.nav-item[aria-current="true"] svg { opacity: 1; color: var(--accent); }
 .nav-item .n {
   margin-left: auto;
   font-size: 11px;
