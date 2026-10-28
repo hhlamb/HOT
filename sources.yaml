@@ -410,6 +410,10 @@ sources:
     priority: P1
     enabled: true
     note: 2026-10-28 接入。新西兰本地媒体用英文名，走美国英文版 + when:90d
+    must_match:
+      - 哈克草本
+      - Harker Herbals
+      - Harker
 
   - id: brand_cenovis
     name: Cenovis（萃益维）
@@ -420,6 +424,9 @@ sources:
     priority: P1
     enabled: true
     note: 2026-10-28 接入。实测中英文索引近半年都没有新稿（最后一篇 2026-02-04），源先挂着，出稿自动进库
+    must_match:
+      - 萃益维
+      - Cenovis
 
   - id: brand_friso
     name: Friso（美素佳儿）
@@ -430,6 +437,10 @@ sources:
     priority: P0
     enabled: true
     note: 2026-10-28 接入。必须带 when:60d，否则 Google 按旧闻排序，抓回来全是 7 月的铅超标稿
+    must_match:
+      - 美素佳儿
+      - Friso
+      - 皇家美素佳儿
 
   # ---------- G. 用户指定的垂直媒体（2026-10-25 增补实测）----------
   - id: muyingqianyan

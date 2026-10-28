@@ -134,6 +134,10 @@ def main() -> int:
             "elapsed_ms": res.elapsed_ms,
         }
         kept_here: dict[str, dict] = {}
+        # 品牌点名源（must_match）：查询本身就是"这个词最近有没有新稿"，
+        # 命中品牌名就算相关。否则「哈克草本」这类非奶粉品类的稿子会被
+        # 奶粉关键词闸门整批拦掉——实测 9 条只过 1 条。
+        must_match = [w.strip().lower() for w in (src.get("must_match") or []) if str(w).strip()]
         for item in res.items:
             title = item["title"]
             if deny_domains and any(d in item["original_url"] for d in deny_domains):
@@ -150,7 +154,13 @@ def main() -> int:
                     elif published < now - timedelta(days=max_age_days):
                         row["stale"] += 1  # 品牌官网页脚里的陈年旧稿
                         continue
-            ok, score, hits, tags = judge(title, item.get("summary", ""), min_score)
+            hay = (title + " " + (item.get("summary") or "")).lower()
+            if must_match and any(w in hay for w in must_match):
+                # 点名命中：直接放行，标品牌动态。分数给 3.0 只是占位，
+                # 不参与相关性判断（下游只用它做展示/排序参考）。
+                ok, score, hits, tags = True, 3.0, ["品牌点名"], ["品牌动态"]
+            else:
+                ok, score, hits, tags = judge(title, item.get("summary", ""), min_score)
             if not ok:
                 continue
             item["score"] = round(score, 1)
