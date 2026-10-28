@@ -1,16 +1,16 @@
 {
- "last_updated": "2026-10-28T17:07:16+00:00",
- "total": 316,
+ "last_updated": "2026-10-28T17:42:34+00:00",
+ "total": 321,
  "months": [
   {
    "month": "2026-10",
    "file": "2026-10.jsonl",
-   "count": 229
+   "count": 233
   },
   {
    "month": "2026-09",
    "file": "2026-09.jsonl",
-   "count": 87
+   "count": 88
   }
  ],
  "tags": [
@@ -23,6 +23,8 @@
   "质量安全",
   "跨境电商"
  ],
- "with_summary": 316,
+ "sources_total": 60,
+ "sources_ok": 52,
+ "with_summary": 321,
  "retention_days": 90
 }
