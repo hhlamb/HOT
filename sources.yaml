@@ -397,19 +397,19 @@ sources:
   # cenovis.com.au 能打开但没有资讯列表（纯电商页），抓下来只有产品文案。
   #
   # 查询是实测调出来的，别随手改（scripts/diag_brand.py 是量这些数字的工具）：
-  #   哈克草本：Google 中文版 0 条，美国英文版 29 条、近 45 天 7 条 → 走 en-US
-  #   萃益维：任何索引都没有新稿（最后一篇 2026-02）→ 先留着，等新稿
-  #   美素佳儿：中文版用「美素佳儿 OR Friso」有 100 条、近 45 天 5 条；
-  #             只写「美素佳儿」反而 32 条且全是 7 月的旧闻
+  #   哈克草本：Google 中文版 0 条；英文名 + when:90d 有 8 条、近 45 天 1 条
+  #   萃益维：中英港台四个索引都没有新稿（最后一篇 2026-02）→ 先挂着等新稿
+  #   美素佳儿：裸查询会被 Google 排成 7 月旧闻（32 条全过期）；
+  #             加 when:60d 后 37 条、近 45 天 20 条，才是"最新消息"
   - id: brand_harker
     name: Harker Herbals（哈克草本）
     url: >-
-      https://news.google.com/rss/search?q=%E5%93%88%E5%85%8B%E8%8D%89%E6%9C%AC%20OR%20Harker%20Herbals&hl=en-US&gl=US&ceid=US:en
+      https://news.google.com/rss/search?q=%E5%93%88%E5%85%8B%E8%8D%89%E6%9C%AC%20OR%20Harker%20Herbals%20when%3A90d&hl=en-US&gl=US&ceid=US:en
     type: rss
     lang: en
     priority: P1
     enabled: true
-    note: 2026-10-28 接入。新西兰本地媒体用英文名 Harker Herbals，中文索引搜不到，所以走美国英文版
+    note: 2026-10-28 接入。新西兰本地媒体用英文名，走美国英文版 + when:90d
 
   - id: brand_cenovis
     name: Cenovis（萃益维）
@@ -424,12 +424,12 @@ sources:
   - id: brand_friso
     name: Friso（美素佳儿）
     url: >-
-      https://news.google.com/rss/search?q=%E7%BE%8E%E7%B4%A0%E4%BD%B3%E5%84%BF%20OR%20Friso&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+      https://news.google.com/rss/search?q=%E7%BE%8E%E7%B4%A0%E4%BD%B3%E5%84%BF%20when%3A60d&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
     type: rss
     lang: zh
     priority: P0
     enabled: true
-    note: 2026-10-28 接入。必须带英文 Friso 一起检索，只写中文品牌名时 Google 只回 7 月的旧闻
+    note: 2026-10-28 接入。必须带 when:60d，否则 Google 按旧闻排序，抓回来全是 7 月的铅超标稿
 
   # ---------- G. 用户指定的垂直媒体（2026-10-25 增补实测）----------
   - id: muyingqianyan
