@@ -256,6 +256,7 @@ def make_item(
     author: str = "",
     extra_tags: list[str] | None = None,
     image: str = "",
+    source_name: str = "",
 ) -> dict | None:
     title = re.sub(r"\s+", " ", strip_html(title or "")).strip()
     if len(title) < 6:
@@ -267,7 +268,9 @@ def make_item(
         "title": clip(title, 160),
         "summary": clip(_clean_summary(summary), 240) if summary else "",
         "source_id": source["id"],
-        "source_name": source.get("name", source["id"]),
+        # 检索源（Google News）的条目自带 <source>，那是真媒体名。
+        # 卡片上写"Google News·某查询"对读者没意义，能拿到媒体名就用媒体名。
+        "source_name": source_name or source.get("name", source["id"]),
         "source_url": source["url"],
         "original_url": original,
         "published_at": published_at,
@@ -321,15 +324,27 @@ def fetch_rss(client, source: dict, fetch_cfg: dict, now: datetime) -> FetchResu
         if not published:
             published, guessed = parse_date_text(entry.get("published", "") or entry.get("updated", ""), now)
 
+        # Google News 的标题统一是「标题 - 媒体名」，媒体名又在 <source> 里。
+        # 把后缀摘掉、媒体名提到 source_name，卡片才不会显示成
+        # 「Google News·婴幼儿奶粉（中文） · 标题 - 食品商务网」这种两头重复。
+        outlet = ""
+        meta = entry.get("source") or {}
+        if isinstance(meta, dict):
+            outlet = strip_html(str(meta.get("title") or "")).strip()
+        joined = entry.get("title", "") or ""
+        if outlet and joined.rstrip().endswith(" - " + outlet):
+            joined = joined.rstrip()[: -(len(outlet) + 3)]
+
         item = make_item(
             source=source,
-            title=title,
+            title=joined,
             url=link,
             summary=summary,
             published_at=published,
             date_guessed=guessed,
             author=entry.get("author", ""),
             image=_pick_image_from_entry(entry),
+            source_name=outlet,
         )
         if item:
             result.items.append(item)
