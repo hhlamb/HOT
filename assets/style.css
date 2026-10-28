@@ -219,6 +219,22 @@ button[hidden], [hidden] { display: none !important; }
   font-family: var(--font-num);
 }
 
+/* 详情页里的"返回列表"是这一页唯一的主操作，比"热点榜/日报"这类跳转重一档：
+   字大一号、加粗、箭头用强调色。读者从列表点进来，最先要能一眼找到退路。 */
+.nav-back {
+  padding: 9px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.nav-back svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  opacity: 1;
+}
+.nav-back:hover { background: var(--surface-3); color: var(--ink); }
+
 .rail-sep { height: 1px; background: var(--line); margin: 2px 8px; }
 
 /* 分类：名字 + 计数 + 一条按占比伸缩的细条。
@@ -1496,6 +1512,10 @@ button[hidden], [hidden] { display: none !important; }
      去掉 5 个 14px 图标正好全部装下，不用横滑，也不会把"主题"切半截 */
   .nav-item svg { display: none; }
   .nav-item .n { display: none; }
+  /* 返回列表在手机上和"热点榜/日报"排成一行，留一个箭头、字号大一档，
+     否则三个纯文字按钮长得一样，看不出哪个是退路 */
+  .nav-back { font-size: 14.5px; }
+  .nav-back svg { display: block; width: 15px; height: 15px; }
   /* 桌面用左侧竖条表示"当前在哪一屏"，手机上竖条被隐藏了，
      改成底色——否则四个按钮长得一模一样，看不出当前视图 */
   .nav-item[aria-current="true"] {
