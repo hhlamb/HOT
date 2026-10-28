@@ -1395,9 +1395,18 @@ el.more.addEventListener("click", () => {
 
 /* 整卡可点：375px 下标题链接实测只有 21px 高，逐字瞄准太难。
    卡片其余区域点下去等效点标题；真链接、按钮不受影响，
-   桌面上想拖选文字也不受影响（有选区时不跳转）。 */
+   桌面上想拖选文字也不受影响（有选区时不跳转）。
+   手指在卡片上滑动翻页时，浏览器仍会在松手处补一个 click——
+   位移超过 10px 就不当点击，否则滑一下列表就被带进文章页。 */
+let tapX = 0;
+let tapY = 0;
+el.view.addEventListener("pointerdown", (e) => {
+  tapX = e.clientX;
+  tapY = e.clientY;
+}, { passive: true });
 el.view.addEventListener("click", (e) => {
   if (e.target.closest("a, button, input, select, textarea")) return;
+  if (Math.abs(e.clientX - tapX) > 10 || Math.abs(e.clientY - tapY) > 10) return;
   const sel = window.getSelection && window.getSelection();
   if (sel && String(sel)) return;
   const card = e.target.closest(".it, .pk");
