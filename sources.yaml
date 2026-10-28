@@ -395,36 +395,41 @@ sources:
   # Cenovis（萃益维，赛诺菲旗下澳洲维生素）、Friso（美素佳儿，菲仕兰）。
   # 为什么不直接抓官网：harkerherbals.co.nz 与 friso.com.cn 国内直连不通，
   # cenovis.com.au 能打开但没有资讯列表（纯电商页），抓下来只有产品文案。
-  # 这三家的中文报道主要出自母婴媒体和跨境电商稿，检索源比官网更全。
+  #
+  # 查询是实测调出来的，别随手改（scripts/diag_brand.py 是量这些数字的工具）：
+  #   哈克草本：Google 中文版 0 条，美国英文版 29 条、近 45 天 7 条 → 走 en-US
+  #   萃益维：任何索引都没有新稿（最后一篇 2026-02）→ 先留着，等新稿
+  #   美素佳儿：中文版用「美素佳儿 OR Friso」有 100 条、近 45 天 5 条；
+  #             只写「美素佳儿」反而 32 条且全是 7 月的旧闻
   - id: brand_harker
     name: Harker Herbals（哈克草本）
     url: >-
-      https://news.google.com/rss/search?q=%E5%93%88%E5%85%8B%E8%8D%89%E6%9C%AC%20OR%20%22Harker%20Herbals%22%20OR%20%E5%93%88%E5%85%8B%20%E8%8D%89%E6%9C%AC&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+      https://news.google.com/rss/search?q=%E5%93%88%E5%85%8B%E8%8D%89%E6%9C%AC%20OR%20Harker%20Herbals&hl=en-US&gl=US&ceid=US:en
     type: rss
-    lang: zh
+    lang: en
     priority: P1
     enabled: true
-    note: 2026-10-28 接入。品牌名有"哈克/哈客/哈克草本/Harker Herbals"几种写法，查询里都带上
+    note: 2026-10-28 接入。新西兰本地媒体用英文名 Harker Herbals，中文索引搜不到，所以走美国英文版
 
   - id: brand_cenovis
     name: Cenovis（萃益维）
     url: >-
-      https://news.google.com/rss/search?q=%E8%90%83%E7%9B%8A%E7%BB%B4%20OR%20Cenovis%20OR%20%22Cenovis%20%E7%BB%B4%E7%94%9F%E7%B4%A0%22&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+      https://news.google.com/rss/search?q=%E8%90%83%E7%9B%8A%E7%BB%B4%20OR%20Cenovis&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
     type: rss
     lang: zh
     priority: P1
     enabled: true
-    note: 2026-10-28 接入。赛诺菲旗下澳洲维生素，国内走保税/跨境渠道，中英两种写法同时检索
+    note: 2026-10-28 接入。实测中英文索引近半年都没有新稿（最后一篇 2026-02-04），源先挂着，出稿自动进库
 
   - id: brand_friso
     name: Friso（美素佳儿）
     url: >-
-      https://news.google.com/rss/search?q=%E7%BE%8E%E7%B4%A0%E4%BD%B3%E5%84%BF%20OR%20%22Friso%20%E5%A5%B6%E7%B2%89%22%20OR%20%22%E7%9A%87%E5%AE%B6%E7%BE%8E%E7%B4%A0%E4%BD%B3%E5%84%BF%22&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+      https://news.google.com/rss/search?q=%E7%BE%8E%E7%B4%A0%E4%BD%B3%E5%84%BF%20OR%20Friso&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
     type: rss
     lang: zh
     priority: P0
     enabled: true
-    note: 2026-10-28 接入。菲仕兰旗下，品牌名带"皇家"前缀的高端线单独加了一条，避免漏检
+    note: 2026-10-28 接入。必须带英文 Friso 一起检索，只写中文品牌名时 Google 只回 7 月的旧闻
 
   # ---------- G. 用户指定的垂直媒体（2026-10-25 增补实测）----------
   - id: muyingqianyan
