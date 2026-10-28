@@ -37,6 +37,10 @@ CST = timezone(timedelta(hours=8))
 RANK = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 
 
+def _pub_of(row: dict) -> float:
+    return store._pub_ts(row)
+
+
 def _disp(row: dict) -> str:
     return row.get("title_zh") or row.get("title") or ""
 
@@ -57,6 +61,7 @@ def _keep_score(row: dict) -> tuple:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--no-fingerprint", action="store_true", help="只删同标题，不做品牌+金额/时段合并")
     ap.add_argument("--show", type=int, default=40)
     args = ap.parse_args()
 
@@ -104,10 +109,48 @@ def main() -> int:
                 f" 摘要{len((row.get('summary') or '')):>3}字 {row['id']}"
             )
 
+    drop_ids = {d["id"] for d in drop}
+
+    # 第二刀：标题写法差得远、但品牌 + 金额/时段对得上的，按"同一事件"合并。
+    # 口径与入库层一致（pipeline/dedupe.event_fingerprint），每个事件最多留 2 条。
+    if not args.no_fingerprint:
+        from pipeline.dedupe import event_fingerprint
+
+        rest = [r for r in rows if r["id"] not in drop_ids]
+        rest.sort(key=_keep_score)
+        clusters: list[dict] = []
+        index: dict[tuple, dict] = {}
+        for row in rest:
+            fp = event_fingerprint(_disp(row))
+            target = None
+            if fp:
+                for mark in fp[1]:
+                    cand = index.get((fp[0], mark))
+                    # 只在 7 天内合并：同金额/同时段但隔几周的稿子往往是后续进展
+                    # （「雅培 3.85 亿和解后分拆营养业务」），合并会丢掉新信息
+                    if cand and abs(_pub_of(row) - _pub_of(cand["items"][0])) <= 7 * 86400:
+                        target = cand
+                        break
+            if target is None:
+                target = {"items": []}
+                clusters.append(target)
+                if fp:
+                    for mark in fp[1]:
+                        index.setdefault((fp[0], mark), target)
+            target["items"].append(row)
+
+        fp_drop = 0
+        for c in clusters:
+            if len(c["items"]) > 2:
+                for row in c["items"][2:]:
+                    drop_ids.add(row["id"])
+                    fp_drop += 1
+        print(f"指纹合并（同品牌 + 同金额/同时段）：再删 {fp_drop} 条")
+
+    print(f"合计删除 {len(drop_ids)} 条 → 保留 {len(rows) - len(drop_ids)} 条")
     if args.dry_run:
         return 0
 
-    drop_ids = {d["id"] for d in drop}
     kept = [r for r in rows if r["id"] not in drop_ids]
     by_month: dict[str, list[dict]] = defaultdict(list)
     for row in kept:

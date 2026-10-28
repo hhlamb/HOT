@@ -67,12 +67,31 @@ def amount_marks(text: str) -> frozenset[int]:
     return frozenset(out)
 
 
-def event_fingerprint(title: str) -> tuple[str, frozenset[int]] | None:
-    """同一品牌 + 同一笔金额 → 判为同一事件。缺一个都不算。"""
+# 报告期 / 大促节点。没有金额时用它区分"同一件事"与"同一家公司"：
+# 「达能第三季度业绩强劲」和「达能亚太区前三季度增长最快」都写 Q3/季报，
+# 但一个是全球口径、一个是亚太口径，不该合并。
+_PERIOD_RE = re.compile(
+    r"(双十一|双11|618|进博会|半年报|三季报|季报|一季报|中报|年报|"
+    r"第[一二三四]季度|前三季度|上半年|下半年|全年|q[1-4])",
+    re.I,
+)
+
+
+def period_marks(text: str) -> frozenset[str]:
+    return frozenset(m.group(1).lower() for m in _PERIOD_RE.finditer(text or ""))
+
+
+def event_fingerprint(title: str) -> tuple[str, frozenset] | None:
+    """同一品牌 + 同一件事的硬标记 → 判为同一事件。缺一个都不算。
+
+    标记优先取金额（3.85 亿 / 385 million），没有金额再取"报告期/活动"这类
+    时段标记：达能的季报稿里五种写法相似度只有 0.04～0.76，但都写着"双11"
+    或"前三季度"，实体 + 时段能对上就说明是同一件事的不同转述。
+    """
     low = (title or "").lower()
     for canon, variants in ENTITY_ALIASES.items():
         if any(v in low for v in variants):
-            marks = amount_marks(low)
+            marks = amount_marks(low) or period_marks(low)
             return (canon, marks) if marks else None
     return None
 
@@ -85,6 +104,26 @@ def _quality(item: dict) -> tuple:
         -len(item.get("summary") or ""),
         -len(item.get("title") or ""),
     )
+
+
+def _register_fp(index: dict[tuple, dict], fp: tuple[str, frozenset] | None, cluster: dict) -> None:
+    """把一个指纹的每个标记都挂到索引上（同一实体 + 任一标记即可命中）。"""
+    if not fp:
+        return
+    ent, marks = fp
+    for mark in marks:
+        index.setdefault((ent, mark), cluster)
+
+
+def _lookup_fp(index: dict[tuple, dict], fp: tuple[str, frozenset] | None) -> dict | None:
+    if not fp:
+        return None
+    ent, marks = fp
+    for mark in marks:
+        cluster = index.get((ent, mark))
+        if cluster is not None:
+            return cluster
+    return None
 
 
 def _disp(item: dict) -> str:
@@ -127,6 +166,8 @@ def dedupe(
     fresh.sort(key=_quality)
 
     clusters: list[dict] = []
+    # 指纹按"实体 + 单个标记"建索引，匹配时只要有一个标记重合就算同一事件：
+    # 「达能…双11」与「达能…前三季度…双11」的标记集合不同，但都含"双11"。
     fp_index: dict[tuple, dict] = {}
     for rep in recent:
         key = title_key(_disp(rep))
@@ -134,8 +175,7 @@ def dedupe(
         if key:
             cluster = {"key": key, "items": [rep], "count": 1, "external": True, "fp": fp}
             clusters.append(cluster)
-            if fp and fp not in fp_index:
-                fp_index[fp] = cluster
+            _register_fp(fp_index, fp, cluster)
 
     kept: list[dict] = []
     for item in fresh:
@@ -150,23 +190,22 @@ def dedupe(
                 break
         if matched is None and fp is not None:
             # 标题写法差得远，但品牌与金额完全一致：同一事件的不同报道
-            cluster = fp_index.get(fp)
+            cluster = _lookup_fp(fp_index, fp)
             if cluster is not None:
                 matched, matched_sim = cluster, threshold
         if matched is None:
             cluster = {"key": key, "items": [item], "count": 1, "external": False, "fp": fp}
             clusters.append(cluster)
-            if fp and fp not in fp_index:
-                fp_index[fp] = cluster
+            _register_fp(fp_index, fp, cluster)
             if key:
                 known_keys.add(key)
             kept.append(item)
             continue
 
         matched["count"] += 1
-        if matched.get("fp") is None and fp is not None:
-            matched["fp"] = fp
-            fp_index.setdefault(fp, matched)
+        if fp is not None:
+            matched.setdefault("fps", []).append(fp)
+            _register_fp(fp_index, fp, matched)
         if matched["external"]:
             # 与库内已有条目重复：不重复入库，但把缺失的信息补上去
             stats.append({**item, "_drop": "与库内条目重复"})
