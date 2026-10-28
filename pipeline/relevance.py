@@ -4,6 +4,9 @@
     先用关键词把明显无关的内容挡掉，省下大模型调用；Stage 2 再接"模型精筛"。
     打分制的目的不是精确，而是可控——阈值放在 config.yaml 里，随时能调松紧。
 
+    2026-10-28 补了一道**主题硬门槛**（见下面的 CORE_GROUP_*）：分数再高，
+    标题里没有母婴/奶粉核心词照样丢。原因见那一段的注释。
+
 为什么不能只用"奶粉"一个词：
     语料里有大量"乳业/乳制品/生鲜乳/乳清蛋白"的内容，它们属于供应链范畴，
     一个"奶粉"关键词会把这一半以上的有效信息筛掉。
@@ -90,6 +93,77 @@ KEYWORDS: dict[str, int] = {
     "merger": 2, "earnings": 2, "market share": 2,
     "supply chain": 2, "capacity": 2, "joint venture": 2,
 }
+
+# ---------------- 主题核心词（硬门槛） ----------------
+# 站点是"跨境母婴 · 奶粉"，不是"食品"。泛食品源（食品伙伴网、中国食品安全报、
+# 市场监管总局）每天都在发抽检与召回，标题里只要有"通报/出口/不合格"，
+# 关键词分就能轻松过 4.0，于是「进口腌芒果二氧化硫超标」「波兰冷藏鸡肉检出沙门氏菌」
+# 「日本通报我国出口烤花生不合格」整批混进来。这是打分模型治不了的病：
+# 它的任务是"别漏行业稿"，而这里要的是"别把别的行业收进来"——加权重只会两头误伤。
+# 所以另开一道不看分数、只看标题的硬门槛：标题里必须出现下面三类词之一。
+#
+#   A 人群/品类：奶粉、婴幼儿、纸尿裤、辅食、孕期、特医食品…
+#   B 跟踪品牌：飞鹤、达能、雀巢、美素佳儿…（点名即主题）
+#   C 奶粉供应链：原奶、生鲜乳、乳清、乳铁蛋白、HMO、羊奶粉、farmgate…
+#
+# 故意**只作打分、不作门槛**的词：乳业/乳品/牧场/奶牛/dairy/herd/synlait 之外的乳企。
+# 实测它们的稿子长这样——「独立乳农敦促国会推进家庭牧场法案」
+# 「奶牛池塘与人工湿地对减少氮流失效果相当」「乳品加工商食品安全指南」
+# 「全球乳品复配市场2035年达154亿美元」，全是产业内政、农场环保、加工设备，
+# 母婴读者看了没有任何用。
+CORE_GROUP_A = [
+    "奶粉", "婴配", "配方奶粉", "配方乳粉", "婴幼儿", "婴儿", "幼儿", "新生儿",
+    "宝宝", "宝妈", "孕妈", "母婴", "婴童", "孕婴", "孕婴童", "母乳", "辅食",
+    "纸尿裤", "拉拉裤", "学步裤", "湿巾", "奶瓶", "奶嘴", "婴儿车",
+    "孕妇", "孕期", "孕产", "月子", "月嫂", "育儿", "妇幼", "儿童",
+    "特医食品", "特殊医学用途", "营养品", "米粉", "果泥", "溶豆", "零辅食", "磨牙棒",
+    "童装", "洗护", "母婴店", "母婴连锁",
+    "infant", "baby", "toddler", "formula", "maternal", "diaper", "newborn",
+    "breast milk", "human milk", "baby food", "baby care", "parenting", "pregnancy",
+]
+CORE_GROUP_B = [
+    "飞鹤", "伊利", "蒙牛", "君乐宝", "达能", "雀巢", "惠氏", "雅培", "贝因美",
+    "合生元", "澳优", "佳贝艾特", "圣元", "完达山", "蓝河", "爱他美", "美素佳儿",
+    "美赞臣", "喜宝", "贝拉米", "健合", "妙可蓝多", "认养一头牛", "恒天然", "菲仕兰",
+    "光明乳业", "新乳业", "明治", "和光堂", "孩子王", "爱婴室", "帮宝适", "尤妮佳",
+    "哈克草本", "哈克", "萃益维", "润本", "汤臣倍健", "金领冠", "优博", "剖蓓舒",
+    "启赋", "蓝臻", "能立多", "a2", "babycare",
+    "danone", "nestle", "nestlé", "wyeth", "aptamil", "friso", "similac", "abbott",
+    "meiji", "lactalis", "fonterra", "frieslandcampina", "biostime", "ausnutria",
+    "yashili", "beingmate", "hipp", "nutricia", "harker", "cenovis",
+    # 英文报道里品牌名是英文写法，只认中文名会把真稿子漏掉
+    "feihe", "mengniu", "yili", "junlebao", "mead johnson", "synutra", "kabrita",
+    "bellamy", "h&h", "a2 milk",
+]
+CORE_GROUP_C = [
+    "原奶", "生鲜乳", "奶源", "乳清", "乳铁蛋白", "hmo", "母乳低聚糖", "大包粉",
+    "基粉", "羊奶粉", "奶价", "乳粉", "乳制品", "婴幼儿配方",
+    "milk powder", "whey", "lactoferrin", "milk price", "farmgate", "payout",
+    "milk collection", "milk supply", "milk production", "raw milk",
+    "dairy ingredient", "dairy export", "synlait", "westland", "open country",
+]
+_CORE_ALL: list[tuple[str, str]] = sorted(
+    [(w.lower(), "人群品类") for w in CORE_GROUP_A]
+    + [(w.lower(), "跟踪品牌") for w in CORE_GROUP_B]
+    + [(w.lower(), "奶粉供应链") for w in CORE_GROUP_C],
+    key=lambda kv: len(kv[0]),
+    reverse=True,  # 长词优先，命中"婴幼儿配方乳粉"就不必再报"奶粉"
+)
+
+# 只剩"品牌/供应链"线索、但话题落在乳业治理、ESG、牧场科研、产业政治上的稿子。
+# 典型标题：「Fonterra Board Pay Rise: Chair Fee Up to $528,500」
+# 「梅西大学副校长称大学最适合支持乳制品业」「贝氏集团超越达能成为甲烷减排领先者」
+# 「新西兰考虑对加拿大乳制品补贴采取 WTO 行动」。
+# 判据是两条同时成立：标题里没有母婴人群/品类词（CORE_GROUP_A），
+# 却出现下面这些话题词。只命中话题词不算——「婴幼儿奶粉碳足迹」这种还是要收的，
+# 所以必须先确认"没有人"。
+WEAK_TOPIC = re.compile(
+    r"(薪酬|年薪|董事会|换届|育种|配种|甲烷|碳排放|碳足迹|氮肥|氮流失|"
+    r"湿地|池塘|动物福利|福利新标准|科研|大学|学院|法案|国会|补贴|世贸|wto|"
+    r"环保|绿色转型|净零|net zero|emission|welfare|board|pay rise|salary|"
+    r"congress|senate|subsid)",
+    re.I,
+)
 
 # 明显无关的主题，命中直接丢弃（避免"奶粉"出现在综艺/体育新闻里被误收）
 BLOCKLIST = [
@@ -183,6 +257,20 @@ def score(title: str, summary: str = "") -> tuple[float, list[str]]:
     return total, hits
 
 
+def core_hit(title: str) -> tuple[str, str]:
+    """标题里有没有"本主题"的核心词。返回 (命中的词, 所属组)；没有则 ("", "")。
+
+    只看标题，不看摘要。摘要不可信：一条「云南检出12批次不合格食品，芒果…」
+    的摘要末尾常带一句"其中涉及婴幼儿配方食品"，拿摘要判就会把它放进来；
+    而真正讲婴幼儿的稿子，标题里一定有这个词。
+    """
+    title_low = (title or "").lower()
+    for word, group in _CORE_ALL:
+        if _count(title_low, word):
+            return word, group
+    return "", ""
+
+
 def is_blocked(title: str, summary: str = "") -> bool:
     text = f"{title} {summary}".lower()
     return any(word in text for word in _BLOCKED)
@@ -219,8 +307,20 @@ def classify(title: str, summary: str = "") -> list[str]:
     return [tag for _, _, tag in scored[:3]]
 
 
-def judge(title: str, summary: str, min_score: float = 4.0) -> tuple[bool, float, list[str], list[str]]:
-    """粗筛入口。返回 (是否保留, 分数, 命中词, 标签)。"""
+def judge(
+    title: str,
+    summary: str,
+    min_score: float = 4.0,
+    require_core: bool = True,
+) -> tuple[bool, float, list[str], list[str]]:
+    """粗筛入口。返回 (是否保留, 分数, 命中词, 标签)。
+
+    两道闸门，顺序不能反：
+      1) 主题硬门槛 core_hit()：标题里没有母婴人群/品类、没有跟踪品牌、
+         也没有奶粉供应链核心词 → 直接丢，**不看分数**。
+         泛食品源的抽检稿就是在这里被拦住的。
+      2) 关键词分 ≥ min_score：过了第一道再用分数确认它确实是行业稿。
+    """
     if is_blocked(title, summary):
         return False, 0.0, [], []
     if is_junk_title(title):
@@ -228,6 +328,13 @@ def judge(title: str, summary: str, min_score: float = 4.0) -> tuple[bool, float
         return False, 0.0, [], []
     if is_promo_title(title):
         # 获奖/庆典/邀约类公关稿，信息量为零
+        return False, 0.0, [], []
+    word, group = core_hit(title)
+    if require_core and not word:
+        # 主题不对：不是母婴/奶粉这条线上的东西，分数再高也不收
+        return False, 0.0, [], []
+    if group != "人群品类" and WEAK_TOPIC.search(title or ""):
+        # 有品牌或供应链线索，但讲的是乳业治理/ESG/牧场科研：给从业者看的，不是母婴读者要的
         return False, 0.0, [], []
     sc, hits = score(title, summary)
     tags = classify(title, summary)

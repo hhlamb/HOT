@@ -81,7 +81,7 @@ sources:
     lang: zh
     priority: P0
     enabled: true
-    note: 关键发现：httpx 请求被 403、curl 指纹 200（TLS 指纹校验）。已改用 curl_cffi
+    note: 关键发现：httpx 请求被 403、curl 指纹 200（TLS 指纹校验）。已改用 curl_cffi。2026-10-28 起只留母婴/奶粉相关：该站是泛食品资讯站，抽检与RASFF通报占大半（芒果、鸡肉、花生、海胆…），全靠 relevance 的主题硬门槛过滤，标题没核心词的一律不收
 
   - id: samr_food
     name: 市场监管总局·食品抽检
@@ -152,8 +152,8 @@ sources:
     type: html
     lang: zh
     priority: P1
-    enabled: true
-    note: 其 /rss 端点解析出 0 条，已放弃 RSS，改走 HTML
+    enabled: false
+    note: 其 /rss 端点解析出 0 条，已放弃 RSS，改走 HTML。2026-10-28 停用：列表页几乎全是代运营/税务私享会/AI增长课的广告稿，6 条里 0 条过主题门槛；跨境电商内容由 Google News 定向检索覆盖
 
   - id: kr36
     name: 36氪
@@ -170,8 +170,8 @@ sources:
     type: rss
     lang: zh
     priority: P2
-    enabled: true
-    note: 本地 403，待 Actions 复测
+    enabled: false
+    note: 本地 403，待 Actions 复测。2026-10-28 停用：综合科技/财报源，与母婴无关的稿子占绝大多数（罗普斯金收购、众兴菌业亏损…），主题门槛上线后 0 条通过
 
   - id: thepaper
     name: 澎湃新闻
@@ -243,8 +243,8 @@ sources:
     type: html
     lang: en
     priority: P2
-    enabled: true
-    note: 本地 403，待 Actions 复测
+    enabled: false
+    note: 本地 403，待 Actions 复测。2026-10-28 停用：美国乳品加工业刊物，内容是加工设备、输送机、年度产品奖、厂商百年庆，与母婴读者无关（11 条仅 1 条沾边）
 
   - id: justfood
     name: Just Food
@@ -717,10 +717,10 @@ sources:
     type: html
     lang: en
     priority: P1
-    enabled: true
+    enabled: false
     selector: 'a[href*="/news/"]'
     url_must_include: 'dairynz\.co\.nz/news/.+'
-    note: 协会视角的牧场端与科研（配种、产犊、环保合规、牧场系统）。2026-10-26 服务端核实：列表 SSR 可解析，链接形如 /news/<slug>/，日期为 "21 Oct 2026"（已加英文月名解析）。本机 403 是 Cloudflare，CI 待复核
+    note: 协会视角的牧场端与科研（配种、产犊、环保合规、牧场系统）。2026-10-26 服务端核实：列表 SSR 可解析，链接形如 /news/<slug>/，日期为 "21 Oct 2026"（已加英文月名解析）。本机 403 是 Cloudflare，CI 待复核。2026-10-28 停用：抓到的全是牧场环保/氮肥/奶牛福利/农场管理，没有任何一条落到奶粉或母婴链条上（7 条 0 条通过主题门槛）；奶价与原料端由 Farmers Weekly / Fonterra / Google News 覆盖
 
   - id: mpi_nz
     name: MPI 新西兰初级产业部

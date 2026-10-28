@@ -39,6 +39,8 @@ def build(stats: dict) -> str:
         f"（跳过重复 {stats['dup']} 条）",
         f"- 库内总计 **{stats['total']} 条**（保留 {stats['retention_days']} 天）",
     ]
+    if stats.get("weak"):
+        md.append(f"- 主题不符丢弃 **{stats['weak']} 条**（标题里没有母婴/奶粉核心词）")
     if stats.get("llm") and stats["llm"].get("enabled"):
         llm = stats["llm"]
         md.append(

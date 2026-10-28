@@ -33,7 +33,7 @@ from pipeline.dedupe import dedupe  # noqa: E402
 from pipeline.extract import fill_summaries  # noqa: E402
 from pipeline.fetchers import fetch_source  # noqa: E402
 from pipeline.http import PoliteClient  # noqa: E402
-from pipeline.relevance import judge  # noqa: E402
+from pipeline.relevance import core_hit, judge  # noqa: E402
 from pipeline.sources import load_config, load_sources  # noqa: E402
 
 try:
@@ -86,6 +86,7 @@ def main() -> int:
     pipe_cfg = cfg["pipeline"]
     retention = args.days or pipe_cfg["retention_days"]
     min_score = cfg.get("relevance", {}).get("min_score", 4.0)
+    require_core = bool(cfg.get("relevance", {}).get("require_core_title", True))
 
     sources = load_sources()
     if args.only:
@@ -132,6 +133,7 @@ def main() -> int:
             "new": 0,
             "stale": 0,
             "offtopic": 0,  # 品牌点名源里没提到该品牌的稿子
+            "weak": 0,      # 标题里没有母婴/奶粉核心词的稿子（泛食品源的抽检、召回）
             "elapsed_ms": res.elapsed_ms,
         }
         kept_here: dict[str, dict] = {}
@@ -171,7 +173,15 @@ def main() -> int:
                 # 与"强关键词直接命中"同级，不参与相关性判断。
                 ok, score, hits, tags = True, 4.5, ["品牌点名"], ["品牌动态"]
             else:
-                ok, score, hits, tags = judge(title, item.get("summary", ""), min_score)
+                # 主题硬门槛：标题里没有母婴人群/品类、没有跟踪品牌、没有奶粉供应链
+                # 核心词，一律不算这条线上的稿子。食品伙伴网、中国食品安全报、
+                # 市场监管总局这类泛食品源的抽检/召回稿全部在这里被拦下
+                # （"进口腌芒果二氧化硫超标""波兰鸡肉检出沙门氏菌"…），
+                # 不再靠调 min_score 去碰运气。
+                if require_core and not core_hit(title)[0]:
+                    row["weak"] += 1
+                    continue
+                ok, score, hits, tags = judge(title, item.get("summary", ""), min_score, require_core=False)
             if not ok:
                 continue
             item["score"] = round(score, 1)
@@ -190,6 +200,9 @@ def main() -> int:
         candidates.extend(kept_here.values())
 
     # ---------------- 补摘要（只处理库里还没有的条目）----------------
+    weak_total = sum(r.get("weak", 0) for r in per_source.values())
+    if weak_total:
+        print(f"  主题不符丢弃 {weak_total} 条（标题里没有母婴/奶粉核心词）")
     print("[3/6] 补摘要…")
     all_recent, _ = store.load_recent(retention, now)
     known_ids = {i["id"] for i in all_recent}
@@ -500,6 +513,7 @@ def main() -> int:
         "sources": list(per_source.values()),
         "fetched": sum(r["fetched"] for r in per_source.values()),
         "relevant": len(candidates),
+        "weak": weak_total,
         "new": len(kept),
         "dup": len(dropped),
         "total": len(final_items),
