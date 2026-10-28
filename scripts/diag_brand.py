@@ -69,6 +69,17 @@ ENGINES: list[tuple[str, str]] = [
 
 CUTOFF_DAYS = 45
 
+# 表四：Google News 的 when: 限定符。同一个查询两次请求回来的条目集合不一样
+# （一次 100 条含新稿、一次 32 条全是 7 月旧闻），加上时间限定能压住这种漂移。
+WHEN_TESTS: dict[str, tuple[str, int]] = {
+    "美素佳儿 when:30d": ("美素佳儿 OR Friso when:30d", 0),
+    "美素佳儿 when:60d": ("美素佳儿 OR Friso when:60d", 0),
+    "美素佳儿 纯中文 when:60d": ("美素佳儿 when:60d", 0),
+    "哈克草本 en when:60d": ("哈克草本 OR Harker Herbals when:60d", 2),
+    "哈克草本 en 纯英文 when:90d": ("Harker Herbals when:90d", 2),
+    "萃益维 港台 when:1y": ("萃益维 OR Cenovis when:1y", 1),
+}
+
 
 def _entry_date(entry) -> str:
     for key in ("published_parsed", "updated_parsed"):
@@ -222,6 +233,20 @@ def main() -> int:
     for sid, note, got, stale, kept, samples in probe_pipeline(now):
         sample = samples[0][:56] if samples else ""
         lines.append(f"| {sid} | {note} | {got} | {stale} | {kept} | {sample} |")
+
+    lines += [
+        "",
+        "## 四、加 when: 时间限定后再看（同一查询两次结果会漂）",
+        "",
+        "| 查询 | HTTP | 返回 | 45天内 | 可入库 | 最新一条 | 备注 |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for label, (query, engine_idx) in WHEN_TESTS.items():
+        row = probe_feed(ENGINES[engine_idx][1].format(q=quote(query, safe="")), now)
+        lines.append(
+            f"| {label} | {row['status']} | {row['entries']} | {row['fresh']} | {row['kept']} | "
+            f"{row.get('newest', '')} | {row.get('error', '')} |"
+        )
 
     lines.append("")
     OUT.parent.mkdir(parents=True, exist_ok=True)
