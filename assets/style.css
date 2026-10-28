@@ -606,7 +606,7 @@ button[hidden], [hidden] { display: none !important; }
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
   margin-top: 20px;
 }
 /* display:flex 会盖掉 hidden 的默认 display:none，必须显式收回 */
@@ -617,7 +617,9 @@ button[hidden], [hidden] { display: none !important; }
   align-items: center;
   gap: 6px;
   height: 30px;
-  padding: 0 12px;
+  /* 内边距和间距各收 1px：这一行能多塞进一个是一个。
+     桌面容器 717px 装不下九个，但少掉一个就意味着第二行不至于只剩一项。 */
+  padding: 0 11px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -1616,8 +1618,19 @@ button[hidden], [hidden] { display: none !important; }
   /* 分类筛选条已经在内容区顶部，侧栏这一行让位：
      顶栏三段（报头 / 导航 / 分类）在手机上吃掉的首屏太多，留两段就够。 */
   #rail-cats { display: none !important; }
-  .filters { margin-top: 14px; }
-  .fchip { height: 28px; padding: 0 10px; font-size: 12px; }
+  /* 手机上的筛选条只占一行、横向滑动。换行的话要吃掉七十来像素，
+     首屏那张卡片被顶到屏幕外；右侧渐隐，提示后面还有分类。 */
+  .filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-top: 14px;
+    padding-right: 22px;
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .fchip { height: 28px; padding: 0 10px; font-size: 12px; flex: none; }
 
   .origin { flex-direction: column; align-items: stretch; gap: 11px; }
   .origin .btn-primary { margin-left: 0; justify-content: center; }
