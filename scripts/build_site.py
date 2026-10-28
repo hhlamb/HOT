@@ -73,6 +73,34 @@ def _local_name(url: str) -> str:
     return key + ".jpg"
 
 
+def _shrink(data: bytes, ext: str) -> tuple[bytes, str]:
+    """压到长边 1000、JPEG q82。原图常有 500KB~2MB，列表里只显示 88px 宽，
+    不压的话首屏要等好几秒才出图，读者看到的是一个个灰框。"""
+    if ext == ".gif":
+        return data, ext  # 动图不转，避免只剩第一帧
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+    except Exception:  # noqa: BLE001 - 没装 Pillow 就原样发布
+        return data, ext
+    try:
+        im = Image.open(BytesIO(data))
+        im.load()
+        if getattr(im, "is_animated", False):
+            return data, ext
+        im = im.convert("RGB")
+        if max(im.size) > 1000:
+            im.thumbnail((1000, 1000), Image.LANCZOS)
+        buf = BytesIO()
+        im.save(buf, "JPEG", quality=82, optimize=True, progressive=True)
+        out = buf.getvalue()
+    except Exception:  # noqa: BLE001 - 压失败就发原图，别丢图
+        return data, ext
+    return (out, ".jpg") if len(out) < len(data) else (data, ext)
+
+
+
 def _fetch_image(url: str):
     """下载一张图。返回 (bytes, ext) 或 (None, 失败原因)。"""
     host = url.split("/")[2] if "//" in url else ""
@@ -141,7 +169,8 @@ def mirror_images(site_dir: Path) -> None:
             if data is None:
                 failed[info] = failed.get(info, 0) + 1
                 continue
-            name = _local_name(url)
+            data, ext = _shrink(data, info if info.startswith(".") else ".jpg")
+            name = hashlib.md5(url.encode("utf-8")).hexdigest()[:16] + ext
             try:
                 (mirror_dir / name).write_bytes(data)
             except OSError:
