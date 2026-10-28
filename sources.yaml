@@ -540,6 +540,19 @@ sources:
     enabled: true
     note: 补渠道侧信息：母婴连锁、经销商库存、直播与私域卖奶粉
 
+  # 母婴品类本身（2026-10-28 加）：纸尿裤/辅食/喂养用品/童装，
+  # 这些稿子标题里既没有"奶粉"也没有"乳业"，靠原有查询一条都抓不到。
+  # 带 when:30d 是为了让排序偏向新稿，否则 Google 会把半年前的导购文排前面。
+  - id: gnews_cn_baby_category
+    name: Google News·母婴品类（中文）
+    url: >-
+      https://news.google.com/rss/search?q=%28%E7%BA%B8%E5%B0%BF%E8%A3%A4%20OR%20%E8%BE%85%E9%A3%9F%20OR%20%E5%A5%B6%E7%93%B6%20OR%20%E6%B9%BF%E5%B7%BE%20OR%20%E6%AF%8D%E5%A9%B4%E7%94%A8%E5%93%81%20OR%20%E7%AB%A5%E8%A3%85%20OR%20%E5%A9%B4%E5%84%BF%E8%BD%A6%29%20when%3A30d&hl=zh-CN&gl=CN&ceid=CN:zh-Hans
+    type: rss
+    lang: zh
+    priority: P1
+    enabled: true
+    note: 2026-10-28 接入。补纸尿裤/辅食/奶瓶/湿巾/母婴用品/童装一条线，走品类词而非品牌词
+
   - id: gnews_cn_supply
     name: Google News·奶源与原料价格（中文）
     url: >-

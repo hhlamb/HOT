@@ -82,7 +82,7 @@ dedupe:
 pipeline:
   retention_days: 90
   max_age_days: 45             # 入库时丢弃发布时间早于 N 天的条目（品牌官网页脚常有陈年旧稿）
-  max_per_source: 10           # 单源单轮最多入库多少条，防止一个站把信息流刷屏
+  max_per_source: 14           # 单源单轮最多入库多少条，防止一个站把信息流刷屏
   tags:
     - 品牌动态
     - 政策法规
