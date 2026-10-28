@@ -180,7 +180,11 @@
   };
 
   FEED.hasOwnImage = function (item) {
-    return /^https?:/i.test(String(item.image || "").trim());
+    /* 构建时镜像到站内的图是相对路径（assets/mirror/…）。
+       只认 http(s) 会把它们当成"没有配图"，整站缩略图全部回落到示意图——
+       文章页那张真图也一样被吞掉。相对路径同样是原文配图，必须放行。 */
+    const src = String(item.image || "").trim();
+    return /^(https?:|assets\/|\.\/|data\/)/i.test(src);
   };
 
   /* ---------------- 热度 ---------------- */
