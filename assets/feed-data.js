@@ -360,13 +360,24 @@
 
   const THEME_KEY = "milkradar-theme";
 
+  function b_isButton(node) {
+    return !!node && node.tagName === "BUTTON";
+  }
+
   /* 深浅色切换。
-     页面上可能有两个按钮：侧栏底部那个（宽屏可见）和右下角悬浮那个
+     页面上可能有两个按钮：侧栏底部那个（宽屏可见）和报头右上角那个
      （窄屏才出现，因为侧栏在手机上是横条，.rail-foot 被隐藏了）。
-     所有带 data-theme-toggle 的按钮共用一份状态，点哪个都同步。 */
+     所有带 data-theme-toggle 的按钮共用一份状态，点哪个都同步。
+
+     2026-10-29 复盘：上一版直接吃 querySelectorAll("[data-theme-toggle]")，
+     一旦别处（模板、后续改动）把属性带到导航项上，点侧栏就会变成切深浅色。
+     现在只认明确的两个开关，并且显式排除导航、分类、顶部栏里的元素——
+     主题只能由"看得见的月亮/太阳按钮"触发，别的元素一律不参与。 */
   FEED.initTheme = function (btn) {
-    const btns = Array.from(document.querySelectorAll("[data-theme-toggle]"));
-    if (btn && btns.indexOf(btn) < 0) btns.push(btn);
+    const btns = Array.from(
+      document.querySelectorAll("#theme-btn, .theme-float, [data-theme-toggle]")
+    ).filter((b) => b.isConnected && !b.closest(".nav-item, .cat-item, .rail-nav, #cats, nav"));
+    if (btn && b_isButton(btn) && btns.indexOf(btn) < 0) btns.push(btn);
 
     function apply(mode) {
       if (mode === "dark") document.documentElement.dataset.theme = "dark";

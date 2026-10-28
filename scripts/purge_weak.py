@@ -28,7 +28,13 @@ sys.path.insert(0, str(ROOT))
 
 from pipeline import store  # noqa: E402
 from pipeline.clean import is_junk_title  # noqa: E402
-from pipeline.relevance import WEAK_TOPIC, core_hit  # noqa: E402
+from pipeline.relevance import (  # noqa: E402
+    WEAK_GOVERNANCE,
+    WEAK_TOPIC,
+    core_hit,
+    is_local_or_social,
+    is_shop_claim,
+)
 from pipeline.sources import load_config, load_sources  # noqa: E402
 
 CST = timezone(timedelta(hours=8))
@@ -41,10 +47,12 @@ def main() -> int:
     args = ap.parse_args()
 
     must: dict[str, list[str]] = {}
+    lang_of: dict[str, str] = {}
     for src in load_sources(enabled_only=False):
         words = [str(w).strip().lower() for w in (src.get("must_match") or []) if str(w).strip()]
         if words:
             must[src["id"]] = words
+        lang_of[src["id"]] = src.get("lang") or "zh"
 
     old_index = json.loads((store.DATA_DIR / "index.json").read_text(encoding="utf-8"))
     last_updated = old_index.get("last_updated") or datetime.now(CST).isoformat(timespec="seconds")
@@ -63,14 +71,24 @@ def main() -> int:
 
             if is_junk_title(title) or is_junk_title(title_zh):
                 reason = "导流/选购软文或导航页"
+            elif is_shop_claim(title) or is_shop_claim(title_zh):
+                reason = "商品导购稿"
+            elif is_local_or_social(title) or is_local_or_social(title_zh):
+                reason = "本地广告/社会新闻/政务稿"
             elif sid in must:
                 reason = "" if any(w in body for w in must[sid]) else "没点到品牌名"
             else:
                 word, group = core_hit(title + " " + title_zh)
                 if not word:
                     reason = "标题无母婴/奶粉核心词"
-                elif group != "人群品类" and WEAK_TOPIC.search(title + " " + title_zh):
-                    reason = "乳业治理/ESG稿"
+                elif group != "人群品类" and WEAK_GOVERNANCE.search(title + " " + title_zh):
+                    reason = "治理/人事/薪酬稿"
+                elif (
+                    group != "人群品类"
+                    and lang_of.get(sid, "zh") != "en"
+                    and WEAK_TOPIC.search(title + " " + title_zh)
+                ):
+                    reason = "乳业治理/ESG稿（中文源）"
                 else:
                     reason = ""
 

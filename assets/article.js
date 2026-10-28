@@ -224,7 +224,7 @@ function render(item, all) {
       el.body.appendChild(node);
     }
     el.bodyWrap.hidden = false;
-    el.bodyNote.textContent = "以下为原文关键段落摘录，完整内容请点下方原文。";
+    el.bodyNote.textContent = "以上为节选，完整内容见原文。";
   } else {
     // 检索类来源（Google News 跳转、数据接口）和需要登录/纯图片的站拿不到网页正文。
     // 与其空着，不如把这一条在"事件脉络"里的位置摆出来，让人顺着看前后进展。

@@ -44,3 +44,9 @@ assets/items/
 # （属于工作台产物，不要跟着页面一起发布出去）
 docs/
 .chk/
+
+# 健康检查的运行时产物（状态在 CI 用 cache 传递，告警发进 issue，不入库）
+meta/health-state.json
+meta/health-alert.md
+meta/weekly.md
+meta/last-run.json

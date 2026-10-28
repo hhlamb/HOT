@@ -98,11 +98,26 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
+      # 规则回归：56 条固定样本翻面就直接红，避免词表改错把某个源悄悄筛空
+      - name: 规则回归（固定样本）
+        run: python scripts/test_golden.py
+
       - name: 抓取 + 清洗 + 摘要
         if: steps.gate.outputs.need_fetch != 'false'
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: python scripts/run.py
+
+      # 本轮健康快照（源级成败、新增条数）。不提交进仓库，只作为产物传给
+      # health-check：提交它会让每轮都产生一个无意义的 commit。
+      - name: 上传本轮快照
+        if: steps.gate.outputs.need_fetch != 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: last-run
+          path: meta/last-run.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: 提交数据（无变化则跳过）
         id: commit

@@ -906,7 +906,8 @@ function thumbFor(item) {
   img.src = src;
   img.loading = "lazy";
   img.referrerPolicy = "no-referrer";
-  img.alt = "";
+  /* alt 用条目标题：图挂了能显示替代文字，读屏软件也知道这张图在说什么 */
+  img.alt = fill ? "" : item.title_zh || item.title || "";
   /* 示意图 404 时回落到分类主题图；主题图再挂就整块撤掉，不留空框 */
   img.addEventListener("error", () => {
     if (!fill) return box.remove();
@@ -1019,6 +1020,16 @@ function renderFeed(rows) {
     src.className = "src";
     src.textContent = item.source_name || "未知来源";
     meta.appendChild(src);
+
+    /* AI 摘要的显式标识。要求是"能被看到、但不抢戏"：10px 灰字，不加底色。
+       只有模型改写过的摘要才打，正文截断（extract）不算 AI 生成。 */
+    if (item.summary_source === "llm") {
+      const ai = document.createElement("span");
+      ai.className = "ai-mark";
+      ai.textContent = "AI";
+      ai.title = "摘要由 AI 归纳，仅供参考，细节以原文为准";
+      meta.appendChild(ai);
+    }
 
     /* 热度只给「全部动态」看。这一屏按时间排，读者没有别的东西判断哪条
        值得点开，分数在这里是唯一的线索；精选已经按事件挑过、热点榜本身就是

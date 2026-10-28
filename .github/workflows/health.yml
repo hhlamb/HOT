@@ -1,0 +1,99 @@
+name: health-check
+
+# 抓取跑完就看一眼结果对不对，异常开 issue 并 @hhlamb（GitHub 会发邮件）。
+# 为什么不放在站点首页：读者不需要看运维状态，而且站点 200 不代表数据是好的。
+# 为什么挂在 workflow_run 上：数据是 update-feed 提交的，部署完再看最准。
+on:
+  workflow_run:
+    workflows: ["update-feed"]
+    types: [completed]
+  schedule:
+    - cron: "30 1 * * 1"   # 周一 01:30 UTC = 北京 09:30，发周报
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+  actions: write   # 读写缓存（连续失败/连续零产出的计数存在缓存里）
+
+concurrency:
+  group: health-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      # 上一轮抓取的源级快照。拿不到也不影响数据层检查（会退化成只看库内状态）。
+      - name: 取上一轮快照
+        if: github.event_name == 'workflow_run'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: last-run
+          path: meta
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 连续失败/连续零产出的计数要跨轮保存，用缓存而不是提交文件，避免每轮一个 commit
+      - name: 取健康状态
+        uses: actions/cache/restore@v4
+        with:
+          path: meta/health-state.json
+          key: health-state-${{ github.run_id }}
+          restore-keys: health-state-
+
+      - name: 健康检查
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "30 1 * * 1" ]; then
+            python scripts/health_check.py --weekly
+            if [ -f meta/weekly.md ]; then echo "weekly=1" >> "$GITHUB_OUTPUT"; fi
+          else
+            python scripts/health_check.py
+            if [ -f meta/health-alert.md ]; then echo "alert=1" >> "$GITHUB_OUTPUT"; fi
+          fi
+
+      - name: 保存健康状态
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: meta/health-state.json
+          key: health-state-${{ github.run_id }}
+
+      # 同一个问题只维护一个 issue：已开着就追加评论，不让邮箱被刷屏
+      - name: 开 issue 或追加评论
+        if: steps.check.outputs.alert == '1' || steps.check.outputs.weekly == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create health --color FBCA04 --description "抓取健康检查" 2>/dev/null || true
+          label="health"
+          if [ "${{ steps.check.outputs.weekly }}" = "1" ]; then
+            body="meta/weekly.md"
+            title="站点周报"
+          else
+            body="meta/health-alert.md"
+            title="抓取异常"
+          fi
+          num=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty' || true)
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --body-file "$body"
+          else
+            gh issue create --title "$title · $(date -u +'%Y-%m-%d %H:%M') UTC" --label "$label" --body-file "$body"
+          fi

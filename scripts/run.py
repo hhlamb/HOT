@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -181,7 +182,15 @@ def main() -> int:
                 if require_core and not core_hit(title)[0]:
                     row["weak"] += 1
                     continue
-                ok, score, hits, tags = judge(title, item.get("summary", ""), min_score, require_core=False)
+                ok, score, hits, tags = judge(
+                    title,
+                    item.get("summary", ""),
+                    min_score,
+                    require_core=False,
+                    # 英文源按"海外奶源倾斜"放宽：牧场管理、收奶量、甲烷这类
+                    # 在英文语境里就是奶源一手信息，中文源仍然按产业内政拦掉。
+                    strict_weak=(src.get("lang") or "zh") != "en",
+                )
             if not ok:
                 continue
             item["score"] = round(score, 1)
@@ -523,6 +532,39 @@ def main() -> int:
         "with_summary": sum(1 for i in final_items if i.get("summary")),
     }
     report.emit(stats)
+    # 给健康检查用的一轮快照：源级成败、本轮新增、库内总数。
+    # 只写 meta/（workflow 的 paths-ignore 里有 meta/**），不参与站点构建。
+    if not args.dry_run:
+        meta_dir = Path(__file__).resolve().parent.parent / "meta"
+        meta_dir.mkdir(exist_ok=True)
+        (meta_dir / "last-run.json").write_text(
+            json.dumps(
+                {
+                    "at": now.isoformat(timespec="seconds"),
+                    "sources_total": len(per_source),
+                    "sources_ok": sum(1 for r in per_source.values() if not r["error"]),
+                    "new": len(kept),
+                    "fetched": stats["fetched"],
+                    "weak": weak_total,
+                    "total": len(final_items),
+                    "newest": (final_items[0].get("published_at") if final_items else ""),
+                    "sources": [
+                        {
+                            "id": r["id"],
+                            "name": r["name"],
+                            "error": r["error"],
+                            "fetched": r["fetched"],
+                            "relevant": r["relevant"],
+                            "new": r["new"],
+                        }
+                        for r in per_source.values()
+                    ],
+                },
+                ensure_ascii=False,
+                indent=1,
+            ),
+            encoding="utf-8",
+        )
     return 0
 
 

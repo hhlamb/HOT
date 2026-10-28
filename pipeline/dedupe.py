@@ -8,9 +8,73 @@
 
 from __future__ import annotations
 
+import re
+
 from .clean import similarity, title_key
 
 PRIORITY_RANK = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+
+# ---------------- 实体 + 数字指纹 ----------------
+# 字符相似度只能抓"标题改写不多"的重复。「雅培 3.85 亿美元和解」这件事，
+# 四家媒体的标题分别写成"雅培同意支付3.85亿美元""Abbott to pay $385 million…"
+# 「雅培就婴儿配方奶粉案达成和解」，两两相似度都低于 0.82，一条都拦不住。
+# 但它们的共同点是：同一个品牌 + 同一串金额。所以另算一个"实体+数字"指纹，
+# 两边都对得上就判为同一事件。
+ENTITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "abbott": ("雅培", "abbott"),
+    "danone": ("达能", "danone"),
+    "nestle": ("雀巢", "nestle", "nestlé"),
+    "feihe": ("飞鹤", "feihe"),
+    "yili": ("伊利", "yili"),
+    "mengniu": ("蒙牛", "mengniu"),
+    "junlebao": ("君乐宝", "junlebao"),
+    "biostime": ("合生元", "健合", "biostime", "h&h"),
+    "ausnutria": ("澳优", "佳贝艾特", "ausnutria", "kabrita"),
+    "beingmate": ("贝因美", "beingmate"),
+    "synutra": ("圣元", "synutra"),
+    "a2": ("a2 milk", "a2milk", "a2牛奶"),
+    "fonterra": ("恒天然", "fonterra"),
+    "synlait": ("新莱特", "synlait"),
+    "friesland": ("菲仕兰", "frieslandcampina", "美素佳儿", "friso"),
+    "mead": ("美赞臣", "mead johnson", "reckitt"),
+    "lactalis": ("兰特黎斯", "lactalis"),
+    "wyeth": ("惠氏", "wyeth"),
+    "aptamil": ("爱他美", "aptamil", "nutricia"),
+    "hipp": ("喜宝", "hipp"),
+    "bellamy": ("贝拉米", "bellamy"),
+    "healthbank": ("孩子王", "爱婴室"),
+    "pampers": ("帮宝适", "pampers"),
+}
+
+# 金额/数量：3.85亿、385 million、$385m、1.2 billion、25万 都要能对上。
+# 归一化成"万"为单位的整数，1 亿 = 10000 万，1e8/1e4 = 10000，正好对齐。
+_NUM_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(亿|万|million|billion|bn|m(?![a-z]))?", re.I)
+_UNIT = {"亿": 1e8, "万": 1e4, "million": 1e6, "billion": 1e9, "bn": 1e9, "m": 1e6}
+MIN_AMOUNT = 1e6  # 小于 100 万的数字（第几批、第几届、3 款）不放进指纹，否则误合
+
+
+def amount_marks(text: str) -> frozenset[int]:
+    out: set[int] = set()
+    for m in _NUM_RE.finditer(text or ""):
+        try:
+            val = float(m.group(1).replace(",", ""))
+        except ValueError:
+            continue
+        unit = (m.group(2) or "").lower()
+        val *= _UNIT.get(unit, 1)
+        if val >= MIN_AMOUNT:
+            out.add(round(val / 1e4))
+    return frozenset(out)
+
+
+def event_fingerprint(title: str) -> tuple[str, frozenset[int]] | None:
+    """同一品牌 + 同一笔金额 → 判为同一事件。缺一个都不算。"""
+    low = (title or "").lower()
+    for canon, variants in ENTITY_ALIASES.items():
+        if any(v in low for v in variants):
+            marks = amount_marks(low)
+            return (canon, marks) if marks else None
+    return None
 
 
 def _quality(item: dict) -> tuple:
@@ -21,6 +85,10 @@ def _quality(item: dict) -> tuple:
         -len(item.get("summary") or ""),
         -len(item.get("title") or ""),
     )
+
+
+def _disp(item: dict) -> str:
+    return item.get("title_zh") or item.get("title") or ""
 
 
 def dedupe(
@@ -59,14 +127,20 @@ def dedupe(
     fresh.sort(key=_quality)
 
     clusters: list[dict] = []
+    fp_index: dict[tuple, dict] = {}
     for rep in recent:
-        key = title_key(rep.get("title_zh") or rep.get("title") or "")
+        key = title_key(_disp(rep))
+        fp = event_fingerprint(_disp(rep))
         if key:
-            clusters.append({"key": key, "items": [rep], "count": 1, "external": True})
+            cluster = {"key": key, "items": [rep], "count": 1, "external": True, "fp": fp}
+            clusters.append(cluster)
+            if fp and fp not in fp_index:
+                fp_index[fp] = cluster
 
     kept: list[dict] = []
     for item in fresh:
-        key = title_key(item.get("title_zh") or item.get("title") or "")
+        key = title_key(_disp(item))
+        fp = event_fingerprint(_disp(item))
         matched = None
         matched_sim = 0.0
         for cluster in clusters:
@@ -74,14 +148,25 @@ def dedupe(
             if sim >= threshold:
                 matched, matched_sim = cluster, sim
                 break
+        if matched is None and fp is not None:
+            # 标题写法差得远，但品牌与金额完全一致：同一事件的不同报道
+            cluster = fp_index.get(fp)
+            if cluster is not None:
+                matched, matched_sim = cluster, threshold
         if matched is None:
-            clusters.append({"key": key, "items": [item], "count": 1, "external": False})
+            cluster = {"key": key, "items": [item], "count": 1, "external": False, "fp": fp}
+            clusters.append(cluster)
+            if fp and fp not in fp_index:
+                fp_index[fp] = cluster
             if key:
                 known_keys.add(key)
             kept.append(item)
             continue
 
         matched["count"] += 1
+        if matched.get("fp") is None and fp is not None:
+            matched["fp"] = fp
+            fp_index.setdefault(fp, matched)
         if matched["external"]:
             # 与库内已有条目重复：不重复入库，但把缺失的信息补上去
             stats.append({**item, "_drop": "与库内条目重复"})

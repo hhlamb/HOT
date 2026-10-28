@@ -1,0 +1,293 @@
+# 固定样本（回归测试）
+#
+# 每次改词表、阈值、规则后跑：python scripts/test_golden.py
+# expect: keep = judge() 必须判为收录；drop = 必须判为丢弃。
+# lang: en 的样本按英文源口径判（strict_weak=False，放开牧场/ESG 话题）。
+
+cases:
+  # ---- 母婴核心：必须收 ----
+  - title: "韩国大米无机砷含量远低于法定标准确保辅食安全"
+    expect: keep
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 辅食安全监管，跨境辅食合规
+  - title: "纸尿裤风波中“躺赢” 帮宝适最新季度在中国销售额涨50%"
+    expect: keep
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 纸尿裤事件后的份额变化
+  - title: "蒙牛悄悄养了三年的特医品牌，终于亮牌了？"
+    expect: keep
+    source: gnews_cn_special_med
+    lang: zh
+    why: 特医赛道，品牌动作
+  - title: "消费提示：切勿购买剪码婴幼儿纸尿裤"
+    expect: keep
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 监管消费提示，直接影响跨境货
+  - title: "甲酰胺“未检出”之外：中国纸尿裤的竞争力 被掩盖了多久？"
+    expect: keep
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 纸尿裤质量安全深度稿
+  - title: "新闻速递丨9款婴配方羊奶粉批件发布；雅泰乳业羊乳研究院揭牌；东方甄选首次上线自营纸尿裤"
+    expect: keep
+    source: cbiline
+    lang: zh
+    why: 配方注册批件，一手信息
+  - title: "孩子王旗下丝域美国门店已试营业；9款婴配粉、17款特医食品批件信息公布；天猫、京东、抖音、小红书双11最新数据"
+    expect: keep
+    source: gnews_cn_special_med
+    lang: zh
+    why: 批件汇总，含特医（日报式汇总稿，仍要收）
+  - title: "FSSAI 就婴幼儿配方奶粉问题对雀巢印度采取行动"
+    expect: keep
+    source: gdelt_formula
+    lang: en
+    why: 境外监管对婴配粉的行动
+  - title: "配方奶粉召回：目前没有婴儿生病"
+    expect: keep
+    source: gnews_en_recall
+    lang: en
+    why: 奶粉召回，质量安全
+  - title: "婴幼儿配方食品标签标识新规发布"
+    expect: keep
+    source: gnews_cn_policy
+    lang: zh
+    why: 标签新规，政策法规
+  - title: "港抽检逾50婴幼儿奶粉产品 铅含量未见异常"
+    expect: keep
+    source: gnews_zh_formula
+    lang: zh
+    why: 奶粉抽检，监管结论
+  - title: "市场监管总局特殊食品司来湘调研婴幼儿辅助食品安全监管工作"
+    expect: keep
+    source: foodmate_news
+    lang: zh
+    why: 特殊食品监管动向
+  - title: "拟纳入优先审评审批程序特殊医学用途配方食品注册申请的公示（2026年第11号）"
+    expect: keep
+    source: foodmate_news
+    lang: zh
+    why: 特医注册审批公示
+  # ---- 品牌动态：必须收 ----
+  - title: "雅培宣布分拆营养品业务"
+    expect: keep
+    source: gnews_zh_formula
+    lang: zh
+    why: 品牌战略，婴配格局变化
+  - title: "达能第三季度业绩强劲"
+    expect: keep
+    source: foodnavigator
+    lang: en
+    why: 品牌财报
+  - title: "恒天然从破产管理人手中收购新西兰乳制品公司奶粉工厂"
+    expect: keep
+    source: gnews_en_dairy
+    lang: en
+    why: 供应链并购，奶粉工厂
+  - title: "贝因美任命新董事"
+    expect: keep
+    source: gnews_en_nz_dairy
+    lang: en
+    why: 品牌人事（治理类，但属公司动态）
+  - title: "伊利股份发布2026年第三季度业绩说明会公告"
+    expect: keep
+    source: gnews_cn_brand_fin
+    lang: zh
+    why: 品牌财报
+  - title: "雀巢Q3营收超1800亿元！婴儿奶粉稳步调整，宠物护理接棒高增长"
+    expect: keep
+    source: gnews_cn_brands
+    lang: zh
+    why: 财报，含婴配粉表现
+  - title: "Synlait任命Leon Fung为永久首席执行官"
+    expect: keep
+    source: gnews_en_nz_dairy
+    lang: en
+    why: 奶粉原料供应商人事
+  - title: "美素佳儿全链路自控，管控节点超3000道"
+    expect: keep
+    source: brand_friso
+    lang: zh
+    why: 点名品牌，供应链自控
+  - title: "健合760%利润真相：一边吃雀巢召回红利，一边被小红书“掐住”流量"
+    expect: keep
+    source: gnews_cn_compliance
+    lang: zh
+    why: 品牌财报+舆情
+  # ---- 渠道与市场：必须收 ----
+  - title: "全国母婴店从25万降到13万，年轻父母比价下单，谁杀死了这门生意？"
+    expect: keep
+    source: gnews_cn_channel
+    lang: zh
+    why: 渠道结构变化，核心议题
+  - title: "母婴店关店数量增加，年轻父母线上比价趋势明显"
+    expect: keep
+    source: gnews_cn_channel
+    lang: zh
+    why: 同议题另一来源表述
+  - title: "婴儿配方奶粉市场规模、份额和增长报告 [2034] - Fortune Business Insights"
+    expect: keep
+    source: gnews_zh_formula
+    lang: zh
+    why: 市场数据
+  - title: "庖根闻笛丨跨境营养品“翻车”启示录"
+    expect: keep
+    source: muyingqianyan
+    lang: zh
+    why: 跨境营养品风险
+  - title: "象上家&剖蓓舒共启渠道增长逻辑"
+    expect: keep
+    source: muyingqianyan
+    lang: zh
+    why: 渠道与品牌合作
+  - title: "浙江台州宝妈买香港美素佳儿奶粉，内壁污渍像“双面胶”，商家：“跨境保税品，不支持7天无理由退换货，按照奶粉剩余量退货退款”"
+    expect: keep
+    source: brand_friso
+    lang: zh
+    why: 跨境保税售后，消费者侧案例
+  - title: "全球牛奶供应测试爱荷华州奶牛场扩张"
+    expect: keep
+    source: gnews_en_nz_dairy
+    lang: en
+    why: 海外奶源/牧场扩张，用户明确要收
+  - title: "雀巢美国发布2027年趋势预测"
+    expect: keep
+    source: foodbusinessnews
+    lang: en
+    why: 海外品牌趋势，用户明确要收
+  - title: "宝宝辅食工具必备清单"
+    expect: keep
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 辅食工具清单，公司也做同类产品，用户明确要收
+  # ---- 跨行业误收：必须丢 ----
+  # ---- 软文与页面：必须丢 ----
+  # ---- 社会新闻与本地广告：必须丢（2026-10-29 补规则） ----
+  - title: "2026年秋冬夜用纸尿裤：不闷屁屁，一觉睡到天亮"
+    expect: drop
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 商品导购软文
+  - title: "日照节假日还营业的靠谱母婴店&服务清单，3类需求一次说清+FAQ"
+    expect: drop
+    source: gnews_cn_channel
+    lang: zh
+    why: 本地门店广告
+  - title: "民警抱娃逛母婴店，一个眼神，妻子秒懂！ - 光明网"
+    expect: drop
+    source: gnews_cn_channel
+    lang: zh
+    why: 社会趣闻，无行业信息
+  - title: "2岁男童母婴店洗浴感染传染性软疣 - 光明网"
+    expect: drop
+    source: gnews_cn_channel
+    lang: zh
+    why: 社会新闻，无行业信息
+  - title: "民丰县：本土青年勇创业 小小母婴店赋能便民增收路"
+    expect: drop
+    source: gnews_cn_channel
+    lang: zh
+    why: 地方政务稿
+  - title: "注意！进口腌芒果检出二氧化硫超标"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类，典型误收
+  - title: "波兰出口冷藏鸡肉中检出沙门氏菌"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类
+  - title: "匈牙利出口冷冻鸭肉中检出沙门氏菌"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类
+  - title: "注意！进口海胆检出镉含量超标"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类
+  - title: "爱尔兰出口活贻贝被检出大肠杆菌超标"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类
+  - title: "韩国召回苯并芘超标的紫苏油"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类
+  - title: "比利时出口巧克力被检出农药残留超标"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 非母婴品类
+  - title: "山东检出25批次不合格食品，有鸡精调味料、琥珀核桃仁、山楂片等"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 泛食品抽检
+  - title: "内蒙古检出31批次不合格食品，有原味葵花籽、干噎酸奶、小米醋等"
+    expect: drop
+    source: foodmate_news
+    lang: zh
+    why: 泛食品抽检
+  - title: "独立乳农敦促国会推进家庭牧场法案"
+    expect: drop
+    source: foodnavigator
+    lang: zh
+    why: 美国农业政治
+  - title: "乳品加工商如何加强食品安全并防止召回"
+    expect: drop
+    source: dairyfoods
+    lang: zh
+    why: 乳品加工业内刊内容
+  - title: "Stewart's Shops Corp.：Stewarts Shops香草巧克力草莓冰淇淋被通报召回"
+    expect: drop
+    source: openfda_food_recall
+    lang: zh
+    why: 美国冰淇淋召回
+  - title: "新西兰奶源企业高管薪酬提议"
+    expect: drop
+    source: gnews_en_nz_dairy
+    lang: zh
+    why: 乳企董事会薪酬
+  - title: "梅西大学副校长称大学最适合支持乳制品业"
+    expect: drop
+    source: gnews_en_nz_dairy
+    lang: zh
+    why: 乳业科研
+  - title: "婴幼儿奶粉选购指南 安全配方与口味品牌评测"
+    expect: drop
+    source: gnews_cn_policy
+    lang: zh
+    why: SEO 选购软文
+  - title: "京东与淘宝奶粉价格比较及2026双十一囤货攻略"
+    expect: drop
+    source: gnews_cn_ecom
+    lang: zh
+    why: 电商囤货软文
+  - title: "2026白皮书盘点｜十大排名参考：母婴店上哪个驼奶粉好"
+    expect: drop
+    source: gnews_cn_channel
+    lang: zh
+    why: 榜单软文
+  - title: "2026年安徽省淮北市成品油车用尿素纸尿裤坐便器车用电池车用头盔等产品质量监督抽查结果汇总表"
+    expect: drop
+    source: gnews_cn_baby_category
+    lang: zh
+    why: 监管表格页
+  - title: "缺陷产品召回查询"
+    expect: drop
+    source: samr_cn
+    lang: zh
+    why: 站点导航页
+  - title: "婴幼儿配方乳粉产品配方注册申请系统"
+    expect: drop
+    source: samr_cn
+    lang: zh
+    why: 站点功能页

@@ -55,6 +55,9 @@ KEYWORDS: dict[str, int] = {
     # 的稿子也能过 4.0 的阈值——"萃益维上新礼盒"这类标题里没有"奶粉""营养品"。
     "哈克草本": 4, "哈克": 3, "harker herbals": 4,
     "萃益维": 4, "cenovis": 4,
+    # 剖蓓舒是渠道稿里出现频率很高的品牌，之前只进核心词表、没给权重，
+    # 「象上家&剖蓓舒共启渠道增长逻辑」这种标题分数只有 3.2，过不了线。
+    "剖蓓舒": 4,
     "光明乳业": 2, "三元": 2, "新乳业": 2, "明治": 2, "和光堂": 2,
     "danone": 3, "nestle": 3, "nestlé": 3, "wyeth": 3, "aptamil": 3,
     "friso": 3, "similac": 3, "abbott": 2, "meiji": 2, "lactalis": 3,
@@ -73,6 +76,10 @@ KEYWORDS: dict[str, int] = {
     "farmgate": 4, "milk price": 4, "milk supply": 4, "milk collection": 4,
     "milk production": 3, "payout": 3, "new zealand dairy": 4,
     "dairy farmer": 3, "dairy sector": 3, "dairy export": 3, "dairy cow": 2,
+    # 2026-10-29：奶源倾斜后英文牧场稿大量进来，标题往往只有
+    # "dairy farm""milk solids"，不给权重过不了 4.0；中文"奶牛场/奶农/收奶"同理。
+    "dairy farm": 4, "milk solids": 4, "milk payout": 4, "dairy herd": 3,
+    "奶牛场": 4, "奶农": 4, "收奶": 3,
     "fonterra": 3, "synlait": 3, "open country": 3, "westland milk": 3,
     # —— 政策与监管
     # 注意：这里**故意不收录机构名**（市场监管总局、海关总署、卫健委、FDA、EFSA…）。
@@ -141,6 +148,14 @@ CORE_GROUP_C = [
     "milk powder", "whey", "lactoferrin", "milk price", "farmgate", "payout",
     "milk collection", "milk supply", "milk production", "raw milk",
     "dairy ingredient", "dairy export", "synlait", "westland", "open country",
+    # 2026-10-29：站里明确"往海外奶源倾斜"。英文牧场端稿子的标题通常只写
+    # "dairy farm""milk solids""co-op"，按原来的词表过不了门槛，整类内容
+    # 一条都进不来。这几个词只描述奶源与收奶，不涉及 ESG 议题，可以放心收。
+    "dairy farm", "milk solids", "milk cheque", "milk payout", "dairy co-op",
+    "dairy cooperative", "supplier farmer", "dairy herd",
+    # 中文稿写"奶牛场/奶农/收奶"，英文稿写 dairy farm——同一件事两种表述，
+    # 只认英文会让中文奶源稿被误拦。
+    "奶牛场", "奶农", "收奶",
 ]
 _CORE_ALL: list[tuple[str, str]] = sorted(
     [(w.lower(), "人群品类") for w in CORE_GROUP_A]
@@ -164,6 +179,84 @@ WEAK_TOPIC = re.compile(
     r"congress|senate|subsid)",
     re.I,
 )
+
+# 治理/人事/薪酬：和"奶源一手信息"无关，中英文稿都拦。
+# 2026-10-29 把这一组从 WEAK_TOPIC 里拆出来，是因为英文源开始按"奶源倾斜"
+# 放开 ESG/牧场话题——但董事会加薪、CEO 任命这类产业内政仍然没有信息价值。
+WEAK_GOVERNANCE = re.compile(
+    r"(薪酬|年薪|董事会|换届|pay rise|salary|remuneration|board (fee|pay))",
+    re.I,
+)
+
+# 商品导购/种草稿：标题只有卖点，没有新闻事实。
+# 判据是"卖点词 + 没有任何行业信号词"，单独出现卖点词不算——
+# 「婴幼儿纸尿裤抽检不合格」这种稿子不会写"不闷屁屁"。
+SHOP_CLAIM = re.compile(
+    r"(一觉睡到|不闷|超薄|轻薄|瞬吸|返渗|干爽|亲肤|柔软|透气|"
+    r"种草|开箱|亲测|好物|闭眼入|到手价|券后|活动价|包邮)"
+)
+NEWS_SIGNAL = re.compile(
+    r"(召回|通报|检出|抽检|不合格|超标|处罚|下架|新规|国标|标准|注册|批件|"
+    r"财报|营收|业绩|收购|并购|融资|上市|关店|份额|涨价|降价|奶价|"
+    r"recall|alert|withdraw|recall|fine|standard|regulation|earnings|acquisition)",
+    re.I,
+)
+
+# 社会新闻 / 地方政务稿：标题里有人物情节、有母婴店，但没有行业事实。
+# 这类稿子靠"母婴店""纸尿裤"能过主题门槛，读起来却是本地广告或家长里短。
+SOCIAL_TITLE = re.compile(
+    r"(民警|警方|辅警|消防|救援|走失|失联|拐卖|盗窃|偷|诈骗|打架|纠纷|醉酒|"
+    r"网友|吐槽|秒懂|妻子|丈夫|婆婆|公公|夫妻|情侣|大爷|大妈|"
+    r"吓坏|后悔|崩溃|哭了|送医|卡住|窒息|烫伤)"
+)
+SOCIAL_INCIDENT = re.compile(
+    r"((\d+岁|男童|女童|男婴|女婴|幼童)[^\n]{0,12}(感染|受伤|烫伤|窒息|身亡|送医|卡住|误食))"
+)
+LOCAL_GOV = re.compile(
+    r"(乡村振兴|便民|增收|驻村|第一书记|基层治理|共同富裕|新时代|"
+    r"(县|镇|乡|村)\s*[：:])"
+)
+# 本地门店广告：营业时间、服务清单、探店、同城。这类稿子标题里一定有地名
+# 和"母婴店"，但内容是给本地消费者看的，跨境的读者拿不到任何信息。
+LOCAL_AD = re.compile(
+    r"(还营业|营业时间|服务清单|一次说清|探店|同城|附近|地址电话|预约到店|\bfaq\b)",
+    re.I,
+)
+
+
+def is_local_or_social(title: str) -> bool:
+    """本地广告、社会趣闻、地方政务稿——主题沾边但信息价值为零。
+
+    只要标题里出现行业信号词（召回/通报/新规/财报…）就放行：
+    「某地通报母婴店销售过期奶粉」是真的新闻，不该被"母婴店 + 县"误伤。
+    """
+    title = title or ""
+    if NEWS_SIGNAL.search(title):
+        return False
+    if LOCAL_GOV.search(title):
+        return True
+    if LOCAL_AD.search(title):
+        return True
+    if SOCIAL_INCIDENT.search(title):
+        return True
+    if SOCIAL_TITLE.search(title) and not SHOP_CLAIM.search(title):
+        return True
+    return False
+
+
+def is_shop_claim(title: str) -> bool:
+    """只有卖点、没有任何新闻事实的导购稿。"""
+    title = title or ""
+    return bool(SHOP_CLAIM.search(title)) and not NEWS_SIGNAL.search(title)
+
+
+def _is_digest(title: str) -> bool:
+    """「新闻速递丨A；B；C」这类一日多条汇总稿。
+
+    它一定含"揭牌/发布/上线"这些公关稿常见词，但整条里并排了好几个事实，
+    信息量比单篇公关稿高得多，不能按公关稿丢掉。
+    """
+    return (title or "").count("；") + (title or "").count(";") >= 2
 
 # 明显无关的主题，命中直接丢弃（避免"奶粉"出现在综艺/体育新闻里被误收）
 BLOCKLIST = [
@@ -312,6 +405,7 @@ def judge(
     summary: str,
     min_score: float = 4.0,
     require_core: bool = True,
+    strict_weak: bool = True,
 ) -> tuple[bool, float, list[str], list[str]]:
     """粗筛入口。返回 (是否保留, 分数, 命中词, 标签)。
 
@@ -320,22 +414,34 @@ def judge(
          也没有奶粉供应链核心词 → 直接丢，**不看分数**。
          泛食品源的抽检稿就是在这里被拦住的。
       2) 关键词分 ≥ min_score：过了第一道再用分数确认它确实是行业稿。
+
+    strict_weak：英文源传 False。海外奶源是本站的选题方向之一，牧场管理、
+    甲烷、收奶量这类稿子在英文语境里就是"奶源一手信息"，用中文那套
+    "产业内政一律不要"的口径会把整类内容清空。治理/人事/薪酬
+    （WEAK_GOVERNANCE）对中英文一视同仁，仍然拦。
     """
     if is_blocked(title, summary):
         return False, 0.0, [], []
     if is_junk_title(title):
         # SEO 导流稿：标题里往往正好带"baby formula"，关键词分很高但没信息价值
         return False, 0.0, [], []
-    if is_promo_title(title):
+    if is_promo_title(title) and not _is_digest(title):
         # 获奖/庆典/邀约类公关稿，信息量为零
+        return False, 0.0, [], []
+    if is_shop_claim(title) or is_local_or_social(title):
+        # 商品导购稿、本地广告、社会趣闻、地方政务稿：主题沾边但没有行业事实
         return False, 0.0, [], []
     word, group = core_hit(title)
     if require_core and not word:
         # 主题不对：不是母婴/奶粉这条线上的东西，分数再高也不收
         return False, 0.0, [], []
-    if group != "人群品类" and WEAK_TOPIC.search(title or ""):
-        # 有品牌或供应链线索，但讲的是乳业治理/ESG/牧场科研：给从业者看的，不是母婴读者要的
-        return False, 0.0, [], []
+    if group != "人群品类":
+        if WEAK_GOVERNANCE.search(title or ""):
+            # 董事会加薪、CEO 任命：中英文都没有信息价值
+            return False, 0.0, [], []
+        if strict_weak and WEAK_TOPIC.search(title or ""):
+            # 中文源：乳业治理/ESG/牧场科研属于产业内政，不是母婴读者要的
+            return False, 0.0, [], []
     sc, hits = score(title, summary)
     tags = classify(title, summary)
     return sc >= min_score, sc, hits, tags

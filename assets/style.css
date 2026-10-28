@@ -781,6 +781,18 @@ button[hidden], [hidden] { display: none !important; }
 }
 .it-m .src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* AI 摘要标识：只要求"能被看见"，不能抢标题和来源的注意力。
+   10px 灰字、无底色无边框，跟在来源后面。 */
+.it-m .ai-mark {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: .04em;
+  color: var(--faint);
+  opacity: .8;
+  cursor: help;
+}
+
 /* 热度分压在元信息行最右：全部动态是纯时间流，读者需要一个"哪条更值得
    点开"的线索，但它不该独占一行，也不该比标题更响 */
 .it-m .heat {

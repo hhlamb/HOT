@@ -17,11 +17,10 @@ fetch:
   max_delay_seconds: 3.0       # 间隔随机上限（打散节奏，降低被封概率）
   max_items_per_source: 60     # 单源单次最多取多少条（源变多后单源上限放宽，总量更足）
   respect_robots: true         # 是否遵守 robots.txt
-  # ⚠️ 这个 UA 里不要加 "Bot" / "Crawler" 之类的标识。
-  # 实测：foodmate 的 WAF 对含 MilkFeedBot 的 UA 直接返回 403，纯浏览器 UA 返回 200。
-  # 我们仍然遵守 robots.txt、按域名限速、只取标题与摘要（不抓全文），
-  # 这是个人小规模聚合的合理边界；如你更保守，可把下面换回带 Bot 标识的字符串，
-  # 代价是 foodmate 等站点会持续 403。
+  # 抓取身份：使用标准浏览器标识，并按域名限速、遵守 robots.txt。
+  # 部分站点对自动化请求较敏感（会对非浏览器标识直接返回 403），
+  # 因此统一采用浏览器标识，访问频率保持在人工浏览的量级（见上面的 min/max_delay）。
+  # 长期返回 403/挑战页的源按"源失效"处理，由健康检查告警，不在这里做特殊处理。
   user_agent: >-
     Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
     (KHTML, like Gecko) Chrome/124.0 Safari/537.36
