@@ -257,10 +257,20 @@ function render(item, all) {
   }
   el.factsWrap.hidden = false;
 
-  /* 原文出口：只写清出处，版权声明页脚已经有一处，这里不必再说一遍 */
+  /* 原文出口：只写清出处，版权声明页脚已经有一处，这里不必再说一遍。
+     URL 走一遍协议白名单再落到 href：抓来的链接是外部数据，
+     startsWith("http") 挡不住 "httpjavascript:" 这类脏值，
+     真出问题时一个 javascript: 链接就是一个点击即执行的洞。 */
   const url = item.original_url || "";
   el.originText.textContent = `出处 · ${item.source_name || "原媒体"}`;
-  if (url.startsWith("http")) el.origin.href = url;
+  let safeUrl = "";
+  try {
+    const u = new URL(url, window.location.href);
+    if (u.protocol === "http:" || u.protocol === "https:") safeUrl = u.href;
+  } catch (e) {
+    safeUrl = "";
+  }
+  if (safeUrl) el.origin.href = safeUrl;
   else el.origin.hidden = true;
 
   el.article.hidden = false;

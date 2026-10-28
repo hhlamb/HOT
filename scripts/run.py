@@ -131,12 +131,18 @@ def main() -> int:
             "relevant": 0,
             "new": 0,
             "stale": 0,
+            "offtopic": 0,  # 品牌点名源里没提到该品牌的稿子
             "elapsed_ms": res.elapsed_ms,
         }
         kept_here: dict[str, dict] = {}
         # 品牌点名源（must_match）：查询本身就是"这个词最近有没有新稿"，
-        # 命中品牌名就算相关。否则「哈克草本」这类非奶粉品类的稿子会被
-        # 奶粉关键词闸门整批拦掉——实测 9 条只过 1 条。
+        # 所以这个源里**只有**点名命中的才算相关，命中就直接放行。
+        #
+        # 反过来也必须堵住：Google 的检索式是"或"关系，同一条查询会顺带
+        # 返回一大堆泛母婴稿（奶粉横评、门店专栏、幼儿酱油钠含量…），
+        # 它们靠"奶粉""母婴"这些词能过 keyword 闸门，于是混进品牌源里
+        # 冒充该品牌的新闻。实测美素佳儿 9 条里只有 2 条真提到它。
+        # 因此带 must_match 的源：没点名 = 不是这条新闻，直接丢，不再交给 judge()。
         must_match = [w.strip().lower() for w in (src.get("must_match") or []) if str(w).strip()]
         for item in res.items:
             title = item["title"]
@@ -155,10 +161,15 @@ def main() -> int:
                         row["stale"] += 1  # 品牌官网页脚里的陈年旧稿
                         continue
             hay = (title + " " + (item.get("summary") or "")).lower()
-            if must_match and any(w in hay for w in must_match):
-                # 点名命中：直接放行，标品牌动态。分数给 3.0 只是占位，
-                # 不参与相关性判断（下游只用它做展示/排序参考）。
-                ok, score, hits, tags = True, 3.0, ["品牌点名"], ["品牌动态"]
+            if must_match:
+                if not any(w in hay for w in must_match):
+                    # 没点到名：这条稿子跟本源的品牌无关，计数后丢弃。
+                    # 不能交给 judge()——那正是混进泛母婴稿的入口。
+                    row["offtopic"] += 1
+                    continue
+                # 点名命中：放行，标品牌动态。分数给 4.5 只为排序，
+                # 与"强关键词直接命中"同级，不参与相关性判断。
+                ok, score, hits, tags = True, 4.5, ["品牌点名"], ["品牌动态"]
             else:
                 ok, score, hits, tags = judge(title, item.get("summary", ""), min_score)
             if not ok:
