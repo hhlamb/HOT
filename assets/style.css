@@ -1123,7 +1123,9 @@ button[hidden], [hidden] { display: none !important; }
 
 /* ---------------------------------------------------------- 详情页 */
 
-.article { max-width: 728px; }
+/* 阅读栏限宽 728，但容器比它宽：贴左摆会在右侧空出一大条，
+   整篇看着像被裁过。居中之后左右留白对称，视线落在中间那一列。 */
+.article { max-width: 728px; margin: 0 auto; }
 .article-meta {
   display: flex;
   align-items: center;
@@ -1270,7 +1272,12 @@ button[hidden], [hidden] { display: none !important; }
 .fact dd { margin: 0; font-size: 12.8px; color: var(--ink-2); }
 
 /* 延伸阅读 */
-.extend { margin-top: 30px; }
+/* 正文一列居中，下面这两块（相关阅读/延伸阅读）跟着收成同一栏宽。
+   不收的话它们比正文宽 112px，滚动到页尾会突然看出左右都没对齐。 */
+.extend {
+  max-width: 728px;
+  margin: 30px auto 0;
+}
 .extend-list { display: flex; flex-direction: column; }
 .extend-item {
   display: flex;
@@ -1504,8 +1511,10 @@ button[hidden], [hidden] { display: none !important; }
     width: auto;
     flex: none;
     white-space: nowrap;
-    padding: 9px 12px;
-    font-size: 13px;
+    /* 主题栏目撤掉后这一行只剩四项，宽度有余量，
+       把点击区域撑大一点：手机上 6px 的差距就是误触和点中的差距 */
+    padding: 11px 14px;
+    font-size: 13.5px;
     border-radius: 6px;
   }
   /* 手机上去掉图标、只留文字：五个栏目加起来比 375px 只多一点点，
