@@ -26,7 +26,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import feedparser  # noqa: E402
 from curl_cffi import requests as cffi  # noqa: E402
 
+from pipeline.fetchers import fetch_source  # noqa: E402
+from pipeline.http import PoliteClient  # noqa: E402
 from pipeline.relevance import judge  # noqa: E402
+from pipeline.sources import load_config, load_sources  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "meta" / "brand-probe.md"
@@ -129,6 +132,46 @@ def probe_html(url: str) -> dict:
     return row
 
 
+def probe_pipeline(now: datetime) -> list[tuple[str, str, int, int, int, list[str]]]:
+    """按生产路径把几个源真抓一遍，返回 (源, 结果, 抓到, 过期, 过阈值, 样例)。"""
+    cfg = load_config()
+    fetch_cfg = cfg["fetch"]
+    max_age = int(cfg.get("pipeline", {}).get("max_age_days", 45) or 45)
+    wanted = ["brand_harker", "brand_cenovis", "brand_friso", "gnews_cn_brand_news"]
+    by_id = {s["id"]: s for s in load_sources()}
+    client = PoliteClient(fetch_cfg)
+    rows: list[tuple[str, str, int, int, int, list[str]]] = []
+    for sid in wanted:
+        src = by_id.get(sid)
+        if not src:
+            rows.append((sid, "源不存在/未启用", 0, 0, 0, []))
+            continue
+        try:
+            res = fetch_source(client, src, fetch_cfg, now)
+        except Exception as exc:  # 单源异常不能炸整张报告
+            rows.append((sid, f"{type(exc).__name__}: {exc}"[:90], 0, 0, 0, []))
+            continue
+        stale = kept = 0
+        titles: list[str] = []
+        for item in res.items:
+            published = None
+            if item.get("published_at"):
+                try:
+                    published = datetime.fromisoformat(item["published_at"])
+                except ValueError:
+                    published = None
+            if published is not None and published < now - timedelta(days=max_age):
+                stale += 1
+                continue
+            ok, _score, _hits, _tags = judge(item["title"], item.get("summary", ""))
+            if ok:
+                kept += 1
+            if len(titles) < 2:
+                titles.append(f"{item['title'][:48]}（{item.get('source_name', '')[:10]}）")
+        rows.append((sid, res.error or "ok", len(res.items), stale, kept, titles))
+    return rows
+
+
 def main() -> int:
     now = datetime.now(timezone.utc)
     lines = [
@@ -166,6 +209,19 @@ def main() -> int:
                 f"| {brand} | {engine} | {row['status']} | {row['entries']} | "
                 f"{row.get('fresh', '-')} | {row.get('newest', '-')} | {row.get('error', '')} |"
             )
+
+    # 表三最关键：走的是生产那条路（PoliteClient + fetch_source + judge），
+    # 前面两张表证明"索引里有稿"，这张表才能证明"抓进来为什么没入库"。
+    lines += [
+        "",
+        "## 三、走生产抓取路径（含 robots、限速、45 天窗口、相关度阈值）",
+        "",
+        "| 源 | 结果 | 抓到 | 过期丢弃 | 过阈值 | 样例 |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for sid, note, got, stale, kept, samples in probe_pipeline(now):
+        sample = samples[0][:56] if samples else ""
+        lines.append(f"| {sid} | {note} | {got} | {stale} | {kept} | {sample} |")
 
     lines.append("")
     OUT.parent.mkdir(parents=True, exist_ok=True)
