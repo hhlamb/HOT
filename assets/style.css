@@ -322,6 +322,10 @@ button[hidden], [hidden] { display: none !important; }
 .rail-stat b { color: var(--ink-2); font-weight: 600; font-family: var(--font-num); }
 
 .icon-btn {
+  /* 必须自己定位：下面的 ::after 用 inset:-6px 撑热区，
+     一旦按钮不是定位元素，伪元素会挂到最近的定位祖先（.rail 是 sticky）
+     上，铺满整条侧栏——点导航、点分类、点空白全被它吃掉，变成切深浅色。 */
+  position: relative;
   width: 30px;
   height: 30px;
   display: grid;
@@ -866,8 +870,10 @@ button[hidden], [hidden] { display: none !important; }
 
 /* 缩略图 */
 .thumb {
-  width: 88px;
-  height: 64px;
+  /* 88×64 在 840 宽的内容列里只占十分之一，读起来像一枚图标而不是配图；
+     116×84 才够看清画面，又不至于把标题栏挤到两行。 */
+  width: 116px;
+  height: 84px;
   flex: none;
   border-radius: 8px;
   overflow: hidden;
@@ -1702,15 +1708,8 @@ button[hidden], [hidden] { display: none !important; }
   .theme-float:active { transform: scale(.94); }
 }
 
-/* ---------------------------------------------------------- 宽屏收框
-   ≥1600px 时把侧栏和内容一起收进一个居中的框：1920 宽屏上原来
-   侧栏贴着屏幕最左、与居中的内容列隔着约 300px 空白，像被遗忘在角落。
-   收框后两者始终挨着，两侧留白交给页面底色。 */
-@media (min-width: 1600px) {
-  .shell {
-    max-width: 1320px;
-    margin: 0 auto;
-    border-inline: 1px solid var(--line);
-  }
-  .main { padding-inline: 56px; }
-}
+/* 宽屏不再收框。
+   v2 曾把 ≥1600px 的整页收进 1320px 居中，结果 1920 屏上侧栏被推到
+   x=301、内容列只剩 840，整站像一条细缝，左右各留 300 空白——
+   页面变"短"、缩略图被挤成小方块，读起来比原来更累。
+   这里回到全宽：侧栏贴左，内容列自己控宽，留白交给内容列的上限。 */

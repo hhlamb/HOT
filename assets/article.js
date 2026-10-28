@@ -160,12 +160,25 @@ function render(item, all) {
   }
   /* 大图：只放原文真配图。没有就不出现这一块——
      分类插画跟这篇稿子没有关系，占掉六百多像素换一张示意图，
-     不如让标题直接顶上。图挂了也整块撤掉，不留空框。 */
+     不如让标题直接顶上。
+     但图挂了不能整块撤掉：约三成外链图会 403 或图床被墙，撤掉之后
+     读者看到的就是"这一页没图"，而原文其实是有的。改成回落分类主题图，
+     并在图注里说清这不是原文配图。 */
   if (ownImg) {
     el.heroImg.src = item.image;
     el.heroImg.alt = title;
     el.hero.classList.remove("hero-img--topic", "hero-img--art");
-    el.heroImg.addEventListener("error", () => { el.hero.hidden = true; });
+    el.heroImg.addEventListener("error", () => {
+      const theme = FD.topicCover(item);
+      if (el.heroImg.dataset.fb || !theme) {
+        el.hero.hidden = true;
+        return;
+      }
+      el.heroImg.dataset.fb = "1";
+      el.heroImg.src = theme;
+      el.hero.classList.add("hero-img--topic");
+      el.heroCap.textContent = "原图加载失败，显示分类示意图";
+    });
     el.heroCap.textContent = `配图来自 ${item.source_name || "原媒体"}`;
     el.hero.hidden = false;
   }
