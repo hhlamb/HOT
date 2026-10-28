@@ -283,6 +283,7 @@ sources:
     lang: en
     priority: P1
     enabled: true
+    expect_block: true   # CDN/Incapsula 挑战，抓不到属预期；靠 Google News 兜底
     note: 2026-10-26 复核：FSANZ 改版后列表页需 JS，且对境外爬虫限流。改由 Google News 定向查询覆盖。2026-10-29 恢复启用：本站要往海外奶源与海外监管倾斜，先按原列表页试抓，CI 若被挡只记该源失败；召回口径另开 fsanz_recall
 
   - id: fsanz_recall
@@ -292,6 +293,7 @@ sources:
     lang: en
     priority: P0
     enabled: true
+    expect_block: true   # CDN/Incapsula 挑战，抓不到属预期；靠 Google News 兜底
     selector: 'a[href*="/recall"]'
     url_must_include: '/recall'
     note: 婴幼儿配方食品、辅食的澳新召回一手通告。2026-10-29 新增：本机网络到 fsanz.gov.au 直接超时（DNS/TLS 被挡），无法本地验证路径，以 CI probe 结果为准；返回 0 条会在 Actions 日志里体现
@@ -303,6 +305,7 @@ sources:
     lang: en
     priority: P0
     enabled: true
+    expect_block: true   # CDN/Incapsula 挑战，抓不到属预期；靠 Google News 兜底
     selector: 'a[href*="recalled-food-products"]'
     url_must_include: 'recalled-food-products/.+'
     note: 新西兰初级产业部的召回清单，奶粉与婴配粉的海外召回一手来源（2026-10-29 新增）。站点前置 Incapsula 挑战，本地实测返回 950 字节壳页；CI 出口 IP 不同，抓不到时只记失败，不影响整轮
@@ -760,6 +763,7 @@ sources:
     lang: en
     priority: P1
     enabled: true
+    expect_block: true   # CDN/Incapsula 挑战，抓不到属预期；靠 Google News 兜底
     selector: 'a[href*="/news/"]'
     url_must_include: 'dairynz\.co\.nz/news/.+'
     note: 协会视角的牧场端与科研（配种、产犊、环保合规、牧场系统）。2026-10-26 服务端核实：列表 SSR 可解析，链接形如 /news/<slug>/，日期为 "21 Oct 2026"（已加英文月名解析）。本机 403 是 Cloudflare，CI 待复核。2026-10-28 停用：抓到的全是牧场环保/氮肥/奶牛福利/农场管理，没有任何一条落到奶粉或母婴链条上（7 条 0 条通过主题门槛）。2026-10-29 恢复：选题明确"往海外奶源倾斜"，牧场端就是奶源一手信息，英文源已放开 ESG/牧场话题（只拦薪酬治理类）
@@ -771,6 +775,7 @@ sources:
     lang: en
     priority: P1
     enabled: true
+    expect_block: true   # CDN/Incapsula 挑战，抓不到属预期；靠 Google News 兜底
     selector: 'a[href*="/news/media-releases/"]'
     url_must_include: '/news/media-releases/.+'
     date_regex: '(?P<d>\d{1,2})\.(?P<m>\d{1,2})\.(?P<y>\d{2})(?!\d)'

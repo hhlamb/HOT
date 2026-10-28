@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pipeline import store  # noqa: E402
+from pipeline.sources import load_sources  # noqa: E402
 
 META = ROOT / "meta"
 STATE = META / "health-state.json"
@@ -128,11 +129,19 @@ def main() -> int:
     elif lines != actual:
         alerts.append(("P1", f"物理行 {lines} 条，唯一 id {actual} 条，存在重复入库"))
 
+    # 官方站前置 CDN 挑战的源（mpi/fsanz/dairynz）在数据中心 IP 上必然失败，
+    # sources.yaml 里标了 expect_block。它们既不算进"成功源"阈值，
+    # 也不参与"连续失败"告警——否则每轮都报同一件事，告警就没人看了。
+    blocked = {s["id"] for s in load_sources(enabled_only=False) if s.get("expect_block")}
+
     if last:
-        ok = last.get("sources_ok", 0)
+        rows_src = last.get("sources", [])
+        ok = sum(1 for s in rows_src if not s.get("error"))
         total_src = last.get("sources_total", 0)
-        if ok < MIN_SOURCES_OK and total_src:
-            alerts.append(("P0", f"成功源只有 {ok}/{total_src}（阈值 {MIN_SOURCES_OK}）"))
+        ok_eff = sum(1 for s in rows_src if s["id"] not in blocked and not s.get("error"))
+        total_eff = max(len([s for s in rows_src if s["id"] not in blocked]), 0)
+        if total_eff and ok_eff < MIN_SOURCES_OK:
+            alerts.append(("P0", f"成功源只有 {ok_eff}/{total_eff}（阈值 {MIN_SOURCES_OK}）"))
         if last.get("new", 0) == 0:
             zero = state.get("zero_streak", 0) + 1
             if zero >= ZERO_STREAK:
@@ -146,6 +155,8 @@ def main() -> int:
         avg = state.get("source_avg", {})
         for src in last.get("sources", []):
             sid = src["id"]
+            if sid in blocked:
+                continue
             if src.get("error"):
                 streak[sid] = streak.get(sid, 0) + 1
                 if streak[sid] >= SOURCE_FAIL_STREAK:
