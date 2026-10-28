@@ -1,0 +1,45 @@
+name: diag-brand
+
+# 只为排查"新接的品牌源一轮 0 条"而存在：把 Google 返回的条数、
+# 时间窗、相关度阈值三层的数字算清楚，结果写进 meta/brand-probe.md 提交回仓库。
+# 手动触发或改脚本时跑；不会碰 data/，也不会顺带触发抓取。
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "scripts/diag_brand.py"
+      - ".github/workflows/diag-brand.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 探测品牌查询
+        run: python scripts/diag_brand.py
+
+      - name: 提交报告
+        run: |
+          if [ -z "$(git status --porcelain meta/brand-probe.md)" ]; then
+            echo "报告无变化"; exit 0
+          fi
+          git config user.name "milkfeed-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add meta/brand-probe.md
+          git commit -m "chore: brand probe report"
+          git push
