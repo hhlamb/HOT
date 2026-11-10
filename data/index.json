@@ -1,11 +1,11 @@
 {
- "last_updated": "2026-11-10T17:09:58+00:00",
- "total": 793,
+ "last_updated": "2026-11-10T19:15:25+00:00",
+ "total": 795,
  "months": [
   {
    "month": "2026-11",
    "file": "2026-11.jsonl",
-   "count": 236
+   "count": 238
   },
   {
    "month": "2026-10",
@@ -29,7 +29,7 @@
   "跨境电商"
  ],
  "sources_total": 60,
- "sources_ok": 52,
- "with_summary": 793,
+ "sources_ok": 51,
+ "with_summary": 795,
  "retention_days": 90
 }
