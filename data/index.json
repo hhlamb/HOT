@@ -1,5 +1,5 @@
 {
- "last_updated": "2026-11-14T10:57:50+00:00",
+ "last_updated": "2026-11-14T13:12:29+00:00",
  "total": 890,
  "months": [
   {
@@ -30,6 +30,6 @@
  ],
  "sources_total": 60,
  "sources_ok": 52,
- "with_summary": 888,
+ "with_summary": 889,
  "retention_days": 90
 }
