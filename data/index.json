@@ -1,11 +1,11 @@
 {
- "last_updated": "2026-11-15T07:26:08+00:00",
- "total": 900,
+ "last_updated": "2026-11-15T09:04:02+00:00",
+ "total": 902,
  "months": [
   {
    "month": "2026-11",
    "file": "2026-11.jsonl",
-   "count": 337
+   "count": 339
   },
   {
    "month": "2026-10",
@@ -30,6 +30,6 @@
  ],
  "sources_total": 60,
  "sources_ok": 51,
- "with_summary": 899,
+ "with_summary": 901,
  "retention_days": 90
 }
